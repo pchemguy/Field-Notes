@@ -1,95 +1,106 @@
-# Resurrection of the Large File Downloading Issue
+# Resuming Large File Downloads with Dynamic Links
 
-In the early days of the Internet with slow unreliable connections, the facilitation of file downloading task rightfully attracted considerable attention. However, as the available network bandwidth has rapidly increased and protocol resilience improved, the downloading process has progressively become more robust. Surprisingly, no major browser provider (at least on Windows), be it Microsoft, Mozilla, or Google has ever cared to develop a robust built-in download manager. The problem was only addressed by third-party solutions, and their gradual abandonment (see, e.g., the "General Information" table in [this Wikipedia article](https://en.wikipedia.org/wiki/Comparison_of_download_managers)) signaled the improved downloading experience.
+## 1. The Problem
 
-Meanwhile, distribution of rapidly swelling packages, such as operating systems and CAD systems, has been also increasingly shifted towards downloading over the Internet. The fact that modern browsers are absolutely not capable of properly handling large file downloads is indirectly and silently acknowledged by many major software vendors. Instead of providing a proper robust general-purpose solution, Microsoft, Google, Autodesk, and various other vendors increasingly adopted a ridiculous solution where instead of providing a direct download link to the target distribution, provided link downloads a stub, which is essentially a download manager focusing on one specific package or a group of packages. While this design with specialized managers is justified under certain scenarios, such as in the case of highly customizable multi-component downloads, most of the time I interpret this design as a sign of gross incompetence. For example, for years, Google provided the Chrome browser as a stubbed download and implemented a separate specialized solution for downloading updates instead of integrating a proper download manager. (Another vivid example is GitHub Desktop, which has a horrible built-in download manager.) These poor-man approaches to the downloading task partially masked resurrection of the issue.
+Modern web browsers, despite network improvements, often fail to robustly download large files (e.g., OS images, CAD software) over unreliable or slow connection. There are two primary reasons for this problem:
 
-The downloading problem has been further worsened due to two tendencies. On the one hand, the size of large files has grown substantially faster than generally available network bandwidth for end users and download providers (especially those not being able to use CDN networks). On the other hand, providers have largely moved from providing direct download links to providing "nominal" download links that must be used by the browser (or download manager) to obtain real, often dynamic, direct links in the course of "download negotiation" process. This negotiation process is often used by providers to automatically balance downloads from multiple sites and/or protect the resource from automatic mass downloads (e.g., by requiring a mandatory user involvement in the download negotiation process in the form of a captcha challenge or including a short-lived dynamically generated token in the final negotiated download link (e.g., GitHub assets downloads)). Perhaps, the only reliable general-purpose solution to large file downloads is the peer-to-peer Torrent protocol, but very few providers, if any, bother providing downloads over the Torrent protocol.
+1. **Limited Resume Capabilities:** Standard browser downloaders often cannot properly resume a download that fails midway through, deleting the partial file and forcing a restart.
+2. **Dynamic & Expiring Links:** Many services no longer provide simple, direct download links. Instead, a browser must first "negotiate" a real link by following HTTP redirects. This negotiated link is often dynamic and temporary, may contain a short-lived token (a common practice on GitHub for asset downloads) or be guarded by a required captcha-like challenge. If the connection drops due to expired token, the browser's attempt to resume from the now-invalid URL will fail permanently.
 
-Resumed downloads is the primary means that is absolutely essential for robust downloading of large files over unreliable connections (regardless of bottleneck location on the client side, server side, or somewhere in the middle). However, in cases of dynamically negotiated links when connection error is not a temporary connectivity issue, but a result of an expired link, attempts to resume the download using the same expired link are useless. Browsers may not be capable of recognizing this matter and properly renegotiating a new link automatically even when such capability is available. In some cases, a new link (or new cookie) must be obtained by passing a new captcha challenge, so generally, cannot be performed automatically without AI. In either case, browsers fail download and delete partial files instead of letting user intervene and resume download. In such cases, it may be virtually impossible to download the file not because of any abusive user actions, but because of junk built-in download managers.
+The lack of robust built-in general-purpose browser download manager resulted in an odd trend where even major software vendors replace direct download links with small, single-purpose "stub" downloaders (e.g., think of how the Google Chrome browser has been distributed for years). The most widely used general solution for robust downloading of large files is the peer-to-peer Torrent protocol, but its adoption remains limited, with truly general-purpose widely adopted solution lacking.
 
-The only workable solution I have found is via scripted download (I primarily use Windows, so the script is based on Windows batch language, but can be straightforwardly adopted to bash) using an established command-line download tool, such as WGET. While I have no intention to circumvent anti-abusive features and I am not aiming for any kind of automated abusive mass download (I simply need to be able to download the target at all), special measures needs to be taken to ensure that WGET download request will not be rejected. Servers often use identification information provided by clients in HTTP headers (mainly, user agent and cookies) to distinguish browser-initiated versus non-browser downloads to reject the latter due to there frequent use for automated mass downloads. Therefore, WGET needs to identify itself in the download requests as a browser. This task can be accomplished by retrieving headers from HTTP request sent by the browser via built-in developer tools (while this task is relatively quick, I am intentionally on providing details on this part; besides, this information can be found elsewhere) and including them in WGET command line. HTTP request metadata also provide the actual negotiated URL and cookie, which may be necessary, especially when captcha challenge is performed.
+## 2. The Solution
 
-In addition to user agent, I decided to include a few other common headers present in the actual browser request. These headers are browser specific (so do not depend on particular download target details) and placed in the `headers.txt` file, which is loaded and parsed by the script:
+The most reliable solution for conventional HTTP downloads is, perhaps, to use a command-line tool like **`wget`** in a script that can handle resuming downloads and can be re-run to get a fresh download link when needed.
 
-```batch
-for /f "usebackq tokens=1,* delims=:" %%G in ("%HEADER_FILE%") do (
-    set header_key=%%G
-    set header_value=%%H
+This approach involves two key steps:
 
-    :: Trim the leading space that often follows the colon in header values
-    if "!header_value:~0,1!"==" " set header_value=!header_value:~1!
+- **Aligning with the Browser Request:** To continue the download session initiated in the browser, the script configures `wget` to use the same HTTP headers. This includes the `User-Agent` and any necessary session cookies. By providing this context, the server recognizes the `wget` request as a valid continuation of the user's activity.
+- **External Retry Loop:** The `wget` command is wrapped in an external batch loop. If `wget` fails because a temporary link has expired, the loop simply re-runs the entire command, which uses the _original_ URL to negotiate a _new_, valid download link and then resumes the download from where it left off, if possible.
 
-    set WGET_HEADERS=!WGET_HEADERS! --header="!header_key!: !header_value!"
-)
+## 3. Setup and Usage
+
+You will need two files placed in the same directory:
+
+- `download.bat`: The main script.
+- `headers.txt`: A file containing browser headers.
+
+### Step 1: Get `wget`
+
+Ensure you have a command-line `wget` executable. This script is configured to find it at `C:/dev/msys64/usr/bin/wget.exe`, but you can change this path or add your `wget` location to your system's `PATH`.
+
+### Step 2: Create `headers.txt`
+
+Using your browser's developer tools (usually F12), start the download you want, and inspect the network request. Copy the main request headers into a text file named `headers.txt`. This file will tell `wget` how to identify itself.
+
+**Example `headers.txt`:**
+
+```
+accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+accept-language: en-US,en;q=0.9,ru;q=0.8
+cache-control: max-age=0
+priority: u=0, i
+upgrade-insecure-requests: 1
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
 ```
 
-The only other file is the download Windows batch script `download.bat`. The download URL and cookie are download specific and place in the configuration section of the script:
+### Step 3: Configure `download.bat`
 
-```batch
+Open `download.bat` and edit the configuration section at the top:
+
+Code snippet
+
+```
 :: --- Set the full URL you want to download ---
 set "URL=https://hirensbootcd.org/files/HBCD_PE_x64.iso"
 
-:: --- Paste your full cookie data inside the quotes ---
+:: --- Paste your full cookie data inside the quotes (if needed) ---
 set "COOKIE_STRING="
 
-set WGET=C:/dev/msys64/usr/bin/wget.exe 
-set HEADER_FILE=headers.txt
-
-:: -- See docs next to the download loop below for adjusting MAX_WGET_EXT_RETRIES
-set MAX_WGET_EXT_RETRIES=99
-set COOKIE_FILE=
-REM cookies.txt
-
-set GITHUB_TOKEN=
-
-:: --- Set the names for your output files ---
-set OUTPUT_FILE=HBCD_PE_x64.iso
+:: --- Set the desired name for your output file ---
+set "OUTPUT_FILE=HBCD_PE_x64.iso"
 ```
 
-Importantly, special attention should be paid to potential presence of special characters in URL and cookie string, particularly ampersand and percent sign. Percent sign must always be escaped by doubling (`%%`) when used in batch file. Ampersand, on the other hand, if included in a quoted string (which is the case), should not be escaped. At the same time, when exporting URL and cookie from HTTP request as a `curl` command, Chrome escapes ampersands with carets (`^&`) while does not escape percent sign (special character behavior differs between direct execution of a command and commands placed in a batch script).
+- **`URL`**: The initial download link you get from the website, if the downloads proceeds automatically. When guarded by a captcha-like challenge, it may be necessary to use the final redirected URL.
+- **`COOKIE_STRING`**: If the download requires you to be logged in or guarded by a captcha-like challenge, paste the full cookie string from your browser's developer tools here.    
+- **`OUTPUT_FILE`**: Set the final filename. If left blank, `wget` will try to determine it automatically.
 
-I do not have WGET in my `Path`, which is why I added the `WGET` variable to the script. The `MAX_WGET_EXT_RETRIES` variable will be discussed later. The `OUTPUT_FILE` variable may be left unset, in which case `wget` will select the name of the output file automatically.
+### Step 4: Run the Script
 
-```
-if not "%OUTPUT_FILE%"=="" (
-  set OUTPUT_DOCUMENT=--output-document "%OUTPUT_FILE%"
-) else (
-  set OUTPUT_DOCUMENT=
-)
-```
+Execute `download.bat` from your command prompt. It will start the download and automatically retry if it encounters an error.
 
-Cookie may be included in the script directly via the `COOKIE_STRING` variable or via an automatically generated `cookies.txt` file (the `COOKIE_FILE` variable, presently unset). I used the `cookies.txt`file before, but I have realized that setting the `COOKIE_STRING` variable directly is simpler (`cookies.txt` related code is still left and conditionally executed only if  the `COOKIE_STRING` variable is not set):
+## 4. How It Works: A Deeper Dive
 
-```
-if "%COOKIE_STRING%"=="" (
-  if not "%COOKIE_FILE%"=="" (
-    set LOAD_COOKIES=--load-cookies="%COOKIE_FILE%"
-  ) else (
-    set LOAD_COOKIES=
-  )
-)
+The script is built around a single `wget` command inside a loop.
 
-set WGET_HEADERS=
-if not "%COOKIE_STRING%"=="" (
-  set WGET_HEADERS=%WGET_HEADERS% --header="Cookie: %COOKIE_STRING%"
-)
-```
-
-## WGET Command
-
-The actual `WGET` command:
-
-```
+```batch
+:LOOP_WGET_EXT_RETRY
+...
 %WGET% -c --max-redirect 100 --content-disposition --tries=0 --timeout=20 ^
        %LOAD_COOKIES%    ^
        %WGET_HEADERS%    ^
        %OUTPUT_DOCUMENT% ^
        "%URL%"
+...
+goto :LOOP_WGET_EXT_RETRY
 ```
 
-instructs `WGET` to follow redirects (`-c --max-redirect 100`), use `--content-disposition` information for output file name selection, use unlimited number of retries (`--tries=0`) when connection is timed out (20 s time out, `--timeout=20`) or in case of small errors (perhaps, a finite number may need to be used, though I have not encountered problems due to this settings so far).
+- **Core Command Options**:
+    - `-c`: **Continue**. This is the most important flag. It tells `wget` to resume a partially downloaded file.
+    - `--max-redirect 100`: Follow up to 100 redirects to find the actual download URL.
+    - `--tries=0`: Sets `wget`'s internal retries to infinite for temporary network issues.
+- **The External Loop**:
+    - The `:LOOP_WGET_EXT_RETRY` is a simple batch `goto` loop.
+    - It executes `wget`. If `wget` exits with an error (status code is not 0), the script checks if it has reached `MAX_WGET_EXT_RETRIES`.
+    - If not, it increments the counter and loops back to the start, re-running the entire `wget` command from the beginning. This is what allows it to get a fresh token from the original URL, resolving the expired link problem.
 
-When a dynamically generated URL is invalidated (such as in case of short-lived tokens generated by GitHub when downloading assets) and an HTTP error is returned by the server, `WGET` terminates download process. In such a case, the original `WGET` command needs to be executed again to renew the token/URL. Hence the batch loop around the `WGET` command, which is terminated when the download is complete or the maximum number of retries (`MAX_WGET_EXT_RETRIES`) is reached.
+## 5. Handling Captcha Challenges
 
-A more complicated scenario arises when a dynamically generated URL is guarded by a captcha challenge. In such a case, automatic URL/cookie renewal is not practically possible, so should be set to a small number. In such a case the following workflow can be used. Initiate download in the browser by passing the captcha challenge and terminate the download immediately. Export dynamically generated URL and cookie from the HTTP request using developer tools, set variables in the batch script, taking care of appropriate escaping of special characters. Start the download. When the download URL/cookie expire, `WGET` will get an HTTP error and terminate the download process. However, as opposed to browsers, the partially downloaded file will remain intact. The user would need to go again through the captcha challenge, manually a renewing and exporting updated URL/cookie, updating variables in the script and resuming the download process.
+For downloads protected by a captcha, full automation is not possible. The workflow becomes a manual-resume process:
+1. Solve the captcha in your browser and start the download.
+2. Immediately cancel the download in your browser.
+3. Use the browser's developer tools to get the newly generated **URL** and **cookie string** from final HTTP request.
+4. Update these values in the `download.bat` configuration.
+5. Run the script to download as much as possible before the link expires.
+6. When the script fails (because the link expired), the partially downloaded file is kept safe.
+7. Repeat the process from step 1 to get a new link and cookie, update the script, and run it again. `wget` will pick up right where it left off.
