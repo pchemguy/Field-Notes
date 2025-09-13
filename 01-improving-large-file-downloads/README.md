@@ -71,11 +71,14 @@ The script first parses the `headers.txt` file, converting each line into a `--h
 ```
 
 - **Core Command Options**:
-    - `-c`: Tells `wget` to resume a partially downloaded file.
-    - `--max-redirect 100`: Follows up to 100 HTTP redirects to find the actual file.
-    - `--content-disposition`: Uses the server-suggested filename if `OUTPUT_FILE` is not set.
-    - `--tries=0`: Sets `wget`'s internal retries to infinite for temporary network issues like timeouts.
-    - `--timeout=20`: Sets a 20-second connection timeout.
+
+|                         |                                                                                        |
+| ----------------------- | -------------------------------------------------------------------------------------- |
+| `-c`                    | Tells `wget` to resume a partially downloaded file.                                    |
+| `--max-redirect 100`    | Follows up to 100 HTTP redirects to find the actual file.                              |
+| `--content-disposition` | Uses the server-suggested filename if `OUTPUT_FILE` is not set.                        |
+| `--tries=0`             | Sets `wget`'s internal retries to infinite for temporary network issues like timeouts. |
+| `--timeout=20`          | Sets a 20-second connection timeout.                                                   |
 
 ### The External Retry Loop
 
