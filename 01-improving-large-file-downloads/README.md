@@ -8,4 +8,46 @@ The downloading problem has been further worsened due to two tendencies. On the 
 
 Resumed downloads is the primary means that is absolutely essential for robust downloading of large files over unreliable connections (regardless of bottleneck location on the client side, server side, or somewhere in the middle). However, in cases of dynamically negotiated links when connection error is not a temporary connectivity issue, but a result of an expired link, attempts to resume the download using the same expired link are useless. Browsers may not be capable of recognizing this matter and properly renegotiating a new link automatically even when such capability is available. In some cases, a new link (or new cookie) must be obtained by passing a new captcha challenge, so generally, cannot be performed automatically without AI. In either case, browsers fail download and delete partial files instead of letting user intervene and resume download. In such cases, it may be virtually impossible to download the file not because of any abusive user actions, but because of junk built-in download managers.
 
-The only workable solution I have found is via scripted download using an established command-line download tool, such as WGET. While I have no intention to circumvent anti-abusive features and I am not aiming for any kind of automated abusive mass download (I simply need to be able to download the target at all), special measures needs to be taken to ensure that WGET download request will not be rejected. Servers often use identification information provided by clients in HTTP headers (mainly, user agent and cookies) to distinguish browser-initiated versus non-browser downloads to reject the latter due to there frequent use for automated mass downloads. Therefore, WGET needs to identify itself in the download requests as a browser. This task can be accomplished by retrieving headers from HTTP request sent by the browser via built-in developer tools (while this task is relatively quick, I am intentionally on providing details on this part; besides, this information can be found elsewhere) and including them in WGET command line. HTTP request metadata also provide the actual negotiated URL and cookie, which may be necessary, especially when captcha challenge is performed.
+The only workable solution I have found is via scripted download (I primarily use Windows, so the script is based on Windows batch language, but can be straightforwardly adopted to bash) using an established command-line download tool, such as WGET. While I have no intention to circumvent anti-abusive features and I am not aiming for any kind of automated abusive mass download (I simply need to be able to download the target at all), special measures needs to be taken to ensure that WGET download request will not be rejected. Servers often use identification information provided by clients in HTTP headers (mainly, user agent and cookies) to distinguish browser-initiated versus non-browser downloads to reject the latter due to there frequent use for automated mass downloads. Therefore, WGET needs to identify itself in the download requests as a browser. This task can be accomplished by retrieving headers from HTTP request sent by the browser via built-in developer tools (while this task is relatively quick, I am intentionally on providing details on this part; besides, this information can be found elsewhere) and including them in WGET command line. HTTP request metadata also provide the actual negotiated URL and cookie, which may be necessary, especially when captcha challenge is performed.
+
+In addition to user agent, I decided to include a few other common headers present in the actual browser request. These headers are browser specific (so do not depend on particular download target details) and placed in the `headers.txt` file, which is loaded and parsed by the script:
+
+```batch
+for /f "usebackq tokens=1,* delims=:" %%G in ("%HEADER_FILE%") do (
+    set header_key=%%G
+    set header_value=%%H
+
+    :: Trim the leading space that often follows the colon in header values
+    if "!header_value:~0,1!"==" " set header_value=!header_value:~1!
+
+    set WGET_HEADERS=!WGET_HEADERS! --header="!header_key!: !header_value!"
+)
+```
+
+The only other file is the download Windows batch script `download.bat`. The download URL and cookie are download specific and place in the configuration section of the script:
+
+```batch
+:: --- Set the full URL you want to download ---
+set "URL=https://hirensbootcd.org/files/HBCD_PE_x64.iso"
+
+:: --- Paste your full cookie data inside the quotes ---
+set "COOKIE_STRING="
+
+set WGET=C:/dev/msys64/usr/bin/wget.exe 
+set HEADER_FILE=headers.txt
+
+:: -- See docs next to the download loop below for adjusting MAX_WGET_EXT_RETRIES
+set MAX_WGET_EXT_RETRIES=99
+set COOKIE_FILE=
+REM cookies.txt
+
+set GITHUB_TOKEN=
+
+:: --- Set the names for your output files ---
+set OUTPUT_FILE=HBCD_PE_x64.iso
+```
+
+Importantly, special attention should be paid to potential presence of special characters in URL and cookie string, particularly ampersand and percent sign. Percent sign must always be escaped by doubling (`%%`) when used in batch file. Ampersand, on the other hand, if included in a quoted string (which is the case), should not be escaped. At the same time, when exporting URL and cookie from HTTP request as a `curl` command, Chrome escapes ampersands with carets (`^&`) while does not escape percent sign (special character behavior differs between direct execution of a command and commands placed in a batch script).
+
+I do not have WGET in my `Path`, which is why I added the `WGET` variable to the script. The `OUTPUT_FILE` variable may be left unset, in which case `wget` will select the name of the output file automatically. Cookie may be included in the script directly via the `COOKIE_STRING` variable or via an automatically generated `cookies.txt` file (the `COOKIE_FILE` variable, presently unset). I used the `cookies.txt`file before, but I have realized that setting the `COOKIE_STRING` variable directly is simpler (`cookies.txt` related code is still left and conditionally executed only if  the `COOKIE_STRING` variable is not set). 
+
