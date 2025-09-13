@@ -14,7 +14,7 @@ Each topic is contained within its own folder. Inside each folder, you will find
 
 ## Table of Contents
 
-* Work-in-Progress
+- [Resuming Large File Downloads with Dynamic Links](./01-improving-large-file-downloads/README.md) - A scripted `wget` solution for robustly downloading large files.
 
 ## Acknowledgments
 
