@@ -25,8 +25,6 @@ set MAX_WGET_EXT_RETRIES=99
 set COOKIE_FILE=
 REM cookies.txt
 
-set GITHUB_TOKEN=
-
 :: --- Set the names for your output files ---
 
 set OUTPUT_FILE=
@@ -57,9 +55,6 @@ set WGET_HEADERS=
 if not "%COOKIE_STRING%"=="" (
   set WGET_HEADERS=%WGET_HEADERS% --header="Cookie: %COOKIE_STRING%"
 )
-if not "%GITHUB_TOKEN%"=="" (
-  set WGET_HEADERS=%WGET_HEADERS% --header="Authorization: token %GITHUB_TOKEN%"
-)
 
 :: --- Build the --header arguments by parsing the header file ---
 
@@ -68,7 +63,8 @@ for /f "usebackq tokens=1,* delims=:" %%G in ("%HEADER_FILE%") do (
     set header_key=%%G
     set header_value=%%H
 
-    :: Trim the leading space that often follows the colon in header values
+    REM Trim the leading space that often follows the colon in header values
+
     if "!header_value:~0,1!"==" " set header_value=!header_value:~1!
 
     set WGET_HEADERS=!WGET_HEADERS! --header="!header_key!: !header_value!"
@@ -102,11 +98,11 @@ echo ===========================================================================
 echo ------------------------- WGET external retry #%WGET_EXT_RETRY_NUM% %PADDING%-------------------------
 echo ===========================================================================
 
-%WGET% -c --max-redirect 100 --content-disposition --tries=0 --timeout=20 ^
-       %LOAD_COOKIES%    ^
-       %WGET_HEADERS%    ^
-       %OUTPUT_DOCUMENT% ^
-       "%URL%"
+"%WGET%" -c --max-redirect 100 --content-disposition --tries=0 --timeout=20 ^
+         %LOAD_COOKIES%    ^
+         %WGET_HEADERS%    ^
+         %OUTPUT_DOCUMENT% ^
+         "%URL%"
 
 set EXIT_STATUS=%ErrorLevel%
 
