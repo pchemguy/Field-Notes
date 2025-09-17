@@ -23,18 +23,18 @@ Both solutions rely on the same core concept: continuing a session initiated in 
 
 ### Setup and Usage
 
-You'll need two files: the script **[download_wget.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_wget.bat)** and a **`headers.txt`** file (see example [here](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/headers.txt)).
+You'll need two files: the script **[download_wget.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_wget.bat)** and a *headers.txt* file (see example [here](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/headers.txt)).
 
 1. **Locate `wget`:** The script is configured for `C:/dev/msys64/usr/bin/wget.exe`. You should update this path or add `wget` to your system's `PATH`.
-2. **Create `headers.txt`:** Use your browser's developer tools (F12) to inspect the network request for your download and copy the main request headers (except for the cookie) into `headers.txt`.
-3. **Configure `download_wget.bat`:** Open the script and edit the configuration section with your `URL`, `COOKIE_STRING`, and `OUTPUT_FILE`.
+2. **Create *headers.txt*:** Use your browser's developer tools (F12) to inspect the network request for your download and copy the main request headers (except for the cookie) into *headers.txt*.
+3. **Configure *download_wget.bat*:** Open the script and edit the configuration section with your `URL`, `COOKIE_STRING`, and `OUTPUT_FILE`.
     > **Note on Special Characters for Windows Batch Scripts:** Remember to escape percent signs (`%` becomes `%%`) in the `URL` or `COOKIE_STRING` variables. Because both `URL` and `COOKIE_STRING` are quoted, the ampersand should *not* be escaped (do not change `&` to `^&`).
-4. **Run the Script:** Execute `download_wget.bat` to begin.
+4. **Run the Script:** Execute *download_wget.bat* to begin.
 
 ### Execution Logic
 
 The `wget` script  
-1. Parses the `headers.txt` file, converting each line into a `--header` argument for `wget`
+1. Parses the *headers.txt* file, converting each line into a `--header` argument for `wget`
 2. Checks for cookie information, prioritizing the `COOKIE_STRING` variable over a `COOKIE_FILE` if both are present.
 3. Executes a `goto` loop controlled by `MAX_WGET_EXT_RETRIES`. If `wget` fails because a link has expired, the loop re-runs the command, allowing it to get a fresh link from the original URL and then resume the download.
 
@@ -48,13 +48,13 @@ The core command placed within the `goto` loop is:
          "%URL%"
 ```
 
-| Option                  | Description                                                     |
-| ----------------------- | --------------------------------------------------------------- |
-| `-c`                    | Resumes a partially downloaded file.                            |
-| `--max-redirect 100`    | Follows up to 100 HTTP redirects.                               |
-| `--content-disposition` | Uses the server-suggested filename if `OUTPUT_FILE` is not set. |
-| `--tries=0`             | Sets internal retries to infinite for temporary network issues. |
-| `--timeout=20`          | Sets a 20-second connection timeout.                            |
+| Option                | Description                                                     |
+| --------------------- | --------------------------------------------------------------- |
+| -c                    | Resumes a partially downloaded file.                            |
+| --max-redirect 100    | Follows up to 100 HTTP redirects.                               |
+| --content-disposition | Uses the server-suggested filename if `OUTPUT_FILE` is not set. |
+| --tries=0             | Sets internal retries to infinite for temporary network issues. |
+| --timeout=20          | Sets a 20-second connection timeout.                            |
 
 ## `aria2` Script
 
@@ -62,7 +62,7 @@ The core command placed within the `goto` loop is:
 
 ### Setup and Usage
 
-You'll need **[download_aria2.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_aria2.bat)** and the same **`headers.txt`** file. The setup steps are identical to `wget`: locate the executable, create `headers.txt`, and configure the script's variables.
+You will need **[download_aria2.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_aria2.bat)** and the same *headers.txt* file. The setup steps are identical to `wget`: locate the executable, create *headers.txt*, and configure the script's variables.
 
 ### Execution Logic
 
@@ -77,14 +77,14 @@ The `aria2` script is simpler as it doesn't require an external loop. After pars
           "%URL%"
 ```
 
-| Option                                       | Description                                                                      |
-| -------------------------------------------- | -------------------------------------------------------------------------------- |
-| `-c`                                         | Resumes a partially downloaded file.                                             |
-| `--file-allocation=none`                     | Do not pre-allocate file space.                                                  |
-| `--max-connection-per-server=%THREAD_COUNT%` | Uses *up to* %THREAD_COUNT% connections *per* server to accelerate the download. |
-| `--split=%THREAD_COUNT%`                     | Uses %THREAD_COUNT% connections (for *all* servers) to download in parallel.     |
-| `--max-tries=20`                             | Retries at most 20 times on errors.                                              |
-| `--timeout=20`                               | Sets a 20-second connection timeout.                                             |
+| Option                                     | Description                                                                      |
+| ------------------------------------------ | -------------------------------------------------------------------------------- |
+| -c                                         | Resumes a partially downloaded file.                                             |
+| --file-allocation=none                     | Do not pre-allocate file space.                                                  |
+| --max-connection-per-server=%THREAD_COUNT% | Uses *up to* %THREAD_COUNT% connections *per* server to accelerate the download. |
+| --split=%THREAD_COUNT%                     | Uses %THREAD_COUNT% connections (for *all* servers) to download in parallel.     |
+| --max-tries=20                             | Retries at most 20 times on errors.                                              |
+| --timeout=20                               | Sets a 20-second connection timeout.                                             |
 
 Note that due to the limitations of the batch scripting environment and special character handling details, the script would need to be adjusted if more than one source URL is provided.
 
