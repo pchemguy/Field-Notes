@@ -73,7 +73,8 @@ for /f "usebackq tokens=1,* delims=:" %%G in ("%HEADER_FILE%") do (
 
 echo:
 echo [+] Executing aria2...
-"%ARIA2%" -c --max-connection-per-server=%THREAD_COUNT% --file-allocation=none --max-tries=20 --timeout=20 ^
+"%ARIA2%" -c --max-tries=20 --timeout=20 --file-allocation=none ^
+          --max-connection-per-server=%THREAD_COUNT% --split=%THREAD_COUNT% ^
           %LOAD_COOKIES%    ^
           %ARIA2_HEADERS%   ^
           %OUTPUT_DOCUMENT% ^
