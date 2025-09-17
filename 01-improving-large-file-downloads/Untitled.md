@@ -58,7 +58,7 @@ The core command is:
 
 ## `aria2` Script
 
-**[`aria2`](https://www.google.com/search?q=%5Bhttps://github.com/aria2/aria2/%5D\(https://github.com/aria2/aria2/\))** is a more modern downloader that supports multi-connection, multi-threaded downloads for significantly faster speeds. Its error handling is more advanced, meaning an external script loop is generally not necessary.
+**[`aria2`](https://www.google.com/search?q=%5Bhttps://github.com/aria2/aria2/%5D\(https://github.com/aria2/aria2/\))** is a more modern downloader that supports multi-connection, multi-threaded downloads from multiple sources for significantly faster speeds. Its error handling is more advanced, meaning an external script loop is generally not necessary.
 
 ### Setup and Usage
 
@@ -73,37 +73,33 @@ The core command is:
 Code snippet
 
 ```
-"%ARIA2%" -c --max-connection-per-server=%THREAD_COUNT% --file-allocation=none --max-tries=20 --timeout=20 ^
+"%ARIA2%" -c --max-tries=20 --timeout=20 --file-allocation=none ^
+          --max-connection-per-server=%THREAD_COUNT% --split=%THREAD_COUNT% ^
           %LOAD_COOKIES%    ^
           %ARIA2_HEADERS%   ^
           %OUTPUT_DOCUMENT% ^
           "%URL%"
 ```
 
-|Option|Description|
-|---|---|
-|`-c`|**Continue**: Resumes a partially downloaded file.|
-|`-x 16`|Uses up to **16 connections** per server to accelerate the download.|
-|`-s 16`|Splits the file into **16 parts** to download in parallel.|
-|`--max-tries=0`|Retries indefinitely on errors.|
-|`--retry-wait=5`|Waits 5 seconds between retries.|
+| Option                                       | Description                                                                      |
+| -------------------------------------------- | -------------------------------------------------------------------------------- |
+| `-c`                                         | Resumes a partially downloaded file.                                             |
+| `--file-allocation=none`                     | Do not pre-allocate file space.                                                  |
+| `--max-connection-per-server=%THREAD_COUNT%` | Uses *up to* %THREAD_COUNT% connections *per* server to accelerate the download. |
+| `--split=%THREAD_COUNT%`                     | Uses %THREAD_COUNT% connections (for *all* servers) to download in parallel.     |
+| `--max-tries=20`                             | Retries at most 20 times on errors.                                              |
+| `--timeout=20`                               | Sets a 20-second connection timeout.                                             |
 
----
+Note, due to the limitations of the batch scripting environment and special character handling details, the script would need to be adjusted if more than one source is available and can be used.
 
 ## Handling Captcha Challenges
 
 For downloads protected by a captcha, full automation is not possible with either tool.
 
 1. Solve the captcha in your browser and start the download.
-    
 2. Immediately cancel the download.
-    
 3. Use the browser's developer tools to get the newly generated **URL** and **cookie string**.
-    
 4. Update these values in the script configuration, paying attention to special characters.
-    
 5. Run the script.
-    
 6. When the link expires and the script fails, the partial file is kept safe.
-    
 7. Repeat the process from step 3 to get a new link/cookie, update the script, and run it again. The tool will resume where it left off.
