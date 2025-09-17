@@ -58,7 +58,7 @@ The core command placed within the `goto` loop is:
 
 ## `aria2` Script
 
-**[`aria2`](https://www.google.com/search?q=%5Bhttps://github.com/aria2/aria2/%5D\(https://github.com/aria2/aria2/\))** is a more modern downloader that supports multi-connection downloads from one or multiple sources for significantly faster speeds. Its error handling is more advanced, meaning an external script loop is generally not necessary.
+**[`aria2`](https://github.com/aria2/aria2)** is a more modern downloader that supports multi-connection downloads from one or multiple sources for significantly faster speeds. Its error handling is more advanced, meaning an external script loop is generally not necessary.
 
 ### Setup and Usage
 
