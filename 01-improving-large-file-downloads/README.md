@@ -1,5 +1,8 @@
 # Resuming Large File Downloads with Dynamic Links
 
+> [!Note]
+> https://github.com/BrisklyDev/brisk
+
 ## The Problem
 
 Modern web browsers often fail to robustly download large files (e.g., OS images) over unreliable or slow connections. There are two primary reasons for this failure:
@@ -9,11 +12,9 @@ Modern web browsers often fail to robustly download large files (e.g., OS images
 
 The lack of a robust, general-purpose download manager in browsers has led to vendors providing single-purpose "stub" installers as a workaround. While peer-to-peer protocols like Torrent are a robust solution, their adoption for direct software distribution remains limited.
 
-## The Solution #1 - wget
+## The Solution
 
-The most reliable solution for conventional HTTP downloads is to use a command-line tool like **`wget`** in a script. This approach handles resuming downloads and can be re-run to get a fresh download link when needed.
-- **Aligning with the Browser Request:** The script configures `wget` to use the same HTTP headers as your browser, including the `User-Agent` and any necessary session cookies. By providing this context, the server recognizes the `wget` request as a valid continuation of the user's activity.
-- **External Retry Loop:** The `wget` command is wrapped in an external batch loop. If `wget` fails because a temporary link has expired, the loop re-runs the command, using the original URL to get a new, valid download link and then resumes the download from where it left off.
+The most reliable solution for conventional HTTP downloads is to use a command-line tool like **`wget`** or a more modern [**`aria2`**](https://github.com/aria2/aria2/) in a script. This approach provides the most control for continuing browser initiated downloads, including handling complicated cases of dynamic, expiring, and fenced links. While `aria2` support a wider spectrum of protocols, including `torrent` and fast multithreaded downloads, both of them provide similar advanced core functionality. Among shared advanced core features is for support setting custom HTTP headers, including the `User-Agent` and any necessary session cookies. HTTP headers provide a context to the server, helping it identify the download tool's request as a valid continuation of the user's activity. Both tools also support resuming downloads and retrying on error. However, the more modern `aria2` implements a more robust error handling. To establish a similar behavior for classic `wget`, it is necessary to implement script-based loop wrapped around the actual download command. Such a loop enables, for example, automatic refreshing of expired links, if such feature is available (this is the case for GitHub asset downloads). Both tools would require manual intervention when the server prevents automatic link renewal by requiring passing a captcha challenge.
 
 ### Setup and Usage
 
