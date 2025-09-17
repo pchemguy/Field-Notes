@@ -14,21 +14,21 @@ The lack of a robust, general-purpose download manager in browsers has led to ve
 
 ## The Solution
 
-The most reliable solution for conventional HTTP downloads is to use a command-line tool like **`wget`** or a more modern [**`aria2`**](https://github.com/aria2/aria2/) in a script. This approach provides the most control for continuing browser initiated downloads, including handling complicated cases of dynamic, expiring, and fenced links. While `aria2` support a wider spectrum of protocols, including `torrent` and fast multithreaded downloads, both of them provide similar advanced core functionality. Among shared advanced core features is for support setting custom HTTP headers, including the `User-Agent` and any necessary session cookies. HTTP headers provide a context to the server, helping it identify the download tool's request as a valid continuation of the user's activity. Both tools also support resuming downloads and retrying on error. However, the more modern `aria2` implements a more robust error handling. To establish a similar behavior for classic `wget`, it is necessary to implement script-based loop wrapped around the actual download command. Such a loop enables, for example, automatic refreshing of expired links, if such feature is available (this is the case for GitHub asset downloads). Both tools would require manual intervention when the server prevents automatic link renewal by requiring passing a captcha challenge.
+The most reliable solution for conventional HTTP downloads is to use a command-line tool like **`wget`** or a more modern [**`aria2`**](https://github.com/aria2/aria2/) in a script. This approach provides the most control for continuing browser initiated downloads, including handling complicated cases of dynamic, expiring, and guarded links. While `aria2` supports a wider spectrum of protocols, including `torrent` and fast multithreaded downloads, both of the tools provide similar advanced core functionality. Among shared advanced features is support for setting custom HTTP headers, including the `User-Agent` and any necessary session cookies. HTTP headers provide a context to the server, helping it identify the download tool's request as a valid continuation of the user's activity. Both tools also support resuming downloads and retrying on error. However, the more modern `aria2` implements a more robust error handling. To establish a similar behavior for classic `wget`, it is necessary to implement script-based loop wrapped around the actual download command. Such a loop enables, for example, automatic refreshing of expired links, if such feature is available (this is the case for GitHub asset downloads). Both tools would require manual intervention when the server prevents automatic link renewal by requiring passing a captcha challenge. While `aria2` implements a number of `wget` command line APIs, some changes may be necessary when adapting a `wget` script to `aria2`.
 
 ### Setup and Usage
 
-You will need two files in the same directory: [download_wger.bat](./download_wger.bat) and `headers.txt` (see example [here](./headers.txt)).
+You will need two files in the same directory: [download_wget.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_wger.bat) (or [download_aria2.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_aria2.bat)) and `headers.txt` (see example [here](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/headers.txt)). While headers could be saved within the script, this split design is intentional, separating basically fixed data from the script code. The script config section is adjusted for each download (though this part could also be placed in a separate file).
 
-#### Step 1: Get `wget`
+#### Step 1: Locate `wget`
 
 The script is configured to find `wget` at `C:/dev/msys64/usr/bin/wget.exe`, but you should change this path or add `wget` to your system's `PATH`.
 
 #### Step 2: Create `headers.txt`
 
-Using your browser's developer tools (F12), start the download and inspect the network request. Copy the main request headers into `headers.txt`.
+Using your browser's developer tools (F12), start the download and inspect the network request. Copy the main request headers (except for cookie) into `headers.txt`.
 
-#### Step 3: Configure `download_wger.bat`
+#### Step 3: Configure `download_wget.bat`
 
 Open the script and edit the configuration section.
 
@@ -51,7 +51,7 @@ set "OUTPUT_FILE=HBCD_PE_x64.iso"
 
 #### Step 4: Run the Script
 
-Execute `download_wger.bat` from your command prompt. It will start the download and automatically retry if it encounters an error6.
+Execute `download_wget.bat` from your command prompt. It will start the download and automatically retry if it encounters an error.
 
 ### How It Works: A Deeper Dive
 
@@ -91,7 +91,7 @@ For downloads protected by a captcha, full automation is not possible.
 1. Solve the captcha in your browser and start the download.
 2. Immediately cancel the download.
 3. Use the browser's developer tools to get the newly generated URL and cookie string from HTTP request metadata.
-4. Update these values in the `download_wger.bat` configuration, paying attention to special characters.
+4. Update these values in the `download_wget.bat` configuration, paying attention to special characters.
 5. Run the script.
 6. When the script fails because the link expired, the partial file is kept safe.
 7. Repeat the process from step 1 to get a new link/cookie, update the script, and run it again. `wget` will resume where it left off.
