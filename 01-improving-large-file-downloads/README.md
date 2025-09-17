@@ -2,61 +2,43 @@
 
 ## The Problem
 
-Modern web browsers often fail to robustly download large files (e.g., OS images) over unreliable or slow connections. There are two primary reasons for this failure:
+Modern web browsers often fail to robustly download large files (e.g., OS images) over unreliable or slow connections. There are two primary reasons for this:
 
-1. **Limited Resume Capabilities:** Standard browser downloaders often cannot properly resume a failed download, deleting the partial file and forcing a restart.
+1. **Limited Resume Capabilities:** Standard browser downloaders often cannot properly resume a failed download, deleting the partial file and forcing a restart.    
 2. **Dynamic & Expiring Links:** Many services no longer provide direct download links. Instead, a browser must follow HTTP redirects to get a final link. This link is often temporary, containing a short-lived token (common on GitHub) or requiring a captcha challenge. When the token expires, the browser's attempt to resume from the invalid URL fails permanently.
 
-The lack of a robust, general-purpose download manager in browsers has led to vendors providing single-purpose "stub" installers as a workaround. While peer-to-peer protocols like Torrent are a robust solution, their adoption for direct software distribution remains limited.
+The lack of a robust, general-purpose download manager in browsers has led to vendors providing single-purpose "stub" installers as a workaround (consider the standard Google Chrome installer). While peer-to-peer protocols like Torrent are a robust solution, their adoption for direct software distribution remains limited.
 
-## The Solution
+## The Solution: Scripted Command-Line Downloaders
 
-The most reliable solution for conventional HTTP downloads is to use a command-line tool like **`wget`** or a more modern [**`aria2`**](https://github.com/aria2/aria2/) in a script. This approach provides the most control for continuing browser initiated downloads, including handling complicated cases of dynamic, expiring, and guarded links. While `aria2` supports a wider spectrum of protocols, including `torrent` and fast multithreaded downloads, both of the tools provide similar advanced core functionality. Among shared advanced features is support for setting custom HTTP headers, including the `User-Agent` and any necessary session cookies. HTTP headers provide a context to the server, helping it identify the download tool's request as a valid continuation of the user's activity. Both tools also support resuming downloads and retrying on error. However, the more modern `aria2` implements a more robust error handling. To establish a similar behavior for classic `wget`, it is necessary to implement script-based loop wrapped around the actual download command. Such a loop enables, for example, automatic refreshing of expired links, if such feature is available (this is the case for GitHub asset downloads). Both tools would require manual intervention when the server prevents automatic link renewal by requiring passing a captcha challenge. While `aria2` implements a number of `wget` command line APIs, some changes may be necessary when adapting a `wget` script to `aria2`.
+The most reliable solution is to use a powerful command-line tool like the classic **`wget`** or the more modern **`aria2`**. By wrapping them in a simple script, you can gain full control over the download process.
+
+The specific solutions presented here are Windows batch scripts (`.bat`), but the core concepts and tool commands can be readily adapted to other operating systems and shell languages (like bash on Linux or macOS).
+
+Both solutions rely on the same core concept: continuing a session initiated in the browser. The script achieves this goal by providing the command-line tool with the same HTTP headers (like `User-Agent` and cookies) that the browser used, giving the server the necessary context to recognize the request as a valid continuation of browser-based activity.
+
+## `wget` Script
+
+`wget` is a classic and highly reliable tool. Its built-in retry mechanism is excellent for temporary network errors, but it requires an external script loop to handle expiring links, where the entire download command must be re-initiated.
 
 ### Setup and Usage
 
-You will need two files in the same directory: [download_wget.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_wget.bat) (or [download_aria2.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_aria2.bat)) and `headers.txt` (see example [here](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/headers.txt)). While headers could be saved within the script, this split design is intentional, separating basically fixed data from the script code. The script config section is adjusted for each download (though this part could also be placed in a separate file).
+You'll need two files: the script **[download_wget.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_wget.bat)** and a **`headers.txt`** file (see example [here](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/headers.txt)).
 
-#### Step 1: Locate `wget`
+1. **Locate `wget`:** The script is configured for `C:/dev/msys64/usr/bin/wget.exe`. You should update this path or add `wget` to your system's `PATH`.
+2. **Create `headers.txt`:** Use your browser's developer tools (F12) to inspect the network request for your download and copy the main request headers (except for the cookie) into `headers.txt`.
+3. **Configure `download_wget.bat`:** Open the script and edit the configuration section with your `URL`, `COOKIE_STRING`, and `OUTPUT_FILE`.
+    > **Note on Special Characters for Windows Batch Scripts:** Remember to escape percent signs (`%` becomes `%%`) in the `URL` or `COOKIE_STRING` variables. Because both `URL` and `COOKIE_STRING` are quoted, the ampersand should *not* be escaped (do not change `&` to `^&`).
+4. **Run the Script:** Execute `download_wget.bat` to begin.
 
-The script is configured to find `wget` at `C:/dev/msys64/usr/bin/wget.exe`, but you should change this path or add `wget` to your system's `PATH`.
+### Execution Logic
 
-#### Step 2: Create `headers.txt`
+The `wget` script  
+1. Parses the `headers.txt` file, converting each line into a `--header` argument for `wget`
+2. Checks for cookie information, prioritizing the `COOKIE_STRING` variable over a `COOKIE_FILE` if both are present.
+3. Executes a `goto` loop controlled by `MAX_WGET_EXT_RETRIES`. If `wget` fails because a link has expired, the loop re-runs the command, allowing it to get a fresh link from the original URL and then resume the download.
 
-Using your browser's developer tools (F12), start the download and inspect the network request. Copy the main request headers (except for cookie) into `headers.txt`.
-
-#### Step 3: Configure `download_wget.bat`
-
-Open the script and edit the configuration section.
-
-```
-:: --- Set the full URL you want to download ---
-set "URL=https://hirensbootcd.org/files/HBCD_PE_x64.iso"
-
-:: --- Paste your full cookie data inside the quotes (if needed) ---
-set "COOKIE_STRING="
-
-:: --- Set the desired name for your output file ---
-set "OUTPUT_FILE=HBCD_PE_x64.iso"
-```
-
-- **`URL`**: The initial download link from the website. For captcha-protected downloads, you may need to use the final redirected URL after solving the captcha.    
-- **`COOKIE_STRING`**: Required if the download needs a login or captcha session. Paste the full cookie string from your browser's developer tools here.
-- **`OUTPUT_FILE`**: Set the final filename. If left blank, `wget` will try to determine it automatically.
-
-> **Important Note on Special Characters:** When pasting into the `URL` or `COOKIE_STRING` variables, be mindful of batch script special characters. A percent sign (`%`) must always be escaped by doubling it (`%%`). An ampersand (`&`), if inside a quoted string as it is here, should not be escaped.
-
-#### Step 4: Run the Script
-
-Execute `download_wget.bat` from your command prompt. It will start the download and automatically retry if it encounters an error.
-
-### `wget` Script Flow
-
-The [download_wget.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_wget.bat) script is built around a single `wget` command inside a `goto` loop. The script first parses the `headers.txt` file, converting each line into a `--header` argument for `wget`. The script then checks for cookie information, prioritizing the `COOKIE_STRING` variable over a `COOKIE_FILE` if both are present.
-
-The script uses a `goto` loop controlled by the `MAX_WGET_EXT_RETRIES` variable. If `wget` exits with an error (e.g., the link expired), the loop reruns the entire command. This step is critical for downloads with short-lived tokens, as it allows the script to get a fresh download link from the original URL and continue the download. The download is considered complete only when `wget` returns an exit status of 0. If the retry limit is reached, the script exits with an error.
-
-The loop wraps the following `wget` command
+The core command placed within the `goto` loop is:
 
 ```
 "%WGET%" -c --max-redirect 100 --content-disposition --tries=0 --timeout=20 ^
@@ -66,25 +48,54 @@ The loop wraps the following `wget` command
          "%URL%"
 ```
 
-|                         |                                                                                        |
-| ----------------------- | -------------------------------------------------------------------------------------- |
-| `-c`                    | Tells `wget` to resume a partially downloaded file.                                    |
-| `--max-redirect 100`    | Follows up to 100 HTTP redirects to find the actual file.                              |
-| `--content-disposition` | Uses the server-suggested filename if `OUTPUT_FILE` is not set.                        |
-| `--tries=0`             | Sets `wget`'s internal retries to infinite for temporary network issues like timeouts. |
-| `--timeout=20`          | Sets a 20-second connection timeout.                                                   |
+| Option                  | Description                                                     |
+| ----------------------- | --------------------------------------------------------------- |
+| `-c`                    | Resumes a partially downloaded file.                            |
+| `--max-redirect 100`    | Follows up to 100 HTTP redirects.                               |
+| `--content-disposition` | Uses the server-suggested filename if `OUTPUT_FILE` is not set. |
+| `--tries=0`             | Sets internal retries to infinite for temporary network issues. |
+| `--timeout=20`          | Sets a 20-second connection timeout.                            |
 
-### aria2
+## `aria2` Script
 
-The [download_aria2.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_aria2.bat) script is simpler, as `aria2` implements a more advanced HTTP error handling logic and the external loop is no longer necessary. The overall logic is similar to the `wget` script with minor adjustments to accommodate command line differences between the two tools.
+**[`aria2`](https://www.google.com/search?q=%5Bhttps://github.com/aria2/aria2/%5D\(https://github.com/aria2/aria2/\))** is a more modern downloader that supports multi-connection downloads from one or multiple sources for significantly faster speeds. Its error handling is more advanced, meaning an external script loop is generally not necessary.
 
-### Handling Captcha Challenges
+### Setup and Usage
 
-For downloads protected by a captcha, full automation is not possible.
+You'll need **[download_aria2.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_aria2.bat)** and the same **`headers.txt`** file. The setup steps are identical to `wget`: locate the executable, create `headers.txt`, and configure the script's variables.
+
+### Execution Logic
+
+The `aria2` script is simpler as it doesn't require an external loop. After parsing headers and cookies, it executes a single, powerful command:
+
+```
+"%ARIA2%" -c --max-tries=20 --timeout=20 --file-allocation=none ^
+          --max-connection-per-server=%THREAD_COUNT% --split=%THREAD_COUNT% ^
+          %LOAD_COOKIES%    ^
+          %ARIA2_HEADERS%   ^
+          %OUTPUT_DOCUMENT% ^
+          "%URL%"
+```
+
+| Option                                       | Description                                                                      |
+| -------------------------------------------- | -------------------------------------------------------------------------------- |
+| `-c`                                         | Resumes a partially downloaded file.                                             |
+| `--file-allocation=none`                     | Do not pre-allocate file space.                                                  |
+| `--max-connection-per-server=%THREAD_COUNT%` | Uses *up to* %THREAD_COUNT% connections *per* server to accelerate the download. |
+| `--split=%THREAD_COUNT%`                     | Uses %THREAD_COUNT% connections (for *all* servers) to download in parallel.     |
+| `--max-tries=20`                             | Retries at most 20 times on errors.                                              |
+| `--timeout=20`                               | Sets a 20-second connection timeout.                                             |
+
+Note that due to the limitations of the batch scripting environment and special character handling details, the script would need to be adjusted if more than one source URL is provided.
+
+## Handling Captcha Challenges
+
+For downloads protected by a captcha, full automation is not possible with either tool.
+
 1. Solve the captcha in your browser and start the download.
 2. Immediately cancel the download.
-3. Use the browser's developer tools to get the newly generated URL and cookie string from HTTP request metadata.
+3. Use the browser's developer tools to get the newly generated URL and cookie string.
 4. Update these values in the script configuration, paying attention to special characters.
 5. Run the script.
-6. When the script fails because the link expired, the partial file is kept safe.
-7. Repeat the process from step 3 to get a new link/cookie, update the script, and run it again. `wget`/`aria2` will resume where it left off.
+6. When the link expires and the script fails, the partial file is kept safe.
+7. Repeat the process from step 3 to get a new link/cookie, update the script, and run it again. The tool will resume where it left off.
