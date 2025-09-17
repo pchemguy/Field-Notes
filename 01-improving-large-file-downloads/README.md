@@ -1,8 +1,5 @@
 # Resuming Large File Downloads with Dynamic Links
 
-> [!Note]
-> https://github.com/BrisklyDev/brisk
-
 ## The Problem
 
 Modern web browsers often fail to robustly download large files (e.g., OS images) over unreliable or slow connections. There are two primary reasons for this failure:
