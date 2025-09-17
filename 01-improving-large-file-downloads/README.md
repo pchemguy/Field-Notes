@@ -18,7 +18,7 @@ The most reliable solution for conventional HTTP downloads is to use a command-l
 
 ### Setup and Usage
 
-You will need two files in the same directory: [download_wget.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_wger.bat) (or [download_aria2.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_aria2.bat)) and `headers.txt` (see example [here](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/headers.txt)). While headers could be saved within the script, this split design is intentional, separating basically fixed data from the script code. The script config section is adjusted for each download (though this part could also be placed in a separate file).
+You will need two files in the same directory: [download_wget.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_wget.bat) (or [download_aria2.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_aria2.bat)) and `headers.txt` (see example [here](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/headers.txt)). While headers could be saved within the script, this split design is intentional, separating basically fixed data from the script code. The script config section is adjusted for each download (though this part could also be placed in a separate file).
 
 #### Step 1: Locate `wget`
 
@@ -53,15 +53,13 @@ set "OUTPUT_FILE=HBCD_PE_x64.iso"
 
 Execute `download_wget.bat` from your command prompt. It will start the download and automatically retry if it encounters an error.
 
-### How It Works: A Deeper Dive
+### `wget` Script Flow
 
-The script is built around a single `wget` command inside a `goto` loop.
+The [download_wget.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_wget.bat) script is built around a single `wget` command inside a `goto` loop. The script first parses the `headers.txt` file, converting each line into a `--header` argument for `wget`. The script then checks for cookie information, prioritizing the `COOKIE_STRING` variable over a `COOKIE_FILE` if both are present.
 
-#### Processing Headers and Cookies
+The script uses a `goto` loop controlled by the `MAX_WGET_EXT_RETRIES` variable. If `wget` exits with an error (e.g., the link expired), the loop reruns the entire command. This step is critical for downloads with short-lived tokens, as it allows the script to get a fresh download link from the original URL and continue the download. The download is considered complete only when `wget` returns an exit status of 0. If the retry limit is reached, the script exits with an error.
 
-The script first parses the `headers.txt` file, converting each line into a `--header` argument for `wget`. The script then checks for cookie information, prioritizing the `COOKIE_STRING` variable over a `COOKIE_FILE` if both are present.
-
-#### The `wget` Command
+The loop wraps the following `wget` command
 
 ```
 "%WGET%" -c --max-redirect 100 --content-disposition --tries=0 --timeout=20 ^
@@ -71,8 +69,6 @@ The script first parses the `headers.txt` file, converting each line into a `--h
          "%URL%"
 ```
 
-- **Core Command Options**:
-
 |                         |                                                                                        |
 | ----------------------- | -------------------------------------------------------------------------------------- |
 | `-c`                    | Tells `wget` to resume a partially downloaded file.                                    |
@@ -81,9 +77,9 @@ The script first parses the `headers.txt` file, converting each line into a `--h
 | `--tries=0`             | Sets `wget`'s internal retries to infinite for temporary network issues like timeouts. |
 | `--timeout=20`          | Sets a 20-second connection timeout.                                                   |
 
-#### The External Retry Loop
+### aria2
 
-The script uses a `goto` loop controlled by the `MAX_WGET_EXT_RETRIES` variable. If `wget` exits with an error (e.g., the link expired), the loop reruns the entire command. This step is critical for downloads with short-lived tokens, as it allows the script to get a fresh download link from the original URL and continue the download. The download is considered complete only when `wget` returns an exit status of 0. If the retry limit is reached, the script exits with an error.
+The [download_aria2.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_aria2.bat) script is simpler, as `aria2` implements a more advanced HTTP error handling logic and the external loop is no longer necessary. The overall logic is similar to the `wget` script with minor adjustments to accommodate command line differences between the two tools.
 
 ### Handling Captcha Challenges
 
@@ -91,7 +87,7 @@ For downloads protected by a captcha, full automation is not possible.
 1. Solve the captcha in your browser and start the download.
 2. Immediately cancel the download.
 3. Use the browser's developer tools to get the newly generated URL and cookie string from HTTP request metadata.
-4. Update these values in the `download_wget.bat` configuration, paying attention to special characters.
+4. Update these values in the script configuration, paying attention to special characters.
 5. Run the script.
 6. When the script fails because the link expired, the partial file is kept safe.
-7. Repeat the process from step 1 to get a new link/cookie, update the script, and run it again. `wget` will resume where it left off.
+7. Repeat the process from step 3 to get a new link/cookie, update the script, and run it again. `wget`/`aria2` will resume where it left off.
