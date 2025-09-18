@@ -1,5 +1,9 @@
 # Resuming Large File Downloads with Dynamic Links
 
+## Summary
+
+Modern browsers are unreliable for large file downloads from dynamic or expiring links because they cannot properly resume failures. This note provides two Windows batch scripts (for wget and aria2) that solve this problem. Using session information (HTTP headers and cookies) extracted from your browser's dev tools, these scripts can robustly resume downloads, even if the link needs to be refreshed.
+
 ## The Problem
 
 Modern web browsers often fail to robustly download large files (e.g., OS images) over unreliable or slow connections. There are two primary reasons for this:
@@ -11,13 +15,13 @@ The lack of a robust, general-purpose download manager in browsers has led to ve
 
 ## The Solution: Scripted Command-Line Downloaders
 
-The most reliable solution is to use a powerful command-line tool like the classic **`wget`** or the more modern **`aria2`**. By wrapping them in a simple script, you can gain full control over the download process.
+The most reliable solution is to use a powerful command-line tool like the classic **wget** or the more modern **aria2**. By wrapping them in a simple script, you can gain full control over the download process.
 
 The specific solutions presented here are Windows batch scripts (`.bat`), but the core concepts and tool commands can be readily adapted to other operating systems and shell languages (like bash on Linux or macOS).
 
 Both solutions rely on the same core concept: continuing a session initiated in the browser. The script achieves this goal by providing the command-line tool with the same HTTP headers (like `User-Agent` and cookies) that the browser used, giving the server the necessary context to recognize the request as a valid continuation of browser-based activity.
 
-## `wget` Script
+## WGET Script
 
 `wget` is a classic and highly reliable tool. Its built-in retry mechanism is excellent for temporary network errors, but it requires an external script loop to handle expiring links, where the entire download command must be re-initiated.
 
@@ -25,18 +29,18 @@ Both solutions rely on the same core concept: continuing a session initiated in 
 
 You'll need two files: the script **[download_wget.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_wget.bat)** and a *headers.txt* file (see example [here](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/headers.txt)).
 
-1. **Locate `wget`:** The script is configured for `C:/dev/msys64/usr/bin/wget.exe`. You should update this path or add `wget` to your system's `PATH`.
-2. **Create *headers.txt*:** Use your browser's developer tools (F12) to inspect the network request for your download and copy the main request headers (except for the cookie) into *headers.txt*.
-3. **Configure *download_wget.bat*:** Open the script and edit the configuration section with your `URL`, `COOKIE_STRING`, and `OUTPUT_FILE`.
-    > **Note on Special Characters for Windows Batch Scripts:** Remember to escape percent signs (`%` becomes `%%`) in the `URL` or `COOKIE_STRING` variables. Because both `URL` and `COOKIE_STRING` are quoted, the ampersand should *not* be escaped (do not change `&` to `^&`).
+1. **Locate wget:** The script is configured for "C:/dev/msys64/usr/bin/wget.exe". You should update this path or add wget to your system's `PATH`.
+2. **Create headers.txt:** Use your browser's developer tools (F12) to inspect the network request for your download and copy the main request headers (except for the cookie) into *headers.txt*.
+3. **Configure download_wget.bat:** Open the script and edit the configuration section with your URL, COOKIE_STRING, and OUTPUT_FILE.
+    > **Note on Special Characters for Windows Batch Scripts:** Remember to escape percent signs (`%` becomes `%%`) in the URL or COOKIE_STRING variables. Because both URL and COOKIE_STRING are quoted, the ampersand should *not* be escaped (do not change `&` to `^&`).
 4. **Run the Script:** Execute *download_wget.bat* to begin.
 
 ### Execution Logic
 
-The `wget` script  
-1. Parses the *headers.txt* file, converting each line into a `--header` argument for `wget`
-2. Checks for cookie information, prioritizing the `COOKIE_STRING` variable over a `COOKIE_FILE` if both are present.
-3. Executes a `goto` loop controlled by `MAX_WGET_EXT_RETRIES`. If `wget` fails because a link has expired, the loop re-runs the command, allowing it to get a fresh link from the original URL and then resume the download.
+The wget script  
+1. Parses the *headers.txt* file, converting each line into a `--header` argument for wget.
+2. Checks for cookie information, prioritizing the COOKIE_STRING variable over a COOKIE_FILE if both are present.
+3. Executes a `goto` loop controlled by MAX_WGET_EXT_RETRIES. If wget fails because a link has expired, the loop re-runs the command, allowing it to get a fresh link from the original URL and then resume the download.
 
 The core command placed within the `goto` loop is:
 
@@ -52,21 +56,21 @@ The core command placed within the `goto` loop is:
 | --------------------- | --------------------------------------------------------------- |
 | -c                    | Resumes a partially downloaded file.                            |
 | --max-redirect 100    | Follows up to 100 HTTP redirects.                               |
-| --content-disposition | Uses the server-suggested filename if `OUTPUT_FILE` is not set. |
+| --content-disposition | Uses the server-suggested filename if OUTPUT_FILE is not set.   |
 | --tries=0             | Sets internal retries to infinite for temporary network issues. |
 | --timeout=20          | Sets a 20-second connection timeout.                            |
 
 ## `aria2` Script
 
-**[`aria2`](https://github.com/aria2/aria2)** is a more modern downloader that supports multi-connection downloads from one or multiple sources for significantly faster speeds. Its error handling is more advanced, meaning an external script loop is generally not necessary.
+**[aria2](https://github.com/aria2/aria2)** is a more modern downloader that supports multi-connection downloads from one or multiple sources for significantly faster speeds. Its error handling is more advanced, meaning an external script loop is generally not necessary.
 
 ### Setup and Usage
 
-You will need **[download_aria2.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_aria2.bat)** and the same *headers.txt* file. The setup steps are identical to `wget`: locate the executable, create *headers.txt*, and configure the script's variables.
+You will need **[download_aria2.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_aria2.bat)** and the same *headers.txt* file. The setup steps are identical to wget: locate the executable, create *headers.txt*, and configure the script's variables.
 
 ### Execution Logic
 
-The `aria2` script is simpler as it doesn't require an external loop. After parsing headers and cookies, it executes a single, powerful command:
+The aria2 script is simpler as it doesn't require an external loop. After parsing headers and cookies, it executes a single, powerful command:
 
 ```
 "%ARIA2%" -c --max-tries=20 --timeout=20 --file-allocation=none ^
