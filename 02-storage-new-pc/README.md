@@ -3,30 +3,15 @@
 The following considerations primarily apply to Windows systems, though they might be applicable to other systems as well. They also focus on management of a standalone individually-managed personal workstation, and may be less relevant to commercially used computers managed as a part of business's IT resources. 
 
 When planning a purchase of a new computer, there are several storage-related considerations to be considered.
-- Cloud Backup
-   The files I actively work on are backed up in the cloud (basic direct cloud backup or using a version control system). An important advantage of VCS over basic direct backup is that accidentally damaged files would not overwrite the backed up copy. The same advantage applies to encrypting ransomware attacks: it would be quite hard for ransomware to affect backed up copies stored in a cloud VCS repository.
 - External Drive
     -  Infrequent Backups / Archives
       A good, fast, and spacious HDD should work just fine. Presently I use a pair of 4 TB HDD drives to host two copies of mostly the same content.
     - Dual Bootable and Active Backups
       A good SSD drive is better suitable for scenarios where the drive is used for emergency booting, operating system installation, as well as for daily backups.
 - Internal Drives
-  It might be a good idea to have at least two internal drives: an SDD and HDD. Operating system, program files, and the master copy of data may be kept on a 2.5" internal SSD or M2 NVMe drive. HDD may hold downloads, local backups, perhaps, the temp directory (?), software distros, other resources that might be handy to have locally, such as libraries.
+  It might be a good idea to have at least two internal drives: an SDD and HDD. Operating system, program files, and the master copy of data may be kept on a 2.5" internal SSD or M2 NVMe drive. HDD may hold downloads, local backups, perhaps, the temp directory (?), software distros (if necessary), other resources that might be handy to have locally, such as libraries and package caches.
   
   In the case of a dual boot system (especially incompatible, such as Windows and Linux), it is worth considering placing each OS on its own dedicated SSD (that is having two SSDs). In special cases, where a very fast storage is necessary for computational purposes, the fastest available M2 NVMe drive should be installed in the matching fastest interface and be dedicated exclusively for computational purposes, while placing OS(s) on separate SSDs as before.
-
-## Partitioning Internal System SSD
-
-A major advantage of having a single partition is not having to worry about provisioning enough space on individual partitions yet avoiding inefficient drive use due to excessive unused/fragmented free space. Historically, my primary motivation for partitioning the drive was ensuring efficient data integrity workflow and robust recovery in case of system corruption or worse complete failure of the drive. Because data recovery from a failed drive is generally a grossly expensive process both in terms of money and time, it is better to plan system management as if nothing could be done to a failed drive. I believe I have not used system backups for at least 10 years (thanks to both certain improvements in Windows reliability, but, perhaps, largely due to gained experience and more mature/prudent system management practices), I did burnt my previous laptop (this disaster could probably be also avoided by better maintenance practices). Another important threat to consider includes potential hacker attacks, virus, and ransomware, which may potentially compromise any local files rendering any data virtually damaged/lost. Consequently, I am sticking with partitioned drive.
-
-I generally split the system drive into at least four partitions (until recently, I used place the swap file on a dedicated partition, which is probably unnecessary, particularly in case of an SSD drive):
-
-| Partition         | Anticipated Usage (GB) | Planned Size (GB) |
-| ----------------- | ---------------------: | ----------------: |
-| System            |                    160 |               200 |
-| Portable Programs |                     40 |                50 |
-| Data              |                    100 |               200 |
-| Buffer            |                      - |   Remaining space |
 
 ## Usage Patterns and Recovery Cost Considerations 
 
@@ -74,4 +59,19 @@ Applications can be classified into several groups based on their portability:
 - **Non-portable Programs:** Generally, such applications must be installed on the target system before use.
 
 Portable and pseudo-portable applications are highly preferable over non-portable in two aspects. For ones, all portable and pseudo-portable applications can be placed on a dedicated partition. All such applications can be backed up by simply archiving all application directories and restored at once by unpacking such an archive, as opposed to going through a time-consuming process of installing and configuring applications individually. Another important considerations is associate with some installers refusing to install without administrative privileges even if the application could function as portable. Any such portable or pseudo-portable application can be installed within a sandboxed environment following by copying the application directory to the portable programs collection on the target computer.
+
+## Partitioning Internal System SSD
+
+A major advantage of having a single partition is not having to worry about provisioning enough space on individual partitions yet avoiding inefficient drive use due to excessive unused/fragmented free space. Historically, my primary motivation for partitioning the drive was ensuring efficient data integrity workflow and robust recovery in case of system corruption or worse complete failure of the drive. Because data recovery from a failed drive is generally a grossly expensive process both in terms of money and time, it is better to plan system management as if nothing could be done to a failed drive. I believe I have not used system backups for at least 10 years (thanks to both certain improvements in Windows reliability, but, perhaps, largely due to gained experience and more mature/prudent system management practices), I did burnt my previous laptop (this disaster could probably be also avoided by better maintenance practices). Another important threat to consider includes potential hacker attacks, virus, and ransomware, which may potentially compromise any local files rendering any data virtually damaged/lost. Consequently, I am sticking with partitioned drive, for example:
+
+| Partition         | Anticipated Usage (GB) | Planned Size (GB) | SSD Over-provisioning (GB) |
+| ----------------- | ---------------------: | ----------------: | -------------------------: |
+| System            |                    160 |               200 |                         50 |
+| Portable Programs |                     40 |                50 |                         20 |
+| Data              |                    100 |               200 |                         50 |
+| Buffer            |                      - |   Remaining space |                          - |
+
+### Free Space Considerations
+
+On an HDD, it is generally a good idea to plan for HDD size such that at least 20-25% remains free. Leaving enough free space reduces the rate at which HDD file system becomes more fragmented. Also, this space can be used by HDD defragmenters to speed up the drive. For SSD, file system fragmentation is generally considered as not a concern, even though there is usually still considerable difference between sequential and random read throughput, so this difference is considerably smaller than in case of an HDD. For SSD, it is generally helpful to reserve some space unallocated (a fancy term "over-provisioning" is use for this purpose). This space can then be used by the SSD controller for HDD maintenance. According to information found on the internet, 5-10% of unallocated space is suggested for a drive with moderate writing loads and 15-20% for drives with substantial writing load. For example, for a 1000 GB drive, value in the range 50-150 GB may be a good number. Because reserved space does not need to logically continuous, it can be split into a few chunks placed after the first three partitions above. This way this space will serve two purposes. It will be used my the SSD controller, so it will not be wasted. At the same time, it will act as extra space that would allow easy extension of individual partitions. In the unlikely case a substantial fraction of this space is added to partitions, extra unallocated space can be created then by shrinking the last (and largest) partition.
 
