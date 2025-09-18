@@ -15,7 +15,7 @@ When planning a purchase of a new computer, there are several storage-related co
 
 ## Partitioning Internal System SSD
 
-The following considerations primarily apply to Windows systems, though they might be applicable to other systems as well.
+The following considerations primarily apply to Windows systems, though they might be applicable to other systems as well. A major advantage of having a single partition is not having to worry about provisioning enough space on individual partitions yet avoiding inefficient drive use due to excessive unused/fragmented free space. Historically, my primary motivation for partitioning the drive was ensuring efficient data integrity workflow and robust recovery in case of system corruption or worse complete failure of the drive. Because data recovery from a failed drive is generally a grossly expensive process both in terms of money and time, it is better to plan system management as if nothing could be done to a failed drive. I believe I have not used system backups for at least 10 years (thanks to both certain improvements in Windows reliability, but, perhaps, largely due to gained experience and more mature/prudent system management practices), I did burnt my previous laptop (this disaster could probably be also avoided by better maintenance practices). Consequently, I am sticking with partitioned drive.
 
 While the system disk may be used without splitting into specialized partitions, I do not like this approach. I generally split the system drive into at least four partitions (until recently, I used place the swap file on a dedicated partition, which is probably unnecessary):
 - System
