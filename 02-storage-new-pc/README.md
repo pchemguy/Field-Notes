@@ -96,30 +96,12 @@ Note: total minimum space requirement: 29 GB.
 
 ### Windows ToGo
 
-| Tool                      | Source                   | Destination                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Rufus](https://rufus.ie) | Windows Installation ISO | - USB stick  <br>- Mounted VHD(X) virtual drive  <br>- USB SSD/HDD (press Alt+F to show in the list)  <br>- Internal drive, including virtual drives within a virtual PC<br>  ([press](https://superuser.com/a/1337432) Ctrl+Alt+F to show in the list)  <br>  Note that virtual drives within a virtual PC include<br>    - standard virtual drives<br>    - passed through drives connected to the host<br>        - physical<br>        - USB (presented as a regular disk, unless USB emulation is configured)<br>        - mounted VHD(X) |
-|                           |                          |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Tool                                             | Source                     | Destination                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------ | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Rufus](https://rufus.ie)                        | Windows Installation ISO   | - USB stick  <br>- Mounted VHD(X) virtual drive  <br>- USB SSD/HDD (press Alt+F to show in the list)  <br>- Internal drive, including virtual drives within a virtual PC<br>  ([press](https://superuser.com/a/1337432) Ctrl+Alt+F to show in the list)  <br>  Note that virtual drives within a virtual PC include<br>    - standard virtual drives<br>    - passed through drives connected to the host<br>        - physical<br>        - USB (presented as a regular disk, unless USB emulation is configured)<br>        - mounted VHD(X) |
+| [Hasleo WinToUSB](https://easyuefi.com/wintousb) | ISO, WIM, ESD, SWM, VHD(X) | USB (any type)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 Note: this table shows tested and/or officially documented sources/destinations. It does not attempt to include every documented options, so additional options may be available. Check official documentation for more information.
 
-[Rufus](https://rufus.ie)
-Windows Installation ISO
-
-- USB stick  
-- Mounted VHD(X) virtual drive  
-- USB SSD/HDD (press Alt+F to show in the list)  
-- Internal drive, including virtual drives within a virtual PC
-  ([press](https://superuser.com/a/1337432) Ctrl+Alt+F to show in the list)  
-  Note that virtual drives within a virtual PC include
-    - standard virtual drives
-    - passed through drives connected to the host
-        - physical
-        - USB (presented as a regular disk, unless USB emulation is configured)
-        - mounted VHD(X)
-
-[Hasleo WinToUSB](https://easyuefi.com/wintousb/)
-ISO, WIM, ESD, SWM, VHD(X)
-USB (any type)
 ### Bootable Drive Creator Tools
 
 
