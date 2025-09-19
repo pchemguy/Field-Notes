@@ -79,5 +79,42 @@ On an HDD, it is generally a good idea to plan for HDD size such that at least 2
 
 An external drive used solely for archival backing up purposes generally does not need to be partitioned. A dual bootable / archival drive necessitates special considerations.
 
-### Bootable Drive Creator Tools and Targets
+### Boot Targets
 
+The drive needs to be multi-bootable and support the following boot targets:
+
+| Name                                   | Source                                            | Image Size (GB) |
+| -------------------------------------- | ------------------------------------------------- | --------------: |
+| Windows 10 ToGo                        | See "Windows ToGo" Table                          |              10 |
+| Windows 10 Installation Media          | Official Installation ISO                         |             5.0 |
+| Ubuntu 24.04 LTS                       | Official Installation ISO                         |             5.9 |
+| SystemRescue                           | https://system-rescue.org                         |             1.1 |
+| Lazesoft Recovery Suite Bootable Media | https://lazesoft.com/lazesoft-recovery-suite.html |             0.3 |
+| Hiren’s BootCD PE                      | https://hirensbootcd.org                          |             3.1 |
+| Sergei Strelec WinPE                   | https://sergeistrelec.name                        |             3.2 |
+Note: total minimum space requirement: 29 GB.
+
+### Bootable Drive Creator Tools
+
+
+
+
+
+| Name                                   | Source                                            | Format |
+| -------------------------------------- | ------------------------------------------------- | ------ |
+| Windows 10 ToGo                        | Official Windows 10 Installation ISO              | VHDX   |
+| Windows 10 Installation Media          | Official Windows 10 Installation ISO              | ISO    |
+| SystemRescue                           | https://system-rescue.org                         | ISO    |
+| Lazesoft Recovery Suite Bootable Media | https://lazesoft.com/lazesoft-recovery-suite.html | ISO    |
+| Hiren’s BootCD PE                      | https://hirensbootcd.org                          | ISO    |
+| Sergei Strelec WinPE                   | https://sergeistrelec.name                        | ISO    |
+
+## Tools
+
+| Name       | Source                         | Comment                                                               |
+| ---------- | ------------------------------ | --------------------------------------------------------------------- |
+| Rufus      | https://rufus.ie               | Single-bootable, Windows ToGo creation from standard installation ISO |
+| Ventoy     | https://ventoy.net             | Multi-bootable, no GUI manager for distributions                      |
+| YUMI exFAT | https://yumiusb.com/yumi-exfat | Multi-bootable, GUI manager for distributions, GUI for Ventoy         |
+|            |                                |                                                                       |
+| Easy2Boot  |                                |                                                                       |
