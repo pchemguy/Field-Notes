@@ -128,11 +128,15 @@ In the [Non-destructive Install](https://ventoy.net/en/doc_non_destructive.html)
 5. Label the storage partition as "YUMI" and copy the saved directories to the storage partition.
 6. Use YUMI exFAT to manage bootable distros on the drive.
 
-The most flexible approach is For Ventoy2Disk, select "Options" -> "Show All Devices" (for non USB devices)
+**Ventoy2Disk Usage Notes**
+- When using Ventoy2Disk, select "Options" -> "Show All Devices" (for non USB devices).
+- **IMPORTANT**: The "Options" -> "Non-destructive Install" menu option is misleading in a sense that this option is not a mere flag, but actually initiates installation process, so the target device must be correctly selected first.
 
 | Partition         | Anticipated Usage (GB) | Planned Size (GB) | SSD Over-provisioning (GB) |
 | ----------------- | ---------------------: | ----------------: | -------------------------: |
-| System            |                    160 |               200 |                         50 |
+| YUMI              |                     30 |                40 |                          - |
+| VTOYEFI           |                      - |                 - |                         80 |
 | Portable Programs |                     40 |                50 |                         20 |
-| Data              |                    100 |               200 |                         50 |
-| Buffer            |                      - |   Remaining space |                          - |
+| Archive           |                      - |   Remaining space |                          - |
+
+Note: the hidden "VTOYEFI" EFI System Partition must be adjacent to the "YUMI" partition. For this reason, SSD over-provisioning chunk cannot be placed right after the YUMI partition to accommodate the scenario involving additional bootable distros being needed to be added to the YUMI partition beyond the available free space. Instead this space is reserved after the VTOYEFI partition. If YUMI partition needs to be enlarged, the VTOYEFI partition is deleted via diskpart, the YUMI partition is extended, and, finally, Ventoy is reinstalled using "Non-destructive Install" mode of Ventoy2Disk. If necessary, the last partition can be shrunk to compensate for decreased amount of unallocated space.
