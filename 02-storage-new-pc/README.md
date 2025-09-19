@@ -85,7 +85,7 @@ The drive needs to be multi-bootable and support the following boot targets:
 
 | Name                                   | Source                                            | Image Size (GB) |
 | -------------------------------------- | ------------------------------------------------- | --------------: |
-| Windows 10 ToGo                        | See "Windows ToGo" Table                          |              10 |
+| Windows 10 ToGo                        | Bootable VHD(X), see "Windows ToGo" Table         |              10 |
 | Windows 10 Installation Media          | Official Installation ISO                         |             5.0 |
 | Ubuntu 24.04 LTS                       | Official Installation ISO                         |             5.9 |
 | SystemRescue                           | https://system-rescue.org                         |             1.1 |
