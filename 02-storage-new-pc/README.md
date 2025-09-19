@@ -113,3 +113,20 @@ Note: this table shows tested and/or officially documented sources/destinations.
 | Ventoy          | https://ventoy.net             |      Yes       | Ventoy                          |         No         |
 | YUMI exFAT      | https://yumiusb.com/yumi-exfat |      Yes       | Ventoy                          |        Yes         |
 | Easy2Boot (E2B) | https://easy2boot.xyz          |      Yes       | grub4dos, grub2, Ventoy for E2B |         No         |
+
+### Partitioning of a Bootable SSD for YUMI exFAT
+
+Ventoy and Ventoy-based YUMI exFAT use two partitions, which must be the first two partitions on the drive. Modern Ventoy supports ([MBR](https://ventoy.net/en/doc_disk_layout.html#reserve_space) and [GPT](https://ventoy.net/en/doc_disk_layout_gpt.html#reserve_space)) partitioning schemes where the two partitions used by Ventoy do not occupy the entire drive and may be followed by generally partitioned remaining area. The first partition is a regular visible partition used for storing bootable images and can be formatted using any support file system. While, the same partition can be used for general storage, it is prudent to dedicate it to the booting function. After Ventoy is installed, this partition can be reformatted using standard tools, but it cannot be shrunk (Ventoy boot manager checks layout of its partitions and will refuse booting, if this partition is shrunk). The second partition is a small (32 MB) hidden FAT EFI system partition immediately adjacent to the first storage partition. This partition is protected and should not be touched (it cannot be deleted using Windows Disk Manager due to set protections flags; it can only be deleted using diskpart).
+
+Both Ventoy2Disk and YUMI exFAT can be used to prepare disk (format, partition, and install boot manager). However, YUMI exFAT provides reduced set of options compared to Ventoy tool. For this reason, Ventoy tool can be used for drive preparation and YUMI exFAT for distro management, if desired. The most flexible approach is formatting / partitioning the drive using a standard tools, such as "diskpart" or Windows Disk Manager following by installation of Ventoy using "Non-destructive Install" mode of Ventoy2Disk.
+
+In the [Non-destructive Install](https://ventoy.net/en/doc_non_destructive.html) mode, Ventoy tries to shrink the first partition by the space necessary for the system partition (32 MB), creates the system partition, and installs boot manager (so no need to worry about the system partition when using standard tools for drive preparation).
+
+The most flexible approach is For Ventoy2Disk, select "Options" -> "Show All Devices" (for non USB devices)
+
+| Partition         | Anticipated Usage (GB) | Planned Size (GB) | SSD Over-provisioning (GB) |
+| ----------------- | ---------------------: | ----------------: | -------------------------: |
+| System            |                    160 |               200 |                         50 |
+| Portable Programs |                     40 |                50 |                         20 |
+| Data              |                    100 |               200 |                         50 |
+| Buffer            |                      - |   Remaining space |                          - |
