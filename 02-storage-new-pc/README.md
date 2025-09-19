@@ -5,9 +5,9 @@ The following considerations primarily apply to Windows systems, though they mig
 When planning a purchase of a new computer, there are several storage-related considerations to be considered.
 - External Drive
     -  Infrequent Backups / Archives
-      A good, fast, and spacious HDD should work just fine. Presently I use a pair of 4 TB HDD drives to host two copies of mostly the same content.
+      A good, fast, and spacious HDD should work just fine. Presently I use a pair of 4 TB HDD drives to host two copies of mostly the same content. These drives usually do not need to be partitioned.
     - Dual Bootable and Active Backups
-      A good SSD drive is better suitable for scenarios where the drive is used for emergency booting, operating system installation, as well as for daily backups.
+      A good SSD drive is better suitable for scenarios where the drive is used for emergency booting, operating system installation, as well as for daily backups. These drives usually should be partitioned to separate boot/service-related files/images and general archives.
 - Internal Drives
   It might be a good idea to have at least two internal drives: an SDD and HDD. Operating system, program files, and the master copy of data may be kept on a 2.5" internal SSD or M2 NVMe drive. HDD may hold downloads, local backups, perhaps, the temp directory (?), software distros (if necessary), other resources that might be handy to have locally, such as libraries and package caches.
   
@@ -75,9 +75,8 @@ A major advantage of having a single partition is not having to worry about prov
 
 On an HDD, it is generally a good idea to plan for HDD size such that at least 20-25% remains free. Leaving enough free space reduces the rate at which HDD file system becomes more fragmented. Also, this space can be used by HDD defragmenters to speed up the drive. For SSD, file system fragmentation is generally considered as not a concern, even though there is usually still considerable difference between sequential and random read throughput, so this difference is considerably smaller than in case of an HDD. For SSD, it is generally helpful to reserve some space unallocated (a fancy term "over-provisioning" is use for this purpose). This space can then be used by the SSD controller for HDD maintenance. According to information found on the internet, 5-10% of unallocated space is suggested for a drive with moderate writing loads and 15-20% for drives with substantial writing load. For example, for a 1000 GB drive, value in the range 50-150 GB may be a good number. Because reserved space does not need to logically continuous, it can be split into a few chunks placed after the first three partitions above. This way this space will serve two purposes. It will be used my the SSD controller, so it will not be wasted. At the same time, it will act as extra space that would allow easy extension of individual partitions. In the unlikely case a substantial fraction of this space is added to partitions, extra unallocated space can be created then by shrinking the last (and largest) partition.
 
-## External Drives
+## External Bootable Drives
 
-An external drive used solely for archival backing up purposes generally does not need to be partitioned. A dual bootable / archival drive necessitates special considerations.
 
 ### Boot Targets
 
@@ -85,7 +84,7 @@ The drive needs to be multi-bootable and support the following boot targets:
 
 | Name                                   | Source                                            | Image Size (GB) |
 | -------------------------------------- | ------------------------------------------------- | --------------: |
-| Windows 10 ToGo                        | Bootable VHD(X), see "Windows ToGo" Table         |              10 |
+| Windows 10 ToGo                        | Bootable VHD(X), see "Windows ToGo" section       |              10 |
 | Windows 10 Installation Media          | Official Installation ISO                         |             5.0 |
 | Ubuntu 24.04 LTS                       | Official Installation ISO                         |             5.9 |
 | SystemRescue                           | https://system-rescue.org                         |             1.1 |
@@ -102,27 +101,15 @@ Note: total minimum space requirement: 29 GB.
 | [Hasleo WinToUSB](https://easyuefi.com/wintousb) | ISO, WIM, ESD, SWM, VHD(X) | USB (any type)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 Note: this table shows tested and/or officially documented sources/destinations. It does not attempt to include every documented options, so additional options may be available. Check official documentation for more information.
 
-### Bootable Drive Creator Tools
+**Bootable VHD(X) Creation**  
+1. Imaging bootable disk (e.g., created with Rufus or WinToUSB), e.g., with [Sysinternals Disk2vhd](https://learn.microsoft.com/en-us/sysinternals/downloads/disk2vhd).
+2. Directly install Windows ToGo to a mounted VHD(X) (possibly passed through to a virtual machine)
 
+### Bootable Drive Creators
 
-
-
-
-| Name                                   | Source                                            | Format |
-| -------------------------------------- | ------------------------------------------------- | ------ |
-| Windows 10 ToGo                        | Official Windows 10 Installation ISO              | VHDX   |
-| Windows 10 Installation Media          | Official Windows 10 Installation ISO              | ISO    |
-| SystemRescue                           | https://system-rescue.org                         | ISO    |
-| Lazesoft Recovery Suite Bootable Media | https://lazesoft.com/lazesoft-recovery-suite.html | ISO    |
-| Hiren’s BootCD PE                      | https://hirensbootcd.org                          | ISO    |
-| Sergei Strelec WinPE                   | https://sergeistrelec.name                        | ISO    |
-
-## Tools
-
-| Name       | Source                         | Comment                                                               |
-| ---------- | ------------------------------ | --------------------------------------------------------------------- |
-| Rufus      | https://rufus.ie               | Single-bootable, Windows ToGo creation from standard installation ISO |
-| Ventoy     | https://ventoy.net             | Multi-bootable, no GUI manager for distributions                      |
-| YUMI exFAT | https://yumiusb.com/yumi-exfat | Multi-bootable, GUI manager for distributions, GUI for Ventoy         |
-|            |                                |                                                                       |
-| Easy2Boot  |                                |                                                                       |
+| Name            | Source                         | Multi-bootable | Boot Manager                    | GUI Distro Manager |
+| --------------- | ------------------------------ | :------------: | ------------------------------- | :----------------: |
+| Rufus           | https://rufus.ie               |       No       | -                               |        Yes         |
+| Ventoy          | https://ventoy.net             |      Yes       | Ventoy                          |         No         |
+| YUMI exFAT      | https://yumiusb.com/yumi-exfat |      Yes       | Ventoy                          |        Yes         |
+| Easy2Boot (E2B) | https://easy2boot.xyz          |      Yes       | grub4dos, grub2, Ventoy for E2B |         No         |
