@@ -59,21 +59,14 @@ This design intends for day-to-day activities to be performed under a limited us
 
 Ideally, an intermediate permission level would exist to install software safely. While this middle level can be partially modeled using tools like the Power Users group, this practice is neither standard nor well-supported and is often incompatible with poorly designed installers. This security dilemma is a significant reason why favoring applications that do not require a formal, administrative installation is advantageous.
 
-
+### A More Resilient Approach: A Portable Software Environment
 
 A more resilient approach is to create a dedicated partition for **portable applications**.
-
-- **Traditionally Installed vs. Portable Apps:** A traditional application often requires administrative privileges to install and scatters its files and settings in the Windows Registry and user profile. A **portable app**, in contrast, contains all of its necessary files—including user settings—in a single, self-contained folder. This makes it independent of the host OS.
-    
-- **The Benefits of Portability:** By favoring portable (or pseudo-portable) applications and installing them to their own partition (e.g., `D:\Programs`), you gain three major advantages:
-    
+- **Traditionally Installed vs. Portable Apps:** A traditional application often requires administrative privileges to install and scatters its files and settings in the Windows Registry and user profile. A portable app, in contrast, contains all of its necessary files - including user settings- in a single, self-contained folder, making it largely independent of the host OS.
+- **The Benefits of Portability:** By favoring portable (or pseudo-portable) applications and installing them to their own partition, you gain three major advantages:
     1. **Simplified Backups:** Backing up your entire software suite becomes as simple as copying a single folder.
-        
     2. **Effortless Migration:** When moving to a new computer, you can often just copy this partition or folder over, and your applications will work immediately, with all settings intact.
-        
     3. **OS Independence:** If you need to reinstall Windows on your system partition, your applications remain untouched and fully functional.
-        
-
 This practice is the single most effective way to reduce the "variable recovery cost" of program files, treating your software environment more like user data and less like the disposable OS.
 
 ### Taming the Windows User Profile
