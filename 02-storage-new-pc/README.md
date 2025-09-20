@@ -106,21 +106,26 @@ While standard user folders (like Documents and Downloads) can be relocated via 
 
 Having established our principles for data classification and organization, we can now translate them into a concrete partitioning scheme for a primary system SSD. The goal is to create a logical layout that directly reflects our strategy, providing a resilient and manageable foundation for the workstation.
 
-The following table is a sample plan for a 1 TB SSD, which is based on partition layout and usage on my drives.
+The following table is a sample plan for a 1 TB SSD, based on a real-world layout. The key is not the exact numbers but the multi-layered structure.
 
-| Partition         | Anticipated Usage (GB) | Planned Allocation (GB) | SSD Over-provisioning (GB) |
-| ----------------- | ---------------------: | ----------------------: | -------------------------: |
-| System            |                    120 |                     150 |                         50 |
-| Portable Programs |                     40 |                      50 |                         20 |
-| Data              |                    100 |                     200 |                         50 |
-| Buffer            |                      - |         Remaining space |                          - |
+| Partition         | Anticipated Usage (GB) | Planned Allocation (GB) | Unallocated Space (GB) |
+| ----------------- | ---------------------: | ----------------------: | ---------------------: |
+| System            |                    120 |                     150 |                     50 |
+| Portable Programs |                     40 |                      50 |                     20 |
+| Data              |                    100 |                     200 |                     50 |
+| Buffer            |               Variable |         Remaining space |                      - |
 
-- **System:** This partition houses the Windows OS, essential system and non-portable applications (like drivers and office suites), and the Windows user profiles (excluding the relocated data folders).
-- **Portable Programs:** This is the dedicated home for portable software. Its size should be based on the applications you regularly use. By isolating them here, you can back up your entire configured software suite by simply imaging this small partition or using a file-based backup tools.
-- **Data:** This partition is for your active, high-value user-created files (documents, project files, source code). Sizing should accommodate your current and near-future projects. All relocated user data folders like `Documents` should point to directories on this partition.
-- **Buffer:** This partition can be used as an alternative location for large software packages and non-administrative installations. If the second drive is not available, Downloads and Temp directories should be moved here.
+This layout uses four primary, formatted partitions, each with a specific role:
+- **System:** This partition houses the Windows OS, system drivers, non-portable applications (like office suites), and the Windows user profiles (excluding relocated data folders).
+- **Portable Programs:** This is the dedicated home for your portable software environment. Its size should be based on the applications you regularly use.
+- **Data:** This partition is for your active, high-value user-created files. All relocated user data folders like `Documents` should point to directories here.
+- **Buffer:** This is a flexible, general-purpose partition. It can serve as an installation location for large software packages (like development tools) or as a new home for `Downloads` and `Temp` directories if a secondary HDD is not available.
 
-The third column in the table indicates unallocated space that immediately follows the associated partition and serves two purposes. On the one hand, this space acts as a reserve pool and can be used in the future for straightforward extension of individual partitions, if necessary. On the other hand, this intentionally unallocated space  serves as manual SSD over-provisioning. The SSD's controller can use these free blocks (in addition to any hidden blocks) for maintenance tasks like wear-leveling and garbage collection. Extra over-provisioning is particularly recommended for drives with heavy write loads, as it can improve sustained performance and increase the drive's endurance. A common recommendation is to leave 10-20% of the total drive capacity unallocated. Therefore, this unallocated space is not wasted; it is a strategic reserve that enhances both the flexibility and the physical health of the system drive.
+The final column in the table, **Unallocated Space**, is a critical component of this advanced strategy. After creating the `System`, `Programs`, and `Data` partitions, a specific amount of space is intentionally left unallocated before creating the next partition. This space is not wasted; it is a strategic reserve that serves two purposes:
+1. **Partition Flexibility:** It acts as a dedicated reserve pool for the partition preceding it. If your `System` partition needs more space, you have a 50 GB buffer you can easily expand into.
+2. **SSD Over-Provisioning:** All unallocated space on an SSD serves as manual over-provisioning. The SSD's controller uses these free blocks for maintenance tasks like wear-leveling and garbage collection, which can improve sustained performance and increase the drive's endurance, especially under heavy write loads.
+
+This multi-layered approach gives you both a flexible `Buffer` partition for general use and dedicated unallocated reserves to ensure future flexibility and the long-term health of the drive.
 
 ## 5. Conclusion to Part 1
 
