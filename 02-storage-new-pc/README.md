@@ -48,20 +48,20 @@ With our guiding philosophy established, we can now translate those principles i
 
 While this guide focuses on the logical structure of storage, it is enabled by a sensible hardware foundation. The widely accepted best practice serves us well here: a fast Solid State Drive (SSD) should house the operating system, applications, and active project files to ensure responsive performance. This primary drive can then be supplemented by a larger, more economical Hard Disk Drive (HDD) for bulk storage, such as archives, media libraries, and download caches. This physical separation of roles is the first step in our organizational strategy.
 
-### The Case for a Dedicated Partition for Portable Programs
+### The Case for a Dedicated Portable Programs Partition
 
-By default, Windows installs all applications into the `C:\Program Files` and `C:\Program Files (x86)` directories. While this approach works, it has significant drawbacks.
-- **Bloated System Partition:** The size of the system partition keeps increasing, making initial size requirements less predictable.
-- **Outdated or Bloated Backup Images:** Early system backup images become obsolete, while up-to-date backups, if performed, require additional space and advanced drive-imaging-based backup techniques.
-- **Tight System - Software Coupling:** Independent (from the system) migration of applications to a different computer is usually impractical.
-- **Increased Security Risk:** Installation in these default locations typically requires administrative privileges, potentially exposing the entire system.
+By default, Windows installs applications into the `C:\Program Files` directory. While functional, this approach has significant long-term drawbacks:
+- **System Partition Bloat:** The system partition grows unpredictably, complicating backup management and future restorations.
+- **Complex Backup Management:** A single "golden image" backup of the system drive quickly becomes obsolete. Keeping it current requires larger, more frequent images, moving away from a simple "set and forget" recovery approach.
+- **Poor Portability:** Applications become tightly coupled to the operating system, making migration to a new computer a time-consuming process of manual reinstallation.
 
 ### A Note on the Windows Security Model
 
-Windows implements a security model optimized for two main access levels: administrative (full control) and user (limited/restricted). The design intends for day-to-day activities to be performed under a limited user account to contain the potential damage from a compromised program. However, installing applications to the system-wide location requires full administrative access - the same level of access that can modify critical system files. Yet, most applications do not actually need system-level access to function properly.
+The default installation path also introduces security trade-offs due to the Windows permission model. This model is optimized for two main access levels: administrative (full control) and user (limited/restricted).
 
-Ideally, a third, intermediate permission level would allow software installation without granting installers excessive access to the OS. The advantage of an admin-level installation is that it protects the application's folder from being modified by a standard user. The same protection could be achieved with an intermediate access level, which, in principle, can be modeled using Windows Power Users group. However, because this approach is not standard, many applications that do not need system-level access permission would not install properly or at all due to poor software design choices. This security dilemma is a significant reason why favoring applications that do not require a formal, administrative installation is advantageous.
+The design intends for day-to-day activities to be performed under a limited user account to contain potential damage from a compromised program. However, installing applications to the system-wide location requires full administrative access - the same level of access that can modify critical system files. Running application installers this way often constitutes an unnecessary risk, as most applications do not actually need this level of permission to function.
 
+Ideally, an intermediate permission level would exist to install software safely. While this can be partially modeled using tools like the Power Users group, this is not a standard, well-supported practice and is often incompatible with poorly designed installers. This security dilemma is a significant reason why favoring applications that do not require a formal, administrative installation is advantageous.
 
 
 
