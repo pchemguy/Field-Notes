@@ -2,7 +2,9 @@
 
 ## Summary
 
+This guide presents a resilient and practical strategy for structuring the internal storage of a new Windows workstation. The core philosophy is to move beyond a single C: drive and classify all data - from OS files to personal documents - based on its recovery cost, treating replaceable components differently from irreplaceable ones.
 
+Through a methodology of strategic partitioning, a focus on portable applications, and the careful relocation of user profile folders, you can effectively decouple your valuable data and customized software environment from the volatile operating system. The result is a workstation that is significantly easier to back up, migrate to new hardware, and restore in the event of a system failure. This post (Part 1) details the philosophy and the blueprint; Part 2 covers the tools required for implementation.
 
 ## 1. Introduction
 
