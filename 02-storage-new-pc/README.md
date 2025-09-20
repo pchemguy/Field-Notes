@@ -101,3 +101,32 @@ The core of your personal environment resides within your specific user folder (
     These folders are the default destination for your most valuable, high-recovery-cost data. In practice, these directories - or any location within the user profile - should never be used for important files. Instead, all user-created files should be kept on a dedicated Data partition to isolate them from the volatile OS and to allow for targeted, efficient backups. 
 
 While standard user folders (like Documents and Downloads) can be relocated via their **Properties > Location** tab, this method can sometimes be handled improperly by certain applications. A more robust and transparent approach is to use directory junctions or symbolic links. These tools create a pointer from the original location (e.g., `C:\Users\Username\Documents`) to the new location (e.g., `D:\Data\Documents`), ensuring full application compatibility while still achieving the desired physical separation of data.
+
+## 4. The Blueprint: A Practical Partitioning Scheme
+
+Having established our principles for data classification and organization, we can now translate them into a concrete partitioning scheme for a primary system SSD. The goal is to create a logical layout that directly reflects our strategy, providing a resilient and manageable foundation for the workstation.
+
+The following table is a sample plan for a 1 TB SSD, which is based on partition layout and usage on my drives.
+
+| Partition         | Anticipated Usage (GB) | Planned Allocation (GB) | SSD Over-provisioning (GB) |
+| ----------------- | ---------------------: | ----------------------: | -------------------------: |
+| System            |                    120 |                     150 |                         50 |
+| Portable Programs |                     40 |                      50 |                         20 |
+| Data              |                    100 |                     200 |                         50 |
+| Buffer            |                      - |         Remaining space |                          - |
+
+- **System:** This partition houses the Windows OS, essential system and non-portable applications (like drivers and office suites), and the Windows user profiles (excluding the relocated data folders).
+- **Portable Programs:** This is the dedicated home for portable software. Its size should be based on the applications you regularly use. By isolating them here, you can back up your entire configured software suite by simply imaging this small partition or using a file-based backup tools.
+- **Data:** This partition is for your active, high-value user-created files (documents, project files, source code). Sizing should accommodate your current and near-future projects. All relocated user data folders like `Documents` should point to directories on this partition.
+- **Buffer:** This partition can be used as an alternative location for large software packages and non-administrative installations. If the second drive is not available, Downloads and Temp directories should be moved here.
+
+The third column in the table indicates unallocated space that immediately follows the associated partition and serves two purposes. On the one hand, this space acts as a reserve pool and can be used in the future for straightforward extension of individual partitions, if necessary. On the other hand, this intentionally unallocated space  serves as manual SSD over-provisioning. The SSD's controller can use these free blocks (in addition to any hidden blocks) for maintenance tasks like wear-leveling and garbage collection. Extra over-provisioning is particularly recommended for drives with heavy write loads, as it can improve sustained performance and increase the drive's endurance. A common recommendation is to leave 10-20% of the total drive capacity unallocated. Therefore, this unallocated space is not wasted; it is a strategic reserve that enhances both the flexibility and the physical health of the system drive.
+
+## 5. Conclusion to Part 1
+
+This blueprint provides a logical and resilient structure for your internal storage. By separating the system, programs, and data based on their recovery cost and volatility, you create a workstation that is inherently easier to back up, restore, and migrate.
+
+However, a plan is only as good as its implementation. This entire strategy begins with a clean installation of the operating system, which requires a bootable USB medium. In the next and final part of this series, we will focus on building that essential tool.
+
+**➡️ Continue to [Part 2: Building the Ultimate External Bootable Drive](https://www.google.com/search?q=link-to-part-2)**
+
