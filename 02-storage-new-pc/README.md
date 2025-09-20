@@ -44,11 +44,7 @@ If this data is lost, there is no installer to run or website to download from. 
  
 With our guiding philosophy established, we can now translate those principles into the practical organization of a workstation. The planning process involves making deliberate choices about hardware roles, application management, and the default locations for user data. The goal is to create an environment that is logically structured from the start, making it inherently more resilient and manageable.
 
-### Hardware Roles
-
 While this guide focuses on the logical structure of storage, it is enabled by a sensible hardware foundation. The widely accepted best practice serves us well here: a fast Solid State Drive (SSD) should house the operating system, applications, and active project files to ensure responsive performance. This primary drive can then be supplemented by a larger, more economical Hard Disk Drive (HDD) for bulk storage, such as archives, media libraries, and download caches. This physical separation of roles is the first step in our organizational strategy.
-
-### The Case for a Dedicated Portable Programs Partition
 
 By default, Windows installs applications into the `C:\Program Files` directory. While functional, this approach has significant long-term drawbacks:
 - **System Partition Bloat:** The system partition grows unpredictably, complicating backup management and future restorations.
