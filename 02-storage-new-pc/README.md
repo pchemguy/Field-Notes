@@ -46,19 +46,18 @@ With our guiding philosophy established, we can now translate those principles i
 
 While this guide focuses on the logical structure of storage, it is enabled by a sensible hardware foundation. The widely accepted best practice serves us well here: a fast Solid State Drive (SSD) should house the operating system, applications, and active project files to ensure responsive performance. This primary drive can then be supplemented by a larger, more economical Hard Disk Drive (HDD) for bulk storage, such as archives, media libraries, and download caches. This physical separation of roles is the first step in our organizational strategy.
 
-By default, Windows installs applications into the `C:\Program Files` directory. While functional, this approach has significant long-term drawbacks:
+### Conventional Management of Program Files on Windows
+
+By default, Windows installs applications into its `C:\Program Files` and `C:\Program Files (x86)` directories. While functional, this conventional approach has significant long-term drawbacks:
 - **System Partition Bloat:** The system partition grows unpredictably, complicating backup management and future restorations.
 - **Complex Backup Management:** A single "golden image" backup of the system drive quickly becomes obsolete. Keeping it current requires larger, more frequent images, moving away from a simple "set and forget" recovery approach.
 - **Poor Portability:** Applications become tightly coupled to the operating system, making migration to a new computer a time-consuming process of manual reinstallation.
 
-### A Note on the Windows Security Model
+This default installation path also introduces security trade-offs due to the Windows permission model. This model is optimized for two main access levels: administrative (full control) and user (limited/restricted).
 
-The default installation path also introduces security trade-offs due to the Windows permission model. This model is optimized for two main access levels: administrative (full control) and user (limited/restricted).
+This design intends for day-to-day activities to be performed under a limited user account to contain potential damage from a compromised program. However, installing applications to the system-wide location requires full administrative access - the same level of access that can modify critical system files. Running application installers this way often constitutes an unnecessary risk, as most applications do not actually need this level of permission to function.
 
-The design intends for day-to-day activities to be performed under a limited user account to contain potential damage from a compromised program. However, installing applications to the system-wide location requires full administrative access - the same level of access that can modify critical system files. Running application installers this way often constitutes an unnecessary risk, as most applications do not actually need this level of permission to function.
-
-Ideally, an intermediate permission level would exist to install software safely. While this can be partially modeled using tools like the Power Users group, this is not a standard, well-supported practice and is often incompatible with poorly designed installers. This security dilemma is a significant reason why favoring applications that do not require a formal, administrative installation is advantageous.
-
+Ideally, an intermediate permission level would exist to install software safely. While this middle level can be partially modeled using tools like the Power Users group, this practice is neither standard nor well-supported and is often incompatible with poorly designed installers. This security dilemma is a significant reason why favoring applications that do not require a formal, administrative installation is advantageous.
 
 
 
