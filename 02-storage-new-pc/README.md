@@ -92,30 +92,12 @@ The core of your personal environment resides within your specific user folder (
 - Core Account Settings (NTUSER.DAT)
     This file, located at the root of your user folder, is your personal portion of the Windows Registry. It stores your Windows settings, from your desktop wallpaper to application-specific preferences. Corruption of this single file can render your account unusable, often requiring a full profile rebuild. It is the essential core of your user account's functionality.
 - Application Settings (AppData)
-    This hidden folder contains configurations for your installed programs. It's subdivided into Roaming (for settings that could follow you across a network) and Local (for machine-specific settings and caches). When an application's settings become corrupted, deleting its folder within AppData is often the simplest fix. Note: some programs create a settings/data subdirectory directly within your profile (e.g., `C:\Users\Username`).
+    This hidden folder contains configurations for your installed programs. It's subdivided into Roaming (for settings that could follow you across a network) and Local (for machine-specific settings and caches). Note that some programs also create settings directories directly in your profile root (e.g., .vscode, .gitconfig). When an application's settings become corrupted, deleting its settings folder is often the simplest fix.
 - User-Level Program Installations
     Many modern applications (like Chrome, VS Code, and Discord) use the AppData folder to install their entire program. This allows silent installation without administrative privileges but further blurs the line between user settings and program files, adding to the bloat of the user profile.
 - Volatile & High-Volume Folders (Downloads, Temp)
     These folders are designed for temporary storage but often become repositories for large files, installers, and other transient data. They have low value but may take up significant space. Relocating the Downloads folder and the Temp directory (AppData\Local\Temp) to a secondary HDD frees up valuable SSD space and excludes this high-volume, low-value data from your primary backup routines.
 - Irreplaceable User-Created Files (Documents, Pictures, etc.)
-    These folders are the destination for your most valuable, high-recovery-cost data: your documents, source code, project files, and photos. This is the data that requires a robust and frequent backup schedule. In practice, these directories (or any place within the user profile for that matter) should never be used for any valuable data. Instead, user files should be kept on a dedicated Data partition to isolate them from the volatile OS and to allow for targeted, efficient backups. 
+    These folders are the default destination for your most valuable, high-recovery-cost data. In practice, these directories - or any location within the user profile - should never be used for important files. Instead, all user-created files should be kept on a dedicated Data partition to isolate them from the volatile OS and to allow for targeted, efficient backups. 
 
-Relocating special folders (like Documents and Downloads) is straightforward. For most, you can right-click the folder in File Explorer, go to **Properties**, and use the **Location** tab to assign a new path. For more advanced control, tools like Directory Junctions or Symbolic Links can also be used.
-
-
-### Taming the Windows User Profile
-
-The Windows user profile, located at `C:\Users\Username`, is a critical but problematic area. By default, it mixes high-value, irreplaceable data with high-volume, low-value data. A key part of our strategy is to disentangle this folder by relocating its most volatile components.
-
-- **High-Volume, Low-Value Folders:**
-    
-    - **Downloads:** This folder often becomes a repository for large, temporary files. It should be relocated from the primary SSD to a secondary HDD if available. This frees up valuable SSD space and excludes temporary data from your primary data backup routines.
-        
-    - **Temp:** Similar to Downloads, the temporary files directory (`AppData\Local\Temp`) can be moved to a secondary drive to reduce unnecessary writes on the system SSD.
-        
-- **High-Value Data Folders:**
-    
-    - **Documents, Desktop, Pictures, etc.:** These folders contain your irreplaceable user-generated data. They should be moved from their default location on the system partition to your dedicated `Data` partition. This isolates them from the OS, ensuring they are not accidentally wiped during a reinstallation and can be included in a targeted, high-priority backup schedule.
-        
-
-Relocating these folders is straightforward. For most, you can simply right-click the folder in File Explorer, go to **Properties**, and use the **Location** tab to assign a new path. For more advanced control, tools like Directory Junctions or Symbolic Links can also be used.
+While standard user folders (like Documents and Downloads) can be relocated via their **Properties > Location** tab, this method can sometimes be handled improperly by certain applications. A more robust and transparent approach is to use directory junctions or symbolic links. These tools create a pointer from the original location (e.g., `C:\Users\Username\Documents`) to the new location (e.g., `D:\Data\Documents`), ensuring full application compatibility while still achieving the desired physical separation of data.
