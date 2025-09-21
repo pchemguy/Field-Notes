@@ -2,13 +2,13 @@
 
 ## Summary
 
-This guide (Part 2) provides a step-by-step walkthrough for creating the essential tool for any power user: a versatile, multi-boot external SSD. We move beyond simple installers to build a dual-purpose "digital Swiss Army knife" that can boot a wide array of recovery tools while also serving as a portable drive for backups and applications.
+This guide provides a step-by-step walkthrough for creating the essential tool for any power user: a versatile, multi-boot external SSD. We move beyond simple installers to build a dual-purpose "digital Swiss Army knife" that can boot a wide array of recovery tools while also serving as a portable drive for backups and applications.
 
 The core of this project is Ventoy, a powerful tool that allows you to boot directly from `.ISO` and `.VHDX` files by simply dragging and dropping them. The guide focuses on using Rufus and YUMI exFAT tools in combination with standard Windows disk management tools for creating a custom partition layout for a dual-purpose drive and adding a Windows To Go environment. By the end, you will have a single, indispensable tool for system installation, maintenance, and recovery.
 
 ## 1. Introduction
 
-In [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md)of this series, we designed a resilient internal storage scheme for a new Windows workstation, a process that begins with a clean drive. Implementing that strategy requires an external, bootable medium to partition the system drive and perform a clean installation of the operating system. This guide covers the process of creating that essential tool: a versatile, multi-boot USB drive. The primary requirements are to support a full Windows To Go environment and standard Windows installation media, with the flexibility to boot other tools like system recovery suites and live Linux distributions.
+In [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md) of this two-part series, we designed a resilient internal storage scheme for a new Windows workstation, a process that begins with a clean drive. Implementing that strategy requires an external, bootable medium to partition the system drive and perform a clean installation of the operating system. This guide covers the process of creating that essential tool: a versatile, multi-boot USB drive. The primary requirements are to support a full Windows To Go environment and standard Windows installation media, with the flexibility to boot other tools like system recovery suites and live Linux distributions.
 
 A fast external Solid State Drive (SSD) is the ideal hardware for this task due to its speed and reliability. Since small-capacity SSDs are often poor value, a larger drive is more practical. This leads to our second core requirement: the drive must serve a dual purpose. It needs to function as our powerful multi-boot tool while the remaining space serves as a general-purpose drive for backups or portable applications. The goal is to achieve both of these functions on a single device without compromise.
 
