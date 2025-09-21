@@ -75,8 +75,7 @@ A major advantage of having a single partition is not having to worry about prov
 
 On an HDD, it is generally a good idea to plan for HDD size such that at least 20-25% remains free. Leaving enough free space reduces the rate at which HDD file system becomes more fragmented. Also, this space can be used by HDD defragmenters to speed up the drive. For SSD, file system fragmentation is generally considered as not a concern, even though there is usually still considerable difference between sequential and random read throughput, so this difference is considerably smaller than in case of an HDD. For SSD, it is generally helpful to reserve some space unallocated (a fancy term "over-provisioning" is use for this purpose). This space can then be used by the SSD controller for HDD maintenance. According to information found on the internet, 5-10% of unallocated space is suggested for a drive with moderate writing loads and 15-20% for drives with substantial writing load. For example, for a 1000 GB drive, value in the range 50-150 GB may be a good number. Because reserved space does not need to logically continuous, it can be split into a few chunks placed after the first three partitions above. This way this space will serve two purposes. It will be used my the SSD controller, so it will not be wasted. At the same time, it will act as extra space that would allow easy extension of individual partitions. In the unlikely case a substantial fraction of this space is added to partitions, extra unallocated space can be created then by shrinking the last (and largest) partition.
 
-## Building Bootable USB Drive
-
+## Storage Considerations for a New PC, Part 2: Building Bootable USB Drives
 
 ### Boot Targets
 

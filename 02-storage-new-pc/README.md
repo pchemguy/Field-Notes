@@ -12,7 +12,7 @@ The setup of a new computer begins with a choice: accept the pre-installed opera
 
 This two-part series documents an approach I have refined for Windows-based workstations. In this **Part 1**, we will focus on the strategy for **internal storage**. This post establishes a set of principles for partitioning a system drive based on a file's role, volatility, and recovery cost. The goal is to create a logical structure that separates the ephemeral (the OS and basic applications) from the essential (your data and customized software environment), which in turn allows for a more efficient and resilient backup strategy.
 
-Implementing this storage architecture, of course, begins with a clean slate. To that end, **[Storage Considerations for a New PC, Part 2: Building Bootable USB Drives](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/BootableUSBDrive.md)** details the creation of the necessary tool. It covers how to prepare a versatile drive that allows you to wipe a machine and apply this storage architecture from the ground up.
+Implementing this storage architecture, of course, begins with a clean slate. To that end, **[Part 2: Building Bootable USB Drives](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/BootableUSBDrive.md)** details the creation of the necessary tool. It covers how to prepare a versatile drive that allows you to wipe a machine and apply this storage architecture from the ground up.
 
 ## 2. A Guiding Philosophy: Classifying Data by Recovery Cost
 
