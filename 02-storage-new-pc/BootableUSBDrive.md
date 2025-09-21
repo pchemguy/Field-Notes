@@ -1,5 +1,7 @@
 # Storage Considerations for a New PC, Part 2: Building a Dual-Purpose, Bootable USB Drive
 
+![](https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/02-storage-new-pc/vis2.jpg)
+
 ## Summary
 
 This guide provides a step-by-step walkthrough for creating the essential tool for any power user: a versatile, multi-boot external SSD. We move beyond simple installers to build a dual-purpose "digital Swiss Army knife" that can boot a wide array of recovery tools while also serving as a portable drive for backups and applications.
