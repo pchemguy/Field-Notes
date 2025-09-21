@@ -86,36 +86,43 @@ Notice the unallocated space is strategically placed. As discussed in [Part 1](h
 
 ### 5. Special Case: Adding a Windows To Go Environment
 
-A "Windows To Go" (WTG) installation - a full, bootable Windows environment running from your USB drive - might be useful as an alternative emergency boot environment, as well as when you need to work on someone else's computer. For multi-boot environment, WTG is typically created as a bootable virtual hard disk (`.VHDX`) file that you place on your Ventoy partition. While Microsoft discontinued official support for WTG, several tools can use Windows Installation ISO and some alternative sources for creation of equivalent WTG environment:
+A "Windows To Go" (WTG) installation - a full, bootable Windows environment running from your USB drive - might be useful for emergencies or when you need to work on a guest computer. For multi-boot disks, the WTG environment is typically created as a single bootable virtual hard disk (`.VHDX`) file that you place on the Ventoy partition. While Microsoft has discontinued official support for WTG, several third-party tools can create an equivalent environment from a Windows Installation ISO.:
 
-| Tool                                               | Source                     | Destination                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Tool                                               | Source Formats             | Destination Flexibility                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | -------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [Rufus](https://rufus.ie)                          | Windows Installation ISO   | - USB stick  <br>- Mounted VHD(X) virtual drive  <br>- USB SSD/HDD (press Alt+F to show in the list)  <br>- Internal drive, including virtual drives within a virtual PC<br>  ([press](https://superuser.com/a/1337432) Ctrl+Alt+F to show in the list)  <br>  Note that virtual drives within a virtual PC include<br>    - standard virtual drives<br>    - passed through drives connected to the host<br>        - physical<br>        - USB (presented as a regular disk, unless USB emulation is configured)<br>        - mounted VHD(X) |
 | [WinToUSB](https://easyuefi.com/wintousb)          | ISO, WIM, ESD, SWM, VHD(X) | USB (any type)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | [ISO2Disc](https://top-password.com/iso2disc.html) | Windows Installation ISO   | USB (any type)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-Note: this table shows tested and/or officially documented sources/destinations. It does not attempt to include every documented options, so additional options may be available. Check official documentation for more information.
+Note: this table shows tested and/or officially documented sources/destinations. It does not attempt to include every documented option, so additional options may be available. Check official documentation for more information.
 
-#### Bootable VHD(X) Creation  
+#### Creating the Bootable VHDX
 
-WinToUSB provides the broadest spectrum of supported sources. At the same time, it only supports USB drives as its target, a physical (or virtual within a virtual machine) USB drive needs to be used as an intermediate target. After WTG is installed, a VHD(X) image can be created, e.g., with [Sysinternals Disk2vhd](https://learn.microsoft.com/en-us/sysinternals/downloads/disk2vhd). Rufus, on the other hand, only supports the standard (possibly also customized) Windows Installation ISO as the source, but it can install WTG on virtually any target, physical or virtual, supporting direct installation onto a mounted VHD(X) image.
+While WinToUSB offers the broadest support for source files, Rufus provides the most flexible destination options, allowing us to install WTG directly onto a virtual disk file without needing an intermediate physical drive. The following workflow details how to create and test your WTG image within a virtual machine before deploying it to the physical USB drive.
 
-**Rufus-based Workflow**
-It is generally a good idea to troubleshoot and test bootable images and a bootable tool within a virtual machine before proceeding to real tests. With Rufus and VMWare, preliminary work can be done without any physical drives involved:
-1. Create a new VHDX file using diskpart or WDM.
-2. Mount the new image on the host system.
-3. Use Rufus to install WTG.
-4. In VMWare, create a new virtual disk, using a physical host disk and selecting the mounted VHDX as the source.
-5. Boot VMWare from this virtual disk.
-6. Finish configuration, adjust any necessary settings, install drivers and essential software.
-7. Shutdown VM, remove virtual disk, unmount VHDX from the host.
-8. Add VHDX to the bootable disk via YUMI exFAT or directly (this can be a virtual disk at early stages and physical USB SSD at later stages).
-9. Boot VM into WTG using bootable disk (virtual disk or passed through USB disk).
-10. Boot a physical computer using a bootable USB SSD.
+1. **Create VHDX:** Use WDM or `diskpart` to create a new `.VHDX` file on your computer.    
+2. **Mount VHDX:** Mount the new `.VHDX` file so it appears as a regular drive in Windows.
+3. **Install WTG with Rufus:** Run Rufus, select your Windows Installation ISO, and choose the mounted VHDX drive as the destination. Proceed with the Windows To Go installation.
+4. **Initial VM Setup:** In VMware or your preferred hypervisor, create a new virtual machine that boots from a physical disk, pointing it to your mounted `.VHDX`-based disk.
+5. **Configure Windows:** Boot the new VM. Complete the initial Windows setup (OOBE), install critical drivers, and make any desired software installations or configuration changes within the virtualized WTG environment.
+6. **Finalize and Test:**
+    - Shut down the VM and unmount the `.VHDX` from your host system.
+    - Copy the finalized `.VHDX` file to the main data partition of your Ventoy USB drive (or use YUMI exFAT).
+    - Test it by booting a VM and your physical computer from the Ventoy drive and selecting the VHDX file from the boot menu.
 
-> {!NOTE}
+> [!NOTE]
 > 
-> When booted from VHDX, Windows will most likely run in non persistent mode. Other USB disk partition will need to be used for permanent changes.
+> - When booted from a VHDX, Windows may run in a non-persistent mode, meaning changes are not saved back to the `.VHDX` file upon shutdown. For persistent storage, you must save files to one of the other visible partitions on your USB drive, such as your `Archive`  partition.
+> - VHD(X) image can also be created from a physical disk using tools like [Sysinternals Disk2vhd](https://learn.microsoft.com/en-us/sysinternals/downloads/disk2vhd).
 
 ### 6. Conclusion
 
-By following this guide, you have transformed a standard external drive into a powerful, versatile tool. This bootable medium allows you to implement the advanced storage architecture we designed in [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md), perform clean OS installations, boot to portable configured Windows environment, conduct system maintenance, and recover from failures. At the same time, this disk also serves as a backup storage.
+With the completion of this bootable drive, our two-part guide is now finished. You have not only designed a resilient internal storage architecture but also built the powerful, versatile tool required to deploy and maintain it.
+
+This single external drive now enables you to:
+- Implement the custom partitioning strategy from [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md).
+- Perform clean installations of Windows or Linux.
+- Boot into a portable, configured Windows To Go environment.
+- Run a comprehensive suite of system recovery and diagnostic tools.
+- Serve as a general-purpose drive for backups and archives.
+
+Your digital Swiss Army knife is complete, providing a robust foundation for a more resilient and manageable computing experience.
