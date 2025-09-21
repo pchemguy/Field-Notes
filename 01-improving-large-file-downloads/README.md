@@ -1,5 +1,7 @@
 # Resuming Large File Downloads with Dynamic Links
 
+![](https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/01-improving-large-file-downloads/vis.jpg)
+
 ## Summary
 
 Modern browsers are unreliable for large file downloads from dynamic or expiring links because they cannot properly resume failures. This note provides two Windows batch scripts (for wget and aria2) that solve this problem. Using session information (HTTP headers and cookies) extracted from your browser's dev tools, these scripts can robustly resume downloads, even if the link needs to be refreshed.
