@@ -65,7 +65,9 @@ If you wish to use the YUMI exFAT interface for managing your ISOs, the process 
 5. **Restore Config:** Label the first partition "YUMI" and copy the two directories you saved in Step 2 back onto it.
 6. **Manage ISOs:** You can now use the YUMI exFAT GUI to add and remove bootable distributions, or simply drag and drop ISO files onto the "YUMI" partition yourself.
 
-> [!Warning] Important Ventoy2Disk Notes:
+> [!Warning]
+> 
+> Important Ventoy2Disk Notes:
 >  
 > - To see internal or non-USB drives, you must select **Options -> Show All Devices**.
 > - The **Options -> Non-destructive Install** menu item is an action that **immediately begins the installation**, not a setting you can toggle. Ensure you have the correct device selected _before_ clicking it.
