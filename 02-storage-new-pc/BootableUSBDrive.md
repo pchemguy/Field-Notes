@@ -55,28 +55,20 @@ While YUMI exFAT can prepare a drive, it offers limited options compared to Vent
 | VTOYEFI           |                      - |                       - |                     80 |
 | Portable Programs |                     40 |                      50 |                     20 |
 | Archive           |               Variable |         Remaining space |                      - |
-
+As discussed in [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md), unallocated space serves two purposes: provides a reserve pool for future expansion of the preceding partition and is used for SSD over-provisioning while remains unallocated. 
 
 If you wish to use the YUMI exFAT interface for managing your ISOs, the process is slightly more complex:
 1. **Initial Prep:** Use YUMI exFAT to prepare the target drive once. This creates the necessary configuration directories.
 2. **Save Config:** Copy the `YUMI` and `ventoy` directories from the drive's main partition to a temporary location on your computer.
-3. **Manual Partitioning:** Use a tool like Windows Disk Management or `diskpart` to wipe the drive and create your desired custom partition layout (e.g., a 40 GB partition for ISOs, a 50 GB partition for portable apps, and an archive partition with the remaining space).
-    
+3. **Manual Partitioning:** Use a tool like Windows Disk Management or `diskpart` to wipe the drive and create your desired custom partition layout.
 4. **Install Ventoy:** Run the Ventoy2Disk tool and use the "Non-destructive Install" option on your newly partitioned drive. This will create the small EFI partition without erasing your custom layout.
-    
 5. **Restore Config:** Label the first partition "YUMI" and copy the two directories you saved in Step 2 back onto it.
-    
 6. **Manage ISOs:** You can now use the YUMI exFAT GUI to add and remove bootable distributions, or simply drag and drop ISO files onto the "YUMI" partition yourself.
-    
 
-> **❗️ Important Ventoy2Disk Notes:**
-> 
+> [!Warning] Important Ventoy2Disk Notes:
+>  
 > - To see internal or non-USB drives, you must select **Options -> Show All Devices**.
->     
 > - The **Options -> Non-destructive Install** menu item is an action that **immediately begins the installation**, not a setting you can toggle. Ensure you have the correct device selected _before_ clicking it.
->     
-
----
 
 ### 5. Special Case: Adding a Windows To Go Environment
 
