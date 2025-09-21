@@ -75,7 +75,7 @@ As discussed in [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/02-st
 
 ### 5. Special Case: Adding a Windows To Go Environment
 
-A "Windows To Go" (WTG) installation - a full, bootable Windows environment running from your USB drive - might be useful as an alternative emergency boot environment, as well as when you need to work on someone else's computer. For multi-boot environment, WTG is typically created as a bootable virtual hard disk (`.VHDX`) file that you place on your Ventoy partition. Two convenient tools, **Rufus** and **WinToUSB**, directly support WTG environment creation.
+A "Windows To Go" (WTG) installation - a full, bootable Windows environment running from your USB drive - might be useful as an alternative emergency boot environment, as well as when you need to work on someone else's computer. For multi-boot environment, WTG is typically created as a bootable virtual hard disk (`.VHDX`) file that you place on your Ventoy partition. While Microsoft discontinued official support for WTG, several tools can use Windows Installation ISO and some alternative sources for creation of equivalent WTG environment:
 
 | Tool                                               | Source                     | Destination                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | -------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -86,13 +86,24 @@ Note: this table shows tested and/or officially documented sources/destinations.
 
 #### Bootable VHD(X) Creation  
 
-Because WinToUSB only supports USB drives as its target, a physical (or virtual within a virtual machine) USB drive needs to be used as an intermediate target. After WTG is installed, a VHD(X) image can be created, e.g., with [Sysinternals Disk2vhd](https://learn.microsoft.com/en-us/sysinternals/downloads/disk2vhd). The advantage of WinToUSB is wider spectrum of sources, though presently I do not need them. Rufus only uses the standard (possibly also customized) Windows Installation ISO, which is the most natural source. Importantly, it can install WTG on virtually any target, physical or virtual, supporting direct installation onto a mounted VHD(X) image.
+WinToUSB provides the broadest spectrum of supported sources. At the same time, it only supports USB drives as its target, a physical (or virtual within a virtual machine) USB drive needs to be used as an intermediate target. After WTG is installed, a VHD(X) image can be created, e.g., with [Sysinternals Disk2vhd](https://learn.microsoft.com/en-us/sysinternals/downloads/disk2vhd). Rufus, on the other hand, only supports the standard (possibly also customized) Windows Installation ISO as the source, but it can install WTG on virtually any target, physical or virtual, supporting direct installation onto a mounted VHD(X) image.
 
 **Rufus-based Workflow**
 It is generally a good idea to troubleshoot and test bootable images and a bootable tool within a virtual machine before proceeding to real tests. With Rufus and VMWare, preliminary work can be done without any physical drives involved:
 1. Create a new VHDX file using diskpart or WDM.
 2. Mount the new image on the host system.
-3. Use Rufus to install WTG
+3. Use Rufus to install WTG.
+4. In VMWare, create a new virtual disk, using a physical host disk and selecting the mounted VHDX as the source.
+5. Boot VMWare from this virtual disk.
+6. Finish configuration, adjust any necessary settings, install drivers and essential software.
+7. Shutdown VM, remove virtual disk, unmount VHDX from the host.
+8. Add VHDX to the bootable disk via YUMI exFAT or directly (this can be a virtual disk at early stages and physical USB SSD at later stages).
+9. Boot VM into WTG using bootable disk (virtual disk or passed through USB disk).
+10. Boot a physical computer using a bootable USB SSD.
+
+> {!NOTE}
+> 
+> When booted from VHDX, Windows will most likely run in non persistent mode. Other USB disk partition will need to be used for permanent changes.
 
 ### 6. Conclusion
 
