@@ -123,6 +123,8 @@ This layout uses four primary, formatted partitions, each with a specific role:
 - **Data:** This partition is for your active, high-value user-created files. All relocated user data folders like `Documents` should point to directories here.
 - **Buffer:** This is a flexible, general-purpose partition. It can serve as an installation location for large software packages (like development tools) or as a new home for `Downloads` and `Temp` directories if a secondary HDD is not available.
 
+**Dual-Purpose Extra Space: Partition Reserve Pool and SSD Over-Provisioning**
+
 The final column in the table, **Unallocated Space**, is a critical component of this advanced strategy. After creating the `System`, `Programs`, and `Data` partitions, a specific amount of space is intentionally left unallocated before creating the next partition. This space is not wasted; it is a strategic reserve that serves two purposes:
 1. **Partition Flexibility:** It acts as a dedicated reserve pool for the partition preceding it. If your `System` partition needs more space, you have a 50 GB buffer you can easily expand into.
 2. **SSD Over-Provisioning:** All unallocated space on an SSD serves as manual over-provisioning. The SSD's controller uses these free blocks for maintenance tasks like wear-leveling and garbage collection, which can improve sustained performance and increase the drive's endurance, especially under heavy write loads.
