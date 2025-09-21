@@ -43,11 +43,11 @@ Ventoy works by creating two specific partitions at the beginning of the drive:
 1. **The Main Data Partition:** This is a large, standard partition visible to your OS. You simply copy your `.ISO`, `.VHD`, and other image files here. While YUMI labels this "YUMI", Ventoy leaves it unlabeled.
 2. **The EFI System Partition (`VTOYEFI`):** This is a small (32 MB), hidden partition that contains the bootloader files. It is created automatically and should not be modified.
 
-Crucially, modern versions of Ventoy allow these two partitions to exist without occupying the entire drive, leaving the remaining space free for you to create and manage your own additional partitions.
+Crucially, modern versions of Ventoy allow these two partitions to exist without occupying the entire drive, leaving the remaining space free for you to create and manage your own additional partitions (see [MBR](https://ventoy.net/en/doc_disk_layout.html#reserve_space) and [GPT](https://ventoy.net/en/doc_disk_layout_gpt.html#reserve_space) for further details).
 
 ### Step-by-Step Drive Preparation
 
-While YUMI exFAT can prepare a drive, it offers limited options compared to Ventoy. The most flexible approach, however, is to partition the drive manually first and then perform a "Non-destructive Install" of Ventoy. Here is an example disk layout:
+While YUMI exFAT can prepare a drive, it offers limited options compared to Ventoy. The most flexible approach, however, is to partition the drive manually first and then perform a ["Non-destructive Install"](https://ventoy.net/en/doc_non_destructive.html) of Ventoy. Here is an example disk layout:
 
 | Partition         | Anticipated Usage (GB) | Planned Allocation (GB) | Unallocated Space (GB) |
 | ----------------- | ---------------------: | ----------------------: | ---------------------: |
@@ -55,7 +55,6 @@ While YUMI exFAT can prepare a drive, it offers limited options compared to Vent
 | VTOYEFI           |                      - |                       - |                     80 |
 | Portable Programs |                     40 |                      50 |                     20 |
 | Archive           |               Variable |         Remaining space |                      - |
-As discussed in [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md), unallocated space serves two purposes: provides a reserve pool for future expansion of the preceding partition and is used for SSD over-provisioning while remains unallocated. 
 
 If you wish to use the YUMI exFAT interface for managing your ISOs, the process is slightly more complex:
 1. **Initial Prep:** Use YUMI exFAT to prepare the target drive once. This creates the necessary configuration directories.
@@ -72,27 +71,28 @@ If you wish to use the YUMI exFAT interface for managing your ISOs, the process 
 > - To see internal or non-USB drives, you must select **Options -> Show All Devices**.
 > - The **Options -> Non-destructive Install** menu item is an action that **immediately begins the installation**, not a setting you can toggle. Ensure you have the correct device selected _before_ clicking it.
 
+As discussed in [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md), unallocated space serves two purposes: provides a reserve pool for future expansion of the preceding partition and is used for SSD over-provisioning while remains unallocated. In this case, however, reserving unallocated space immediately after the "YUMI" partition is impossible due to Ventoy restrictions. For this reason, the extra space is left after "VTOYEFI" partition. If the "YUMI" needs to be expanded, the system "VTOYEFI" partition is deleted first using diskpart (Windows Disk Manager (WDM) will not delete system partitions). Then the "YUMI" partition is extended using either diskpart or WDM. Finally, the "VTOYEFI" partition is recreated via a "Non-destructive Install" of Ventoy. If necessary, the last partition can be shrunk to compensate for decreased amount of unallocated space available for SSD over-provisioning.
+
 ### 5. Special Case: Adding a Windows To Go Environment
 
-One of the most powerful boot targets is a "Windows To Go" (WTG) installation—a full, bootable Windows environment running from your USB drive. This is typically created as a bootable virtual hard disk (`.VHDX`) file that you place on your Ventoy partition.
+A "Windows To Go" (WTG) installation - a full, bootable Windows environment running from your USB drive - might be useful as an alternative emergency boot environment, as well as when you need to work on someone else's computer. For multi-boot environment, WTG is typically created as a bootable virtual hard disk (`.VHDX`) file that you place on your Ventoy partition. Two convenient tools, **Rufus** and **WinToUSB**, directly support WTG environment creation.
 
-Two excellent tools for this are **Rufus** and **Hasleo WinToUSB**. Both can take a standard Windows Installation ISO and install it as a WTG environment onto a target drive.
+| Tool                                               | Source                     | Destination                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Rufus](https://rufus.ie)                          | Windows Installation ISO   | - USB stick  <br>- Mounted VHD(X) virtual drive  <br>- USB SSD/HDD (press Alt+F to show in the list)  <br>- Internal drive, including virtual drives within a virtual PC<br>  ([press](https://superuser.com/a/1337432) Ctrl+Alt+F to show in the list)  <br>  Note that virtual drives within a virtual PC include<br>    - standard virtual drives<br>    - passed through drives connected to the host<br>        - physical<br>        - USB (presented as a regular disk, unless USB emulation is configured)<br>        - mounted VHD(X) |
+| [WinToUSB](https://easyuefi.com/wintousb)          | ISO, WIM, ESD, SWM, VHD(X) | USB (any type)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| [ISO2Disc](https://top-password.com/iso2disc.html) | Windows Installation ISO   | USB (any type)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+Note: this table shows tested and/or officially documented sources/destinations. It does not attempt to include every documented options, so additional options may be available. Check official documentation for more information.
 
-|Tool|Source Formats|Destination|
-|---|---|---|
-|**Rufus**|Windows Installation ISO|USB Drive, Mounted VHD(X)|
-|**Hasleo WinToUSB**|ISO, WIM, ESD, SWM, VHD(X)|Any USB Drive|
+#### Bootable VHD(X) Creation  
 
-The easiest way to create a bootable `.VHDX` file for Ventoy is to:
+Because WinToUSB only supports USB drives as its target, a physical (or virtual within a virtual machine) USB drive needs to be used as an intermediate target. After WTG is installed, a VHD(X) image can be created, e.g., with [Sysinternals Disk2vhd](https://learn.microsoft.com/en-us/sysinternals/downloads/disk2vhd). The advantage of WinToUSB is wider spectrum of sources, though presently I do not need them. Rufus only uses the standard (possibly also customized) Windows Installation ISO, which is the most natural source. Importantly, it can install WTG on virtually any target, physical or virtual, supporting direct installation onto a mounted VHD(X) image.
 
-1. Create and mount a new virtual disk (`.VHDX`) in Windows Disk Management.
-    
-2. Use Rufus or Hasleo WinToUSB to perform a Windows To Go installation, targeting the mounted virtual disk as the destination.
-    
-3. Once complete, unmount the virtual disk and copy the resulting `.VHDX` file to your Ventoy partition.
-    
-
----
+**Rufus-based Workflow**
+It is generally a good idea to troubleshoot and test bootable images and a bootable tool within a virtual machine before proceeding to real tests. With Rufus and VMWare, preliminary work can be done without any physical drives involved:
+1. Create a new VHDX file using diskpart or WDM.
+2. Mount the new image on the host system.
+3. Use Rufus to install WTG
 
 ### 6. Conclusion
 
