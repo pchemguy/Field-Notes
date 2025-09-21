@@ -2,11 +2,13 @@
 
 ## 1. Introduction
 
-In [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md) of this series, we designed a resilient internal storage partitioning scheme for a new Windows workstation, starting from a blanked drive. Partitioning the system drive and performing a clean installation of an operating system requires an external, bootable medium. This guide covers the process of creating that essential tool: a versatile, multi-boot USB drive. The primary goal is preparing a bootable drive supporting a full "Windows To Go" environment and Windows installation. For added flexibility, we require the ability to boot other distributions as well, such as system recovery tools and Linux live booting and installation. Further, fast SSD drives are preferable for such a job due to both speed and space considerations. At the same time, because I need a bootable drive primarily for the purposes described, I only need a few bootable images to fulfil them. Since it does not make much sense to buy a small SSD, the other requirement for this tool is to also serve as an external backup drive. And both of these functions - multi-booting and backup - should be conveniently provided without any compromises.
+In [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md)of this series, we designed a resilient internal storage scheme for a new Windows workstation, a process that begins with a clean drive. Implementing that strategy requires an external, bootable medium to partition the system drive and perform a clean installation of the operating system. This guide covers the process of creating that essential tool: a versatile, multi-boot USB drive. The primary requirements are to support a full Windows To Go environment and standard Windows installation media, with the flexibility to boot other tools like system recovery suites and live Linux distributions.
+
+A fast external Solid State Drive (SSD) is the ideal hardware for this task due to its speed and reliability. Since small-capacity SSDs are often poor value, a larger drive is more practical. This leads to our second core requirement: the drive must serve a dual purpose. It needs to function as our powerful multi-boot tool while the remaining space serves as a general-purpose drive for backups or portable applications. The goal is to achieve both of these functions on a single device without compromise.
 
 ## 2. Defining Boot Targets
 
-First, we need to define what this drive must be capable of booting. The goal is to consolidate a variety of installation and recovery tools onto a single medium.
+Before building our drive, we must define its purpose. The goal is to create a "digital Swiss Army knife" by consolidating a curated set of installation, recovery, and utility environments onto a single, portable medium. The chosen tools will form our bootable library. Here is the list of essential boot targets for this project:
 
 | Name                    | Source                                            | Image Size (GB) |
 | ----------------------- | ------------------------------------------------- | --------------: |
@@ -18,20 +20,22 @@ First, we need to define what this drive must be capable of booting. The goal is
 | Hiren’s BootCD PE       | https://hirensbootcd.org                          |             3.1 |
 | Sergei Strelec WinPE    | https://sergeistrelec.name                        |             3.2 |
 
-Total minimum space requirement: 29 GB.
+This versatile collection requires approximately 30 GB of dedicated space. Now that we know _what_ we need to boot, the next step is to choose the right tool to build our multi-boot drive.
 
 ## 3. Choosing the Right Tool: A Comparison of Select Drive Creators
 
-Several excellent utilities can create bootable USB drives, but they fall into two main categories: single-boot and multi-boot. While a single-boot tool like Rufus is fast and reliable for creating one-off installers, our goal requires a multi-boot solution.
+Several established utilities can create bootable USB drives, but they fall into two main categories: single-boot and multi-boot. While a single-boot tool like Rufus is fast and reliable for creating one-off installers, our goal of consolidating multiple tools requires a multi-boot solution.
 
-| Name            | Multi-bootable | Key Feature                                                                   | Source                         |
-| --------------- | :------------: | ----------------------------------------------------------------------------- | ------------------------------ |
-| Rufus           |       No       | The standard for fast, single-ISO flashing.                                   | https://rufus.ie               |
-| Ventoy          |      Yes       | Drag-and-drop ISOs directly onto the drive.                                   | https://ventoy.net             |
-| YUMI exFAT      |      Yes       | GUI-based manager built on Ventoy.                                            | https://yumiusb.com/yumi-exfat |
-| Easy2Boot (E2B) |      Yes       | Highly customizable, powerful boot manager (grub4dos, grub2, Ventoy for E2B). | https://easy2boot.xyz          |
+| Name            | Multi-bootable | Key Feature                                                                                               | Source                         |
+| --------------- | :------------: | --------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Rufus           |       No       | The industry standard for fast, single-ISO flashing.                                                      | https://rufus.ie               |
+| Ventoy          |      Yes       | Drag-and-drop ISOs directly onto the drive.                                                               | https://ventoy.net             |
+| YUMI exFAT      |      Yes       | A GUI-based manager built on Ventoy.                                                                      | https://yumiusb.com/yumi-exfat |
+| Easy2Boot (E2B) |      Yes       | A highly customizable and powerful boot manager for advanced use cases (grub4dos, grub2, Ventoy for E2B). | https://easy2boot.xyz          |
 
-For optimum flexibility and ease of use, Ventoy is the clear winner. Its ability to boot directly from `.ISO` and `.VHD(X)` files that you simply drag and drop onto the drive makes it incredibly simple to manage and update your toolkit. YUMI exFAT is a user-friendly alternative that uses Ventoy as its underlying technology. While Easy2Boot provides even more advanced features, thus functionality comes at the cost of more complicated workflows and is unnecessary in this case. 
+For the optimal balance of flexibility and ease of use, Ventoy is the clear winner. Its ability to boot directly from .ISO and .VHDX files - which you simply drag and drop onto the drive's main partition - makes managing and updating your toolkit incredibly simple.
+
+YUMI exFAT is a user-friendly alternative that uses Ventoy as its underlying technology, offering a more guided, graphical interface for managing distributions. While tools like Easy2Boot provide even more advanced features, this power comes with a more complex workflow and is unnecessary for the goals outlined in this guide.
 
 ## 4. The Blueprint: A Ventoy-Based Multi-Boot Drive
 
