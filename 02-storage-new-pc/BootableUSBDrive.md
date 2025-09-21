@@ -1,4 +1,4 @@
-# Storage Considerations for a New PC, Part 2: Building a Bootable USB Drive
+# Storage Considerations for a New PC, Part 2: Building a Dual-Purpose, Bootable USB Drive
 
 ## Summary
 
