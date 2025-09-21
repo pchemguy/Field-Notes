@@ -1,7 +1,7 @@
 # Storage Considerations for a New PC, Part 1: Structuring Internal Storage for Robust Maintenance, Migration, and Failure Recovery
 
-[!https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/Vis1.png]
 
+![](https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/02-storage-new-pc/vis1.jpg)
 ## Summary
 
 This guide presents a resilient and practical strategy for structuring the internal storage of a new Windows workstation. The core philosophy is to move beyond a single C: drive and classify all data - from OS files to personal documents - based on its recovery cost, treating replaceable components differently from irreplaceable ones.
