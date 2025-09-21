@@ -14,7 +14,10 @@ Each topic is contained within its own folder. Inside each folder, you will find
 
 ## Table of Contents
 
-- [Resuming Large File Downloads with Dynamic Links](./01-improving-large-file-downloads/README.md) - A scripted `wget` solution for robustly downloading large files.
+- [Resuming Large File Downloads with Dynamic Links](./01-improving-large-file-downloads/README.md) - A scripted `wget`/`aria2` solution for robustly downloading large files.
+- Storage Considerations for a New PC (A Two-Part Series)
+    - [Part 1: Structuring Internal Storage for Robust Migration and Failure Recovery](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md)
+    - [Part 2: Building a Bootable USB Drive](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/BootableUSBDrive.md)
 
 ## Acknowledgments
 
