@@ -39,34 +39,27 @@ YUMI exFAT is a user-friendly alternative that uses Ventoy as its underlying tec
 
 ## 4. The Blueprint: A Ventoy-Based Multi-Boot Drive
 
-The remainder of this guide will focus on creating a dual purpose (bootable/archival) external SSD using the Ventoy/YUMI exFAT method. This approach allows us to have a dedicated partition for bootable images while reserving the rest of the drive for other uses, such as portable applications or file archives. Such a clear separation of functionalities ensures that they will not interfere with each other. 
+The remainder of this guide will focus on creating a dual-purpose (bootable and archival) external SSD using the Ventoy method. This approach allows us to create a dedicated partition for bootable images while reserving the rest of the drive for other uses, such as portable applications or file archives. This clear separation ensures that the drive's functions will not interfere with each other.
 
 ### Understanding the Ventoy Partition Scheme
 
 Ventoy works by creating two specific partitions at the beginning of the drive:
-1. **The Main Data Partition:** This is a large, standard partition visible to your OS. You simply copy your `.ISO`, `.VHD`, and other image files here. While YUMI labels this "YUMI", Ventoy leaves it unlabeled.
-2. **The EFI System Partition (`VTOYEFI`):** This is a small (32 MB), hidden partition that contains the bootloader files. It is created automatically and should not be modified.
+1. **The Main Data Partition:** A large, standard partition visible to your OS where you simply copy your `.ISO`, `.VHD`, and other image files.
+2. **The EFI System Partition (`VTOYEFI`):** A small (32 MB), hidden partition containing the bootloader files. It is created automatically and should not be modified.   
 
-Crucially, modern versions of Ventoy allow these two partitions to exist without occupying the entire drive, leaving the remaining space free for you to create and manage your own additional partitions (see [MBR](https://ventoy.net/en/doc_disk_layout.html#reserve_space) and [GPT](https://ventoy.net/en/doc_disk_layout_gpt.html#reserve_space) for further details).
+Crucially, modern versions of Ventoy allow these two partitions to exist without occupying the entire drive, leaving the remaining space free for you to create your own additional partitions (see the official documentation for [MBR](https://ventoy.net/en/doc_disk_layout.html#reserve_space) and [GPT](https://ventoy.net/en/doc_disk_layout_gpt.html#reserve_space) layouts). We will leverage this feature for creation of our custom, multi-purpose drive.
 
 ### Step-by-Step Drive Preparation
 
-While YUMI exFAT can prepare a drive, it offers limited options compared to Ventoy. The most flexible approach, however, is to partition the drive manually first and then perform a ["Non-destructive Install"](https://ventoy.net/en/doc_non_destructive.html) of Ventoy. Here is an example disk layout:
+While tools like YUMI exFAT can prepare a drive, they offer limited options. A more flexible approach is to partition the drive manually first and then perform a ["Non-destructive Install"](https://ventoy.net/en/doc_non_destructive.html) of Ventoy, providing full control over the disk layout.
 
-| Partition         | Anticipated Usage (GB) | Planned Allocation (GB) | Unallocated Space (GB) |
-| ----------------- | ---------------------: | ----------------------: | ---------------------: |
-| YUMI              |                     30 |                      40 |                      - |
-| VTOYEFI           |                      - |                       - |                     80 |
-| Portable Programs |                     40 |                      50 |                     20 |
-| Archive           |               Variable |         Remaining space |                      - |
-
-If you wish to use the YUMI exFAT interface for managing your ISOs, the process is slightly more complex:
-1. **Initial Prep:** Use YUMI exFAT to prepare the target drive once. This creates the necessary configuration directories.
+If you want the benefit of a custom partition map _and_ the ability to use the YUMI exFAT management GUI, the process is as follows:
+1. **Initial Prep:** Use the YUMI exFAT tool to format the target drive once. This process creates the necessary configuration directories.
 2. **Save Config:** Copy the `YUMI` and `ventoy` directories from the drive's main partition to a temporary location on your computer.
-3. **Manual Partitioning:** Use a tool like Windows Disk Management or `diskpart` to wipe the drive and create your desired custom partition layout.
-4. **Install Ventoy:** Run the Ventoy2Disk tool and use the "Non-destructive Install" option on your newly partitioned drive. This will create the small EFI partition without erasing your custom layout.
+3. **Manual Partitioning:** Use a tool like Windows Disk Management (WDM) or `diskpart` to wipe the drive and create your desired custom partition layout (see the example table below).
+4. **Install Ventoy:** Run the `Ventoy2Disk.exe` tool and use the "Non-destructive Install" option on your newly partitioned drive. Ventoy will create the small `VTOYEFI` system partition without erasing your custom layout.
 5. **Restore Config:** Label the first partition "YUMI" and copy the two directories you saved in Step 2 back onto it.
-6. **Manage ISOs:** You can now use the YUMI exFAT GUI to add and remove bootable distributions, or simply drag and drop ISO files onto the "YUMI" partition yourself.
+6. **Manage ISOs:** You can now use the YUMI exFAT GUI or simply drag and drop ISO files onto the "YUMI" partition.
 
 > [!WARNING]
 > 
@@ -75,7 +68,21 @@ If you wish to use the YUMI exFAT interface for managing your ISOs, the process 
 > - To see internal or non-USB drives, you must select **Options -> Show All Devices**.
 > - The **Options -> Non-destructive Install** menu item is an action that **immediately begins the installation**, not a setting you can toggle. Ensure you have the correct device selected _before_ clicking it.
 
-As discussed in [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md), unallocated space serves two purposes: provides a reserve pool for future expansion of the preceding partition and is used for SSD over-provisioning while remains unallocated. In this case, however, reserving unallocated space immediately after the "YUMI" partition is impossible due to Ventoy restrictions. For this reason, the extra space is left after "VTOYEFI" partition. If the "YUMI" needs to be expanded, the system "VTOYEFI" partition is deleted first using diskpart (Windows Disk Manager (WDM) will not delete system partitions). Then the "YUMI" partition is extended using either diskpart or WDM. Finally, the "VTOYEFI" partition is recreated via a "Non-destructive Install" of Ventoy. If necessary, the last partition can be shrunk to compensate for decreased amount of unallocated space available for SSD over-provisioning.
+### Example Layout and Advanced Management
+
+The real power of this method is the ability to create a completely custom layout. Here is a sample blueprint for a multi-purpose SSD:
+
+| Partition         | Anticipated Usage (GB) | Planned Allocation (GB) | Unallocated Space (GB) |
+| ----------------- | ---------------------: | ----------------------: | ---------------------: |
+| YUMI              |                     30 |                      40 |                      - |
+| VTOYEFI (hidden)  |                      - |                       - |                     80 |
+| Portable Programs |                     40 |                      50 |                     20 |
+| Archive           |               Variable |         Remaining space |                      - |
+
+Notice the unallocated space is strategically placed. As discussed in [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md), this space serves as a buffer for partition expansion and as SSD over-provisioning. However, Ventoy has a restriction: its main data partition (YUMI) and the VTOYEFI partition must be adjacent. This restriction means we cannot leave unallocated space directly after the YUMI partition. The workaround is to place the reserve space _after_ the VTOYEFI partition. If you ever need to expand the YUMI partition, the following workflow should be used:
+1. **Delete the EFI Partition:** Use `diskpart` to delete the VTOYEFI partition (WDM will not allow this step).
+2. **Extend the Main Partition:** Use WDM or `diskpart` to extend the YUMI partition into the now-adjacent unallocated space.
+3. **Recreate the EFI Partition:** Run `Ventoy2Disk` and perform another "Non-destructive Install". Ventoy will automatically recreate the VTOYEFI partition in the correct location.
 
 ### 5. Special Case: Adding a Windows To Go Environment
 
