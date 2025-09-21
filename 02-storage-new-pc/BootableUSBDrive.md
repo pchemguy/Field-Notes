@@ -107,4 +107,4 @@ It is generally a good idea to troubleshoot and test bootable images and a boota
 
 ### 6. Conclusion
 
-By following this guide, you have transformed a standard external drive into a powerful, versatile tool. This bootable medium is the key that unlocks the advanced storage architecture we designed in Part 1, allowing you to perform clean installations, conduct system maintenance, and recover from failures with confidence. Your new digital Swiss Army knife is ready for action. 🧰
+By following this guide, you have transformed a standard external drive into a powerful, versatile tool. This bootable medium allows you to implement the advanced storage architecture we designed in [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md), perform clean OS installations, boot to portable configured Windows environment, conduct system maintenance, and recover from failures. At the same time, this disk also serves as a backup storage.
