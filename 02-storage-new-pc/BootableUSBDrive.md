@@ -52,7 +52,7 @@ The remainder of this guide will focus on creating a dual-purpose (bootable and 
 ### Understanding the Ventoy Partition Scheme
 
 Ventoy works by creating two specific partitions at the beginning of the drive:
-1. **The Main Data Partition:** A large, standard partition visible to your OS where you simply copy your `.ISO`, `.VHD`, and other image files.
+1. **The Main Data Partition:** A large, standard partition visible to your OS where you simply copy your `.ISO`, `.VHD(X)` (must format partition with NTFS), and other image files.
 2. **The EFI System Partition (`VTOYEFI`):** A small (32 MB), hidden partition containing the bootloader files. It is created automatically and should not be modified.   
 
 Crucially, modern versions of Ventoy allow these two partitions to exist without occupying the entire drive, leaving the remaining space free for you to create your own additional partitions (see the official documentation for [MBR](https://ventoy.net/en/doc_disk_layout.html#reserve_space) and [GPT](https://ventoy.net/en/doc_disk_layout_gpt.html#reserve_space) layouts). We will leverage this feature for creation of our custom, multi-purpose drive.
@@ -64,7 +64,7 @@ While tools like YUMI exFAT can prepare a drive, they offer limited options. A m
 If you want the benefit of a custom partition map _and_ the ability to use the YUMI exFAT management GUI, the process is as follows:
 1. **Initial Prep:** Use the YUMI exFAT tool to format the target drive once. This process creates the necessary configuration directories.
 2. **Save Config:** Copy the `YUMI` and `ventoy` directories from the drive's main partition to a temporary location on your computer.
-3. **Manual Partitioning:** Use a tool like Windows Disk Management (WDM) or `diskpart` to wipe the drive and create your desired custom partition layout (see the example table below).
+3. **Manual Partitioning:** Use a tool like Windows Disk Management (WDM) or `diskpart` to wipe the drive and create your desired custom partition layout (see the example table below). *Note, modern versions of Windows, stock disk management utilities should handle correct partition alignment, which is essential for optimal SSD performance. Format the main data partition with NTFS for VHD(X) booting.*
 4. **Install Ventoy:** Run the `Ventoy2Disk.exe` tool and use the "Non-destructive Install" option on your newly partitioned drive. Ventoy will create the small `VTOYEFI` system partition without erasing your custom layout.
 5. **Restore Config:** Label the first partition "YUMI" and copy the two directories you saved in Step 2 back onto it.
 6. **Manage ISOs:** You can now use the YUMI exFAT GUI or simply drag and drop ISO files onto the "YUMI" partition.
@@ -75,6 +75,14 @@ If you want the benefit of a custom partition map _and_ the ability to use the Y
 >  
 > - To see internal or non-USB drives, you must select **Options -> Show All Devices**.
 > - The **Options -> Non-destructive Install** menu item is an action that **immediately begins the installation**, not a setting you can toggle. Ensure you have the correct device selected _before_ clicking it.
+> 
+> **Important Partitioning and Formatting Notes:**
+> 
+> - The standard disk management tools in modern versions of Windows should correctly align partitions.
+> - YUMI and Ventoy format the main data partition as exFAT by default. To boot from VHD(X) files, NTFS format must be used instead.
+
+
+
 
 ### Example Layout and Advanced Management
 
@@ -94,7 +102,13 @@ Notice the unallocated space is strategically placed. As discussed in [Part 1](h
 
 ### 5. Special Case: Adding a Windows To Go Environment
 
-A "Windows To Go" (WTG) installation - a full, bootable Windows environment running from your USB drive - might be useful for emergencies or when you need to work on a guest computer. For multi-boot disks, the WTG environment is typically created as a single bootable virtual hard disk (`.VHDX`) file that you place on the Ventoy partition. While Microsoft has discontinued official support for WTG, several third-party tools can create an equivalent environment from a Windows Installation ISO.:
+A "Windows To Go" (WTG) installation - a full, bootable Windows environment running from your USB drive - might be useful for emergencies or when you need to work on a guest computer. For multi-boot disks, the WTG environment is typically created as a single bootable virtual hard disk (`.VHDX`) file that you place on the Ventoy partition.
+
+> [!IMPORTANT]
+> 
+> By default, Ventoy and YUMI format the main data partition as **exFAT**. While broadly compatible, Ventoy specifically requires the **NTFS** filesystem to boot from virtual disk files like the `.VHDX` used for Windows To Go. Before you proceed, ensure the partition that will hold your bootable images (e.g., "YUMI") is formatted as **NTFS**.
+
+While Microsoft has discontinued official support for WTG, several third-party tools can create an equivalent environment from a Windows Installation ISO.
 
 | Tool                                               | Source Formats             | Destination Flexibility                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | -------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
