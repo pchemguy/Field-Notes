@@ -52,22 +52,30 @@ The remainder of this guide will focus on creating a dual-purpose (bootable and 
 ### Understanding the Ventoy Partition Scheme
 
 Ventoy works by creating two specific partitions at the beginning of the drive:
-1. **The Main Data Partition:** A large, standard partition visible to your OS where you simply copy your `.ISO`, `.VHD(X)` (must format partition with NTFS), and other image files.
-2. **The EFI System Partition (`VTOYEFI`):** A small (32 MB), hidden partition containing the bootloader files. It is created automatically and should not be modified.   
+1. **The Main Data Partition:** A large, standard partition visible to your OS where you simply copy your bootable image files. It can hold `.ISO` files, `.WIM` images, and more. For booting from virtual disks like `.VHDX` (used for Windows To Go), this partition **must be formatted as NTFS** instead of the default exFAT.
+    - _Note: By default, the Ventoy tool labels this partition "Ventoy", while YUMI exFAT labels it "YUMI". This label is purely informational and can be changed as needed._
+2. **The EFI System Partition (`VTOYEFI`):** A small (32 MB), hidden partition containing the bootloader files. It is created automatically by the installer and should not be modified.
 
 Crucially, modern versions of Ventoy allow these two partitions to exist without occupying the entire drive, leaving the remaining space free for you to create your own additional partitions (see the official documentation for [MBR](https://ventoy.net/en/doc_disk_layout.html#reserve_space) and [GPT](https://ventoy.net/en/doc_disk_layout_gpt.html#reserve_space) layouts). We will leverage this feature for creation of our custom, multi-purpose drive.
 
 ### Step-by-Step Drive Preparation
 
-While tools like YUMI exFAT can prepare a drive, they offer limited options. A more flexible approach is to partition the drive manually first and then perform a ["Non-destructive Install"](https://ventoy.net/en/doc_non_destructive.html) of Ventoy, providing full control over the disk layout.
+While tools like YUMI exFAT can prepare a drive, they offer limited options. A more flexible approach is to partition the drive manually and then perform a ["Non-destructive Install"](https://ventoy.net/en/doc_non_destructive.html) of Ventoy, giving you full control over the final disk layout.
 
-If you want the benefit of a custom partition map _and_ the ability to use the YUMI exFAT management GUI, the process is as follows:
-1. **Initial Prep:** Use the YUMI exFAT tool to format the target drive once. This process creates the necessary configuration directories.
-2. **Save Config:** Copy the `YUMI` and `ventoy` directories from the drive's main partition to a temporary location on your computer.
-3. **Manual Partitioning:** Use a tool like Windows Disk Management (WDM) or `diskpart` to wipe the drive and create your desired custom partition layout (see the example table below). *Note, modern versions of Windows, stock disk management utilities should handle correct partition alignment, which is essential for optimal SSD performance. Format the main data partition with NTFS for VHD(X) booting.*
-4. **Install Ventoy:** Run the `Ventoy2Disk.exe` tool and use the "Non-destructive Install" option on your newly partitioned drive. Ventoy will create the small `VTOYEFI` system partition without erasing your custom layout.
-5. **Restore Config:** Label the first partition "YUMI" and copy the two directories you saved in Step 2 back onto it.
-6. **Manage ISOs:** You can now use the YUMI exFAT GUI or simply drag and drop ISO files onto the "YUMI" partition.
+There are two main ways to achieve custom disk layout: a simpler method relies on the standard GUI tools only, and an advanced method for users who require precise low-level control.
+
+**Recommended Workflow: The "Shrink and Reinstall" Method**
+
+The simple method leverages Ventoy's automatic configuration and the user-friendly Windows Disk Management (WDM) tool.
+1. **Initial Ventoy Setup:** Run `Ventoy2Disk.exe` and perform a standard, destructive installation on your target drive. Ventoy will create the correctly aligned `Ventoy` and `VTOYEFI` partitions.
+2. **Open Disk Management:** Open WDM (`diskmgmt.msc`).
+3. **Prepare for Customization:**
+    - Right-click the small `VTOYEFI` partition and delete it.
+    - Right-click the main `Ventoy` data partition and format it as **NTFS** (WDM cannot change size of non-NTFS partitions, such as **exFAT**).
+4. **Create Your Layout:**
+    - Right-click the `Ventoy` partition and shrink it to your desired size (e.g., 40 GB for your bootable images).
+    - Create your additional partitions (e.g., `PortablePrograms`, `Archive`) in the unallocated space that is now available.
+5. **Finalize Ventoy:** Run `Ventoy2Disk.exe` one last time and perform a **"Non-destructive Install"**. Ventoy will seamlessly recreate the `VTOYEFI` partition without harming your new custom layout.
 
 > [!WARNING]
 > 
@@ -75,14 +83,23 @@ If you want the benefit of a custom partition map _and_ the ability to use the Y
 >  
 > - To see internal or non-USB drives, you must select **Options -> Show All Devices**.
 > - The **Options -> Non-destructive Install** menu item is an action that **immediately begins the installation**, not a setting you can toggle. Ensure you have the correct device selected _before_ clicking it.
+
+If you want to use YUMI exFAT for distro management, use YUMI exFAT instead of Ventoy for **Step 1** (this replacement is only necessary to have YUMI create its config directories to be saved and copied back to the main data partition at the end):
+- **Initial Prep:** Use the YUMI exFAT tool to format the target drive once. This creates the necessary configuration directories.
+- **Save Config:** Copy the `YUMI` and `ventoy` directories from the drive's main data partition to a temporary location on your computer.
+After these two steps are completed, proceed to **Step 2** above. At the end
+- **Restore Config:** Copy the two saved config directories back onto the main data partition.
+
+**Advanced Workflow: Manual `diskpart` Initialization**
+
+> [!WARNING]
 > 
-> **Important Partitioning and Formatting Notes:**
+> **Critical `diskpart` Considerations**
 > 
-> - The standard disk management tools in modern versions of Windows should correctly align partitions.
-> - YUMI and Ventoy format the main data partition as exFAT by default. To boot from VHD(X) files, NTFS format must be used instead.
+> - **Partition Alignment:** When creating partitions manually with `diskpart`, you must ensure the first partition is aligned at a 1 MB offset, as required by Ventoy. Ventoy/YUMI do this alignment automatically, but with `diskpart` it is a manual requirement.
+> - **MSR Partition:** If your drive has a hidden Microsoft Reserved Partition (MSR), it will not be visible in WDM. It can only be viewed and deleted using `diskpart`.
 
-
-
+The primary difference of these "diskpart"-based approach is the necessity to manually delete the MSR partition, if present, and ensure that the first (main data) partition to be used by Ventoy/YUMI is aligned at 1 MB (the **Step 1**). The rest of the workflow can be performed as outlined above using WDM, or the entire partitioning process can be completed in `diskpart`.    
 
 ### Example Layout and Advanced Management
 
