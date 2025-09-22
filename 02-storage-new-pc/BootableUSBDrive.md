@@ -128,7 +128,7 @@ A "Windows To Go" (WTG) installation - a full, bootable Windows environment runn
 
 > [!IMPORTANT]
 > 
-> By default, Ventoy and YUMI format the main data partition as **exFAT**. While broadly compatible, Ventoy specifically requires the **NTFS** filesystem to boot from virtual disk files like the `.VHDX` used for WTG. Before you proceed, ensure the partition that will hold your bootable images (e.g., "YUMI") is formatted as **NTFS**.
+> - By default, Ventoy and YUMI format the main data partition as **exFAT**. While broadly compatible, Ventoy may not be able to boot WTG ([depending on Windows version](https://ventoy.net/en/plugin_vhdboot.html)) from a `.VHDX` file on an **exFAT** partition, requiring **NTFS** file system instead. Before you proceed, ensure the partition that will hold your bootable images (e.g., "YUMI") is formatted as **NTFS**.
 
 While Microsoft has discontinued official support for WTG, several third-party tools can create an equivalent environment from a Windows Installation ISO.
 
