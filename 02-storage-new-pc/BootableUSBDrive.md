@@ -66,29 +66,26 @@ There are two main ways to achieve custom disk layout: a simpler method relies o
 
 **Recommended Workflow: The "Shrink and Reinstall" Method**
 
-The simple method leverages Ventoy's automatic configuration and the user-friendly Windows Disk Management (WDM) tool.
-1. **Initial Ventoy Setup:** Run `Ventoy2Disk.exe` and perform a standard, destructive installation on your target drive. Ventoy will create the correctly aligned `Ventoy` and `VTOYEFI` partitions.
-2. **Open Disk Management:** Open WDM (`diskmgmt.msc`).
+This method is simpler as it leverages Ventoy's automatic configuration and the user-friendly Windows Disk Management (WDM) tool.
+
+1. **Initial Setup:** Run `Ventoy2Disk.exe` and perform a standard, destructive installation on your target drive, creating the correctly aligned `Ventoy` and `VTOYEFI` partitions.
+2. **Open Disk Management:** Open WDM by running `diskmgmt.msc`.
 3. **Prepare for Customization:**
-    - Right-click the small `VTOYEFI` partition and delete it.
-    - Right-click the main `Ventoy` data partition and format it as **NTFS** (WDM cannot change size of non-NTFS partitions, such as **exFAT**).
+    - Right-click the small `VTOYEFI` partition and select "Delete Volume."
+    - Right-click the main `Ventoy` data partition and format it as **NTFS**. This is a required step, as WDM cannot resize non-NTFS partitions like exFAT.
 4. **Create Your Layout:**
-    - Right-click the `Ventoy` partition and shrink it to your desired size (e.g., 40 GB for your bootable images).
-    - Create your additional partitions (e.g., `PortablePrograms`, `Archive`) in the unallocated space that is now available.
+    - Right-click the now-NTFS `Ventoy` partition and shrink it to your desired size (e.g., 40 GB).
+    - Right-click the new unallocated space and create your additional partitions (`PortablePrograms`, `Archive`, etc.) as needed.
 5. **Finalize Ventoy:** Run `Ventoy2Disk.exe` one last time and perform a **"Non-destructive Install"**. Ventoy will seamlessly recreate the `VTOYEFI` partition without harming your new custom layout.
 
-> [!WARNING]
+> [!NOTE]
 > 
-> **Important Ventoy2Disk Notes:**
->  
-> - To see internal or non-USB drives, you must select **Options -> Show All Devices**.
-> - The **Options -> Non-destructive Install** menu item is an action that **immediately begins the installation**, not a setting you can toggle. Ensure you have the correct device selected _before_ clicking it.
-
-If you want to use YUMI exFAT for distro management, use YUMI exFAT instead of Ventoy for **Step 1** (this replacement is only necessary to have YUMI create its config directories to be saved and copied back to the main data partition at the end):
-- **Initial Prep:** Use the YUMI exFAT tool to format the target drive once. This creates the necessary configuration directories.
-- **Save Config:** Copy the `YUMI` and `ventoy` directories from the drive's main data partition to a temporary location on your computer.
-After these two steps are completed, proceed to **Step 2** above. At the end
-- **Restore Config:** Copy the two saved config directories back onto the main data partition.
+> **Using YUMI for Distro Management**
+> 
+> If you wish to use the YUMI exFAT GUI for managing bootable distros, you need to perform these steps.
+> 
+> - Instead of the **Step 1** above, use YUMI to format the drive once, then copy the "YUMI" and "ventoy" directories to your computer from the created YUMI data partition.
+> - After completing the workflow above, copy these two directories back onto your main data partition.
 
 **Advanced Workflow: Manual `diskpart` Initialization**
 
