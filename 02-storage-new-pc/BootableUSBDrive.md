@@ -52,7 +52,7 @@ The remainder of this guide will focus on creating a dual-purpose (bootable and 
 ### Understanding the Ventoy Partition Scheme
 
 Ventoy works by creating two specific partitions at the beginning of the drive:
-1. **The Main Data Partition:** A large, standard partition visible to your OS where you simply copy your bootable image files. It can hold `.ISO` files, `.WIM` images, and more. For booting from virtual disks like `.VHDX` (used for Windows To Go), this partition **must be formatted as NTFS** instead of the default exFAT.
+1. **The Main Data Partition:** A large, standard partition visible to your OS where you simply copy your bootable image files. It can hold `.ISO` files, `.WIM` images, and more. For booting from virtual disks like `.VHDX` (used for Windows To Go), this partition **should be formatted as NTFS** instead of the default exFAT (depending on Windows version, booting Windows To Go from a `.VHDX` file on exFAT [may or may not work](https://ventoy.net/en/plugin_vhdboot.html)).
     - _Note: By default, the Ventoy tool labels this partition "Ventoy", while YUMI exFAT labels it "YUMI". This label is purely informational and can be changed as needed._
 2. **The EFI System Partition (`VTOYEFI`):** A small (32 MB), hidden partition containing the bootloader files. It is created automatically by the installer and should not be modified.
 
@@ -90,6 +90,10 @@ This method is simpler as it leverages Ventoy's automatic configuration and the 
 > 
 > - Instead of the **Step 1** above, use YUMI to format the drive once, then copy the "YUMI" and "ventoy" directories to your computer from the created YUMI data partition.
 > - After completing the workflow above, copy these two directories back onto your main data partition.
+> 
+> **Secure Boot**
+> 
+> See [Ventoy Secure Boot information](https://ventoy.net/en/doc_secure.html)
 
 **Advanced Workflow: Manual `diskpart` Initialization**
 
@@ -124,7 +128,7 @@ A "Windows To Go" (WTG) installation - a full, bootable Windows environment runn
 
 > [!IMPORTANT]
 > 
-> By default, Ventoy and YUMI format the main data partition as **exFAT**. While broadly compatible, Ventoy specifically requires the **NTFS** filesystem to boot from virtual disk files like the `.VHDX` used for Windows To Go. Before you proceed, ensure the partition that will hold your bootable images (e.g., "YUMI") is formatted as **NTFS**.
+> By default, Ventoy and YUMI format the main data partition as **exFAT**. While broadly compatible, Ventoy specifically requires the **NTFS** filesystem to boot from virtual disk files like the `.VHDX` used for WTG. Before you proceed, ensure the partition that will hold your bootable images (e.g., "YUMI") is formatted as **NTFS**.
 
 While Microsoft has discontinued official support for WTG, several third-party tools can create an equivalent environment from a Windows Installation ISO.
 
@@ -142,7 +146,7 @@ While WinToUSB offers the broadest support for source files, Rufus provides the 
 
 1. **Create VHDX:** Use WDM or `diskpart` to create a new `.VHDX` file on your computer.    
 2. **Mount VHDX:** Mount the new `.VHDX` file so it appears as a regular drive in Windows.
-3. **Install WTG with Rufus:** Run Rufus, select your Windows Installation ISO, and choose the mounted VHDX drive as the destination. Proceed with the Windows To Go installation.
+3. **Install WTG with Rufus:** Run Rufus, select your Windows Installation ISO, and choose the mounted VHDX drive as the destination. Proceed with the WTG installation.
 4. **Initial VM Setup:** In VMware or your preferred hypervisor, create a new virtual machine that boots from a physical disk, pointing it to your mounted `.VHDX`-based disk.
 5. **Configure Windows:** Boot the new VM. Complete the initial Windows setup (OOBE), install critical drivers, and make any desired software installations or configuration changes within the virtualized WTG environment.
 6. **Finalize and Test:**
@@ -152,7 +156,9 @@ While WinToUSB offers the broadest support for source files, Rufus provides the 
 
 > [!NOTE]
 > 
-> - When booted from a VHDX, Windows may run in a non-persistent mode, meaning changes are not saved back to the `.VHDX` file upon shutdown. For persistent storage, you must save files to one of the other visible partitions on your USB drive, such as your `Archive`  partition.
+> - When booted from a VHDX, Windows will run in a non-persistent mode, meaning changes are not saved back to the `.VHDX` file upon shutdown. For persistent storage, you must save files to one of the other visible partitions on your USB drive, such as your `Archive`  partition.
+> - When using Rufus to create WTG, Rufus by default sets the "Prevent Windows To Go from accessing internal disks" option, which, in turn, sets [storage area network policy](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/winpe-storage-area-network--san--policy) ([also](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/san)) to 4 (value of "1" enables disks), setting internal disks to offline at boot (Windows registry setting:  
+>   `reg add "HKLM\SYSTEM\CurrentControlSet\Services\partmgr\Parameters" /f /t REG_DWORD /d 4 /v "SanPolicy"`
 > - VHD(X) image can also be created from a physical disk using tools like [Sysinternals Disk2vhd](https://learn.microsoft.com/en-us/sysinternals/downloads/disk2vhd).
 
 ### 6. Conclusion
