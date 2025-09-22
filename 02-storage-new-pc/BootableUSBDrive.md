@@ -80,6 +80,10 @@ This method is simpler as it leverages Ventoy's automatic configuration and the 
 
 > [!NOTE]
 > 
+> **WDM Note**
+> 
+> When using WDM, the actual size of the created partition is apparently increased (compared to indicated value) by the size of file system structures. For precise control, `diskpart` would need to be used.
+> 
 > **Using YUMI for Distro Management**
 > 
 > If you wish to use the YUMI exFAT GUI for managing bootable distros, you need to perform these steps.
