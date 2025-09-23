@@ -20,7 +20,7 @@ Before building our drive, we must define its purpose. The goal is to create a "
 
 | Name                    | Source                                            | Image Size (GB) |
 | ----------------------- | ------------------------------------------------- | --------------: |
-| Windows 10 ToGo         | Bootable VHD(X), see "Windows ToGo" section       |            10.0 |
+| Windows 10 ToGo         | Bootable VHD(X), see "Windows ToGo" section       |            15.0 |
 | Windows 10 Install      | Official Installation ISO                         |             5.0 |
 | Ubuntu 24.04 LTS        | Official Installation ISO                         |             5.9 |
 | SystemRescue            | https://system-rescue.org                         |             1.1 |
@@ -28,7 +28,7 @@ Before building our drive, we must define its purpose. The goal is to create a "
 | Hiren’s BootCD PE       | https://hirensbootcd.org                          |             3.1 |
 | Sergei Strelec WinPE    | https://sergeistrelec.name                        |             3.2 |
 
-This versatile collection requires approximately 30 GB of dedicated space. Now that we know _what_ we need to boot, the next step is to choose the right tool to build our multi-boot drive.
+This versatile collection requires approximately 35 GB of dedicated space. Now that we know _what_ we need to boot, the next step is to choose the right tool to build our multi-boot drive.
 
 ## 3. Choosing the Right Tool: A Comparison of Select Drive Creators
 
@@ -112,7 +112,7 @@ The real power of this method is the ability to create a completely custom layou
 
 | Partition         | Anticipated Usage (GB) | Planned Allocation (GB) | Unallocated Space (GB) |
 | ----------------- | ---------------------: | ----------------------: | ---------------------: |
-| YUMI              |                     30 |                      40 |                      - |
+| YUMI              |                     30 |                      50 |                      - |
 | VTOYEFI (hidden)  |                      - |                       - |                     80 |
 | Portable Programs |                     40 |                      50 |                     20 |
 | Archive           |               Variable |         Remaining space |                      - |
