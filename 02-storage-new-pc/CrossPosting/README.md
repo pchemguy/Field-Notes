@@ -122,7 +122,7 @@ This layout uses four primary partitions, each with a specific role:
 
 **A Note on Unallocated Space and SSD Health**
 
-The "Unallocated Space" in the table is not wasted space; it is a strategic reserve. It immediately follows the described partition in the logical disk layout and provides flexibility, allowing you to expand a preceding partition if needed. More importantly, it serves as manual over-provisioning for the SSD. The drive's controller uses these free blocks for maintenance tasks, which improves sustained performance and increases the drive's lifespan, especially under heavy use.
+The "Unallocated Space" in the table is not wasted; it is a strategic reserve. It immediately follows the described partition in the logical disk layout and provides flexibility, allowing you to expand a preceding partition if needed. At the same time, it serves as manual over-provisioning for the SSD. The drive's controller uses these free blocks for maintenance tasks, which improves sustained performance and increases the drive's lifespan, especially under heavy use.
 
 ## Conclusion and Next Steps
 
