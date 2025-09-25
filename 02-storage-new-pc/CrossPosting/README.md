@@ -1,6 +1,5 @@
 # How I Still Partition My Drives for Streamlined Backup, Migration, and Failure Recovery
 
-
 [](https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/02-storage-new-pc/vis1.jpg)
 ## **TL;DR**
 
@@ -99,17 +98,6 @@ The core of your personal environment is in your user folder (e.g., `C:\Users\Us
 - **User-Level Program Installations** Many modern applications (like Chrome, VS Code, and Discord) now install directly into the `AppData` folder. While this method allows installation without administrative rights, it also blurs the line between user settings and program files, which contributes to the bloat of the user profile.
 - **Volatile & High-Volume Folders (Downloads, Temp)** Folders like `Downloads` and `Temp` are designed for transient data but often fill up with large files and installers. This data has low value but consumes significant space. Relocating these folders to a secondary HDD is a smart move to free up valuable SSD space and exclude this high-volume, low-value data from your main backups.
 - **Irreplaceable User-Created Files (Documents, Pictures, etc.)** These folders are the default home for your most valuable data. **This is a serious flaw in the default Windows setup.** Storing irreplaceable files anywhere within the user profile is a significant risk. All of your personal, user-created files should be better kept on a dedicated `Data` partition to isolate them from the OS and allow for targeted, efficient backups.
-
-- Core Account Settings (NTUSER.DAT)
-    This file, located at the root of your user folder, is your personal portion of the Windows Registry. It stores your Windows settings, from your desktop wallpaper to application-specific preferences. Corruption of this single file can render your account unusable, often requiring a full profile rebuild. It is the essential core of your user account's functionality.
-- Application Settings (AppData)
-    This hidden folder contains configurations for your installed programs. It's subdivided into Roaming (for settings that could follow you across a network) and Local (for machine-specific settings and caches). Note that some programs also create settings directories directly in your profile root (e.g., .vscode, .gitconfig). When an application's settings become corrupted, deleting its settings folder is often the simplest fix.
-- User-Level Program Installations
-    Many modern applications (like Chrome, VS Code, and Discord) use the AppData folder to install their entire program. This allows silent installation without administrative privileges but further blurs the line between user settings and program files, adding to the bloat of the user profile.
-- Volatile & High-Volume Folders (Downloads, Temp)
-    These folders are designed for temporary storage but often become repositories for large files, installers, and other transient data. They have low value but may take up significant space. Relocating the Downloads folder and the Temp directory (AppData\Local\Temp) to a secondary HDD frees up valuable SSD space and excludes this high-volume, low-value data from your primary backup routines.
-- Irreplaceable User-Created Files (Documents, Pictures, etc.)
-    These folders are the default destination for your most valuable, high-recovery-cost data. In practice, these directories - or any location within the user profile - should never be used for important files. Instead, all user-created files should be kept on a dedicated Data partition to isolate them from the volatile OS and to allow for targeted, efficient backups. 
 
 **A Technical Note on Relocating Folders**
 
