@@ -10,19 +10,23 @@ setlocal enabledelayedexpansion
 
 :: --- Set the full URL you want to download ---
 
-set "URL=https://github.com/rescuezilla/rescuezilla/releases/download/2.6.1/rescuezilla-2.6.1-64bit.oracular.iso"
+set URL=
 
 :: --- Paste your full cookie data inside the quotes ---
 
-set "COOKIE_STRING="
+set COOKIE_STRING=
 
 :: --- Number of threads for parallel doenload
 
-set THREAD_COUNT=2
+set THREAD_COUNT=5
 
 :: --- Set the names for your input and output files ---
 
-set ARIA2=B:/GPU Comp/DM/aria2/aria2c.exe
+set CUR_DIR=%CD%
+cd /d "%~dp0.."
+set ARIA2=%CD%\aria2\aria2c.exe
+cd  /d "%CUR_DIR%"
+
 set HEADER_FILE=headers.txt
 
 set COOKIE_FILE=
@@ -31,44 +35,70 @@ REM cookies.txt
 set OUTPUT_FILE=
 REM rescuezilla-2.6.1-64bit.oracular.iso
 
+set REFERER=
+
 :: ============================================================================
 
 
 echo [+] Preparing to download from: %URL%
 echo:
 
-:: --- Custom options and headers ---
-
-if not "%OUTPUT_FILE%"=="" (
+if defined OUTPUT_FILE (
   set OUTPUT_DOCUMENT=--output-document "%OUTPUT_FILE%"
 ) else (
   set OUTPUT_DOCUMENT=
 )
-if "%COOKIE_STRING%"=="" (
-  if not "%COOKIE_FILE%"=="" (
+
+:: --- URL ---
+
+if not exist "url.txt" goto :SKIP_LOAD_URL
+if defined URL goto :SKIP_LOAD_URL
+for /f "usebackq tokens=1,* delims=" %%G in ("url.txt") do (
+  set "URL=%%G"
+)
+:SKIP_LOAD_URL
+
+:: --- Cookies ---
+
+if not exist "cookie_value.txt" goto :SKIP_LOAD_COOKIE_VALUE
+if defined COOKIE_STRING goto :SKIP_LOAD_COOKIE_VALUE
+for /f "usebackq tokens=1,* delims=" %%G in ("cookie_value.txt") do (
+  set "COOKIE_STRING=%%G"
+)
+:SKIP_LOAD_COOKIE_VALUE
+
+set LOAD_COOKIES=
+if not defined COOKIE_STRING (set COOKIE_NOT_SET=1)
+if defined COOKIE_NOT_SET (
+  if exist "%COOKIE_FILE%" (
     set LOAD_COOKIES=--load-cookies="%COOKIE_FILE%"
-  ) else (
-    set LOAD_COOKIES=
+    set COOKIE_NOT_SET=
   )
 )
 
 set ARIA2_HEADERS=
-if not "%COOKIE_STRING%"=="" (
+if defined COOKIE_STRING (
   set ARIA2_HEADERS=%ARIA2_HEADERS% --header="Cookie: %COOKIE_STRING%"
+)
+
+:: --- Referer ---
+
+if defined REFERER (
+  set ARIA2_HEADERS=%ARIA2_HEADERS% --header="Referer: %REFERER%"
 )
 
 :: --- Build the --header arguments by parsing the header file ---
 
 echo [+] Parsing headers from %HEADER_FILE%...
 for /f "usebackq tokens=1,* delims=:" %%G in ("%HEADER_FILE%") do (
-    set header_key=%%G
-    set header_value=%%H
+  set header_key=%%G
+  set header_value=%%H
 
-    REM Trim the leading space that often follows the colon in header values
+  REM Trim the leading space that often follows the colon in header values
 
-    if "!header_value:~0,1!"==" " set header_value=!header_value:~1!
+  if "!header_value:~0,1!"==" " set header_value=!header_value:~1!
 
-    set ARIA2_HEADERS=!ARIA2_HEADERS! --header="!header_key!: !header_value!"
+  set ARIA2_HEADERS=!ARIA2_HEADERS! --header="!header_key!: !header_value!"
 )
 
 echo:

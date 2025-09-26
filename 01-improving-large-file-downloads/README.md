@@ -33,7 +33,7 @@ You'll need two files: the script **[download_wget.bat](https://github.com/pchem
 
 1. **Locate wget:** The script is configured for "C:/dev/msys64/usr/bin/wget.exe". You should update this path or add wget to your system's `PATH`.
 2. **Create headers.txt:** Use your browser's developer tools (F12) to inspect the network request for your download and copy the main request headers (except for the cookie) into *headers.txt*.
-3. **Configure download_wget.bat:** Open the script and edit the configuration section with your URL, COOKIE_STRING, and OUTPUT_FILE.
+3. **Configure download_wget.bat:** Open the script and edit the configuration section with your URL, COOKIE_STRING, REFERER, and OUTPUT_FILE, as necessary.
     > **Note on Special Characters for Windows Batch Scripts:** Remember to escape percent signs (`%` becomes `%%`) in the URL or COOKIE_STRING variables. Because both URL and COOKIE_STRING are quoted, the ampersand should *not* be escaped (do not change `&` to `^&`).
 4. **Run the Script:** Execute *download_wget.bat* to begin.
 
