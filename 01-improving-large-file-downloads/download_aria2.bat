@@ -10,11 +10,11 @@ setlocal enabledelayedexpansion
 
 :: --- Set the full URL you want to download ---
 
-set URL=
+set "URL="
 
 :: --- Paste your full cookie data inside the quotes ---
 
-set COOKIE_STRING=
+set "COOKIE_STRING="
 
 :: --- Number of threads for parallel doenload
 
@@ -32,10 +32,10 @@ set HEADER_FILE=headers.txt
 set COOKIE_FILE=
 REM cookies.txt
 
-set OUTPUT_FILE=
+set "OUTPUT_FILE="
 REM rescuezilla-2.6.1-64bit.oracular.iso
 
-set REFERER=
+set "REFERER="
 
 :: ============================================================================
 
