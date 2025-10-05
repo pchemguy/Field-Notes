@@ -70,8 +70,29 @@ This command is supposed to be used as part of the portable mode. It creates the
 
 An important note is that the `init`/`hook` commands create, among other scripts, `micromamba.bat`. If we check the Windows-related [installation section](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#windows), the first part involving installation and initialization refers to `micromamba.exe`, while environment management lines do not include extension, meaning they could refer to either `.exe`  or `.bat`. This peculiarity on it own does not provide substantial information, considering the overall lacking Windows-related documentation (both in quantity and quality). Still, having a shell script wrapping the associated manager educatable to provide additional functionality is a common approach also employed by both `Mamba` and `Conda`. For `Mamba` and `Conda`, the `.exe` files are placed in the `{PREFIX}\Script` directory, whereas the `.bat` scripts are placed in the `{PREFIX}\condabin` directory by the installers (`micromamba.bat` is created here as well). This is an important consideration because both of these directories are added to `Path` when a conda-based environment is activated. If extension is omitted, which is a standard approach, shell will have to select between `.exe` and `.bat` using the conventional resolution protocols. The `.bat` files are generally designed in a manner such that any command line functionality provided by `.exe` files should be also transparently available when calling associated `.bat`. If environment activation process is amended, the calling script should ensure that `{PREFIX}\condabin` with `.bat` appears before `{PREFIX}\Script` with `.exe`.
 
-As far as `Micromamba` is concerned, attempt to perform basis operation (environment activation) failed repeatedly, when executed directly on `micromamba.exe`, resulting in repeated complains about shell not being properly initialized (meaning either missing/misset environment variables and/or missing essential command line defaults taken care of by the associated shell script code). At the same time, calling `micromamba.bat` worked just fine. Additionally, all the default `mamba_hook.bat` script (supposed to be called for environment initialization) does, is prepending `condabin` directory to the `Path` variable and setting `MAMBA_BAT` and `MAMBA_EXE` variables. `micromamba.bat` also sets `MAMBA_EXE`, but also `MAMBA_ROOT_PREFIX` before calling `micromamba.bat`. Apparently, `MAMBA_ROOT_PREFIX` missing from `mamba_hook.bat` was the reason why calling `micromamba.exe` directly after calling `mamba_hook.bat` failed. While I imagine that some extensions might use the hook file for additional settings, the basic setting in the default file can be set in the bootstrapping script instead. Another curious aspect is that 
+As far as `Micromamba` is concerned, attempt to perform basis operation (environment activation) failed repeatedly, when executed directly on `micromamba.exe`, resulting in repeated complains about shell not being properly initialized (meaning either missing/misset environment variables and/or missing essential command line defaults taken care of by the associated shell script code). At the same time, calling `micromamba.bat` worked just fine. Additionally, all the default `mamba_hook.bat` script (supposed to be called for environment initialization) does, is prepending `condabin` directory to the `Path` variable and setting `MAMBA_BAT` and `MAMBA_EXE` variables. `micromamba.bat` also sets `MAMBA_EXE`, but also `MAMBA_ROOT_PREFIX` before calling `micromamba.bat`. Apparently, `MAMBA_ROOT_PREFIX` missing from `mamba_hook.bat` was the reason why calling `micromamba.exe` directly after calling `mamba_hook.bat` failed. While I imagine that some extensions might use the hook file for additional settings, the basic setting in the default file can be set in the bootstrapping script instead.
+
+Another important command
 
 ```
 micromamba.exe shell activate --shell cmd.exe -p {PREFIX}
 ```
+
+generates activation environment (not including `MAMBA*` variables), for example
+
+```batch
+@echo off
+
+set CLI=micromamba.exe shell activate --shell cmd.exe -p "%~dp0.."
+for /f "usebackq tokens=1,* delims=" %%G in (`%CLI%`) do (
+  set ENV_FILE=%%~G
+)
+
+for /f "usebackq tokens=1,* delims==" %%G in ("%ENV_FILE%") do (
+  set VAR=%%G
+  set DAT=%%H
+  echo !VAR!=!DAT!
+)
+```
+
+The output of this command prepends Python related directories to Path. Importantly, the "condabin" directory is placed *after* "Script"
