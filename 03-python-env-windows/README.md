@@ -30,7 +30,7 @@ Otherwise, this may be an issue. In the meantime you can run commands. See:
 Supported shells are {bash, zsh, csh, posix, xonsh, cmd.exe, powershell, fish, nu}.
 ```
 
-Note, how this help messages fails to provide proper command templates. The bottom line indicates supported options that must be provided after `--shell`. So, for example, the third option should read something like:
+Note, how this help messages fails to provide proper command templates. The bottom line indicates supported options that must be provided after `--shell`. So, for example, the third option should read something like (the prefix example is for `bash` and left as is):
 
 ```
 micromamba shell init --shell {SUPPORTED_SHELL} --root-prefix=~/.local/share/mamba
@@ -58,5 +58,14 @@ The `init` command performs several actions.
 "AutoRun"="G:\dev\Anaconda\envs\py\condabin\mamba_hook.bat"
 ```
 
-The `AutoRun` script is executed for every new instance of the `cmd.exe` shell. Even if this script was actually working, having such `AutoRun` would be a very bad idea. But, as it turns out, this script does not work.
+The `AutoRun` script is executed for every new instance of the `cmd.exe` shell. Having such `AutoRun` is a very bad idea.
 
+The vague first option should be executed as 
+
+```
+shell hook --shell cmd.exe --root-prefix={PREFIX}
+```
+
+This command is supposed to be used as part of the portable mode. It creates the same scripts and instructs to execute the same `mamba_hook.bat` script before activating environment.
+
+An important note is that the `init`/`hook` commands create, among other scripts, `micromamba.bat`. If we check the Windows-related [installation section](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#windows), the first part involving installation and initialization refers to `micromamba.exe`, while environment management lines do not include extension, meaning they could refer to either `.exe`  or `.bat`. This peculiarity on it own does not provide substantial information, considering the overall lacking Windows-related documentation (both in quantity and quality). Still, having a shell script wrapping the associated manager educatable to provide additional functionality is a common approach also employed by both `Mamba` and `Conda`. For `Mamba` and `Conda`, the `.exe` files are placed in the `{PREFIX}\Script` directory, whereas the `.bat` scripts are placed in the `{PREFIX}\condabin` directory by the installers (`micromamba.bat` is created here as well). This is an important consideration because both of these directories are added to `Path` when a conda-based environment is activated. If extension is omitted, which is a standard approach, shell will have to select between `.exe` and `.bat` using the conventional resolution protocols. The `.bat` files are generally designed in a manner such that any command line functionality provided by `.exe` files should be also transparently available when calling associated `.bat`. If environment activation process is amended, the calling script should ensure that `{PREFIX}\condabin` with `.bat` appears before `{PREFIX}\Script` with `.exe`.
