@@ -95,4 +95,6 @@ for /f "usebackq tokens=1,* delims==" %%G in ("%ENV_FILE%") do (
 )
 ```
 
-The output of this command prepends Python related directories to Path. Importantly, the "condabin" directory is placed *after* "Script"
+Examination of the output of this command shows that the `activate` command prepends Python related directories to Path, placing the "condabin" directory *after* "Script".  If `mamba_hook.bat` is executed before the `activate` command,  directory with `micromamba.bat` will appear in the Path first and `micromamba activate` command would be properly resolved. However, after this command, Path is updated again, placing `micromamba.exe` directory first. At the same time, it appears that for other environment management commands, executed after activation, the difference between execution of `.exe` and `.bat` may not be important. Still, it might be a good idea to keep this matter in mind.
+
+Also note that some of the generated scripts use hardcoded absolute paths instead of proper portable relative references.
