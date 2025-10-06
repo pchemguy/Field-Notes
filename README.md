@@ -1,5 +1,7 @@
 <!--
-QQQQQQQ
+https://gemini.google.com/app/37bd5b95ab983a95
+https://gemini.google.com/app/cfef3eb756d8ccc6
+https://gemini.google.com/app/34a93568b8cf6672
 -->
 
 # Field-Notes
