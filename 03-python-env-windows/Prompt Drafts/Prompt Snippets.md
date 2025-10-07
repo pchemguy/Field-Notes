@@ -1,4 +1,5 @@
 https://chatgpt.com/c/68e406d5-a274-8330-baae-5cd5e5bd795e
+https://chatgpt.com/c/68e5604b-f9d0-8326-be3a-633752cfaf7f
 
 
 Bootstrapping Python envs on Windows
@@ -8,7 +9,8 @@ Bootstrapping Python envs on Windows
 - Primary responsibility of the bootstrapping tool - creation of a basic environment in an empty directory, including a particular version of Python plus one of the standard mature package managers, integrated within the Python environment (a Python-package-based).
 - Once minimalistic environment is created, it should be possible to activate it in any shell using a standard script.
 - After environment is activated, it is managed by the installed package managers, the bootstrapping tool should no longer be used.
-- For the Conda-based ecosystem, Micromamba is an example of such a bootstrapping tool meeting specified requirements: it should be used to install Python/Conda/Mamba
+- For the Conda-based ecosystem, Micromamba is an example of such a bootstrapping tool meeting specified requirements: it should be used to install Python/Conda/Mamba. Conda/Mamba (and, pip, if necessary) can then be used for managing this environment.
+- Unfortunately, Conda/Mamba scripts are not completely portable and some absolute paths are getting hardcoded during environment bootstrapping process. 
 
 
 ## Initial
@@ -77,7 +79,7 @@ What I need is essentially a **structured, reference-grade rewrite** of my worki
 - preserving all insights, tests, and discovered behaviors
 - but reorganized into a clear, navigable document that reads like a **deep technical guide + field notes hybrid**
 
-Present text is a collection of narrated notes documenting exploration/discovery of the described topic, including important technical details, such as code smippets and discussions. I need to transform this text into a cohesive structured long technical note for myself, so that all technical insights are readily avaialble in case I switch of to a different topic and later would want to go back. I should not need to search for specific included details or rediscover them, everything should be retained. The structure and style should be revised and reorganized to be more like a hybrid of a guide with a detailed technical reference information integrated in a single cohesive structured document.
+Present text is a collection of narrated notes documenting exploration/discovery of the described topic, including important technical details, such as code snippets and discussions. I need to transform this text into a cohesive structured long technical note for myself, so that all technical insights are readily available in case I switch of to a different topic and later would want to go back. I should not need to search for specific included details or rediscover them, everything should be retained. The structure and style should be revised and reorganized to be more like a hybrid of a guide with a detailed technical reference information integrated in a single cohesive structured document.
 
 ## **Goal**
 
