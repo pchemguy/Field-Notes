@@ -35,23 +35,29 @@ echo :---------- ---------- ---------- ---------- ----------:
 :: --------------------------------------------------------
 :: Abort execution if Python-related environment variables are set.
 :: --------------------------------------------------------
-set _CLEAN_SHELL=1
-if defined PYTHON_ENVS (
-  echo [INFO] Environment variable %%PYTHON_ENVS%% is set.
-  set _CLEAN_SHELL=
-)
-if defined CONDA_SHLVL (
-  echo [INFO] Environment variable %%CONDA_SHLVL%% is set.
-  set _CLEAN_SHELL=
-)
-if not defined _CLEAN_SHELL (
-    echo {ERROR} Run this script from a clean environment. Exiting...
-    exit /b 1
-) else (
-    echo {INFO} Python/Conda variables are not detected. Continue...
-)
-set _CLEAN_SHELL=
+set _VARS=^
+_%CONDA_PREFIX%^
+_%PYTHONHOME%^
+_%PYTHONPATH%^
+_%CONDA_SHLVL%^
+_%PYTHON_ENVS%
+set _VARS=%_VARS:"=%
 
+echo [INFO] Checking environment
+echo        --------------------
+echo        CONDA_PREFIX:  -%CONDA_PREFIX%-
+echo        PYTHONHOME:    -%PYTHONHOME%-
+echo        PYTHONPATH:    -%PYTHONPATH%-
+echo        CONDA_SHLVL:   -%CONDA_SHLVL%-
+echo        PYTHON_ENVS:   -%PYTHON_ENVS%-
+
+if "%_VARS%"=="_____" (
+  echo [INFO] Python/Conda variables are not detected. Continue...
+) else (
+  echo [ERROR] Run this script from a clean environment. Exiting...
+  exit /b 1
+)
+set _VARS=
 
 :: --------------------------------------------------------
 :: Check if specific Python version is requested.
