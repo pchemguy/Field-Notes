@@ -145,12 +145,16 @@ if exist "%MAMBA_EXE%" (
 set _RELEASE_URL=
 
 
+:: --------------------------------------------------------
+:: Create new Python environment
+:: --------------------------------------------------------
 echo [INFO] Creating new Python environment...
 set PKGS=mamba conda uv %_PYTHON_PKG%
+echo:
 "%MAMBA_EXE%" create --yes --override-channels -c conda-forge --prefix "%_ENV_PREFIX%" %PKGS%
+echo:
 set _PYTHON_PKG=
 set PKGS=
-
 
 set CONDA_BIN=%_ENV_PREFIX%\condabin
 set MAMBA_ROOT_PREFIX=%_ENV_PREFIX%
@@ -163,13 +167,18 @@ echo [INFO] MAMBA_EXE: "%MAMBA_EXE%"
 
 
 echo [INFO] Set junction to package cache...
+echo:
 if exist "%_PKGS_DIR%" (
   if exist "%_ENV_PREFIX%\pkgs" rmdir /S /Q "%_ENV_PREFIX%\pkgs"
   mklink /j "%_ENV_PREFIX%\pkgs" "%_PKGS_DIR%"
 )
 set _PKGS_DIR=
+echo:
 
 
+:: --------------------------------------------------------
+:: Patch absolute paths in mamba.bat and mamba_hook.bat
+:: --------------------------------------------------------
 echo [INFO] Optionally patch mamba.bat and mamba_hook.bat
 
 echo [INFO] Obtain sed to patch absolute hardcoded paths.
@@ -213,11 +222,27 @@ set SED=
 
 :SKIP_PATCHING
 
+:: --------------------------------------------------------
+:: Activate new environments using Mamba
+:: --------------------------------------------------------
 echo [INFO] Activating Python environment - Mamba.
 echo        MUST use mamba.bat wrapper, not mamba.exe directly.
 
 call "%MAMBA_BAT%" activate
+echo:
+echo :========== ========== ========== ========== ==========:
+call python.exe --version
+echo :---------- ---------- ---------- ---------- ----------:
+echo:
+if not %ERRORLEVEL% equ 0 (
+  echo [ERROR] Python environment failed to initialize.
+  exit /b 1
+)
 
+
+:: --------------------------------------------------------
+:: Copy scripts and configs
+:: --------------------------------------------------------
 cd /d "%~dp0..\.."
 if exist "%CD%\__shortcut__" if not exist "%_ENV_PREFIX%\__shortcut__" (
     md "%_ENV_PREFIX%\__shortcut__"
