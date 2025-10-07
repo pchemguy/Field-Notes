@@ -9,6 +9,10 @@ REM
 REM -----------------------------------------------------------------------------
 REM Usage:
 REM   Micromamba_bootstrap.bat [ENV_NAME] [PY_VERSION]
+REM     - It PY_VERSION is specified, the script will append PY_VERSION with dots
+REM       replaced with underscrores to ENV_NAME.
+REM     - The new environment is created under %~d0\dev\Anaconda\envs, unless
+REM       PY_ENVS is defined, which will be used instead.
 REM
 REM Description:
 REM   Creates a standalone, isolated Python environment managed by Micromamba.
@@ -35,29 +39,18 @@ echo :---------- ---------- ---------- ---------- ----------:
 :: --------------------------------------------------------
 :: Abort execution if Python-related environment variables are set.
 :: --------------------------------------------------------
-set _VARS=^
-_%CONDA_PREFIX%^
-_%PYTHONHOME%^
-_%PYTHONPATH%^
-_%CONDA_SHLVL%^
-_%PYTHON_ENVS%
-set _VARS=%_VARS:"=%
-
-echo [INFO] Checking environment
-echo        --------------------
-echo        CONDA_PREFIX:  -%CONDA_PREFIX%-
-echo        PYTHONHOME:    -%PYTHONHOME%-
-echo        PYTHONPATH:    -%PYTHONPATH%-
-echo        CONDA_SHLVL:   -%CONDA_SHLVL%-
-echo        PYTHON_ENVS:   -%PYTHON_ENVS%-
-
-if "%_VARS%"=="_____" (
-  echo [INFO] Python/Conda variables are not detected. Continue...
-) else (
-  echo [ERROR] Run this script from a clean environment. Exiting...
+set "_CLEAN=1"
+for %%V in (CONDA_PREFIX PYTHONHOME PYTHONPATH CONDA_SHLVL PYTHON_ENVS) do (
+  if defined %%V (
+    echo [WARN] %%V=%%V%%
+    set "_CLEAN="
+  )
+)
+if not defined _CLEAN (
+  echo [ERROR] Detected active Python/Conda vars. Exiting...
   exit /b 1
 )
-set _VARS=
+set "_CLEAN="
 
 :: --------------------------------------------------------
 :: Check if specific Python version is requested.
@@ -97,10 +90,9 @@ if not "%~1"=="" (
 ) else (
   set _ENV_NAME=py
 )
-set _ENVS=%~d0\dev\Anaconda\envs
-if not exist "%_ENVS%" (
-  set _ENVS=%CD%
-)
+if defined PY_ENVS (set _ENVS=%PY_ENVS%)
+if not exist "%_ENVS%" (set _ENVS=%~d0\dev\Anaconda\envs)
+if not exist "%_ENVS%" (set _ENVS=%CD%)
 
 :: --------------------------------------------------------
 :: If specific version of Python is requested, add suffix.
@@ -214,12 +206,12 @@ set _PATCH_ENV_VAR=s#@SET .MAMBA_ROOT_PREFIX=.*#^
   set CUR_DIR=\n^
   set MAMBA_EXE=%%MAMBA_ROOT_PREFIX%%\\Library\\bin\\mamba.exe#
 
-"%SED%" -i.bak "%_DEL_MAMBA_EXE%; %_PATCH_ENV_VAR%" "%_TARGET%"
+"%SED%" -i.bak -e "%_DEL_MAMBA_EXE%" -e "%_PATCH_ENV_VAR%" "%_TARGET%"
 
 set _TARGET=%CONDA_BIN%\mamba_hook.bat
 set _PATCH_ENV_VAR=s#@SET .MAMBA_EXE=.*#@SET ""MAMBA_EXE=%%__mamba_root%%\\Library\\bin\\mamba.exe""#
 
-"%SED%" -i.bak "%_PATCH_ENV_VAR%" "%_TARGET%"
+"%SED%" -i.bak -e "%_PATCH_ENV_VAR%" "%_TARGET%"
 
 set _DEL_MAMBA_EXE=
 set _PATCH_ENV_VAR=
