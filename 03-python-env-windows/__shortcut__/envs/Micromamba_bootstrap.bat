@@ -135,7 +135,7 @@ if exist "%MAMBA_EXE%" (
   echo [INFO] Downloading: %_RELEASE_URL%
   echo [INFO] Destination: %MAMBA_EXE%
   curl --fail --retry 3 --retry-delay 2 -L -o "%MAMBA_EXE%" "%_RELEASE_URL%"
-  if not %ERRORLEVEL% equ 0 (
+  if not !ERRORLEVEL! equ 0 (
     echo [ERROR] Micromamba download failure. Aborting bootstrapping...
     exit /b 1
   )
@@ -180,18 +180,20 @@ echo:
 echo [INFO] Optionally patch mamba.bat and mamba_hook.bat
 
 echo [INFO] Obtain sed to patch absolute hardcoded paths.
-where sed.exe 2>nul
-if %ERRORLEVEL% equ 0 (
+where sed.exe 2>nul && (
   set SED=sed.exe
-) else (
-  call "%~dp0get_sed.bat" "%_CACHE%"
-  set SED=%_CACHE%\sed\sed.exe
+  goto :PATCH_SCRIPTS
 )
-if not %ERRORLEVEL% equ 0 (
-  echo [ERROR] Sed download failure. Aborting patching...
-  goto :SKIP_PATCHING
+if exist "%~dp0get_sed.bat" (
+  call "%~dp0get_sed.bat" "%_CACHE%"
+  if not !ERRORLEVEL! equ 0 (
+    echo [ERROR] Sed download failure. Aborting patching...
+    goto :SKIP_PATCHING
+  )
+  set "SED=%_CACHE%\sed\sed.exe"
 )
 
+:PATCH_SCRIPTS
 echo [INFO] Patch absolute paths in mamba scripts
 set _TARGET=%MAMBA_BAT%
 set _DEL_MAMBA_EXE=/@SET \"MAMBA_EXE=.*\"/d

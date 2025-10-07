@@ -74,7 +74,7 @@ if not %EXIT_STATUS% equ 0 goto :EXIT_SED
 :: --------------------------------------------------------
 set "SED_EXE=%PREFIX%\sed\sed.exe"
 if exist "%SED_EXE%" (
-  echo [OK] Using cached "%SED_EXE%"
+  echo -[OK]- Using cached "%SED_EXE%"
   set "EXIT_STATUS=0" & goto :EXIT_SED
 )
 
@@ -145,7 +145,8 @@ if not %ERRORLEVEL% equ 0 (
   set "EXIT_STATUS=3" & goto :EXIT_SED
 )
 
-echo [OK] sed.exe successfully downloaded to "%PREFIX%\sed"
+set "EXIT_STATUS=0"
+echo -[OK]- sed.exe successfully downloaded to "%PREFIX%\sed"
 echo:
 
 :EXIT_SED
@@ -195,7 +196,7 @@ echo [INFO] Using cache folder: "%PREFIX%\jq".
 :: --------------------------------------------------------
 set "JQ_EXE=%PREFIX%\jq\jq.exe"
 if exist "%JQ_EXE%" (
-  echo [OK] Using cached "%JQ_EXE%"
+  echo -[OK]- Using cached "%JQ_EXE%"
   set "EXIT_STATUS=0" & goto :EXIT_JQ
 )
 
@@ -210,7 +211,8 @@ if not %ERRORLEVEL% equ 0 (
   set "EXIT_STATUS=4" & goto :EXIT_JQ
 )
 
-echo [OK] jq.exe successfully downloaded to "%PREFIX%\jq"
+set "EXIT_STATUS=0"
+echo -[OK]- jq.exe successfully downloaded to "%PREFIX%\jq"
 echo:
 
 :EXIT_JQ
