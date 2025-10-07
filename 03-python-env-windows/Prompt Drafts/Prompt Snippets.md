@@ -1,5 +1,16 @@
 https://chatgpt.com/c/68e406d5-a274-8330-baae-5cd5e5bd795e
 
+
+Bootstrapping Python envs on Windows
+- Do not use a system-wide Python installation (root environment)
+- Instead, each environment should be standalone, with at most one environment ever present in any given shell ancestry line (Path and other key environment variables)
+- Each environment is bootstrapped using a standalone simple tool with no Python dependencies.
+- Primary responsibility of the bootstrapping tool - creation of a basic environment in an empty directory, including a particular version of Python plus one of the standard mature package managers, integrated within the Python environment (a Python-package-based).
+- Once minimalistic environment is created, it should be possible to activate it in any shell using a standard script.
+- After environment is activated, it is managed by the installed package managers, the bootstrapping tool should no longer be used.
+- For the Conda-based ecosystem, Micromamba is an example of such a bootstrapping tool meeting specified requirements: it should be used to install Python/Conda/Mamba
+
+
 ## Initial
 
 Help me revise this draft. Present text is a collection of narrated notes documenting exploration/discovery of the described topic, including important technical details, such as code snippets and discussions. I need to transform this text into a cohesive structured long technical note for myself, so that all technical insights are readily available in case I switch of to a different topic and later would want to go back. I should not need to search for specific included details or rediscover them, everything should be retained. The structure and style should be revised and reorganized to be more like a hybrid of a guide with a detailed technical reference information integrated in a single cohesive structured document.
