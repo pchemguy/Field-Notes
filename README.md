@@ -2,6 +2,7 @@
 https://gemini.google.com/app/37bd5b95ab983a95
 https://gemini.google.com/app/cfef3eb756d8ccc6
 https://gemini.google.com/app/34a93568b8cf6672
+https://chatgpt.com/c/68e406d5-a274-8330-baae-5cd5e5bd795e
 -->
 
 # Field-Notes
