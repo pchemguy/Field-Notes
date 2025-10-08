@@ -7,12 +7,12 @@ All essential actions—environment creation, configuration, and activation—ar
 
 The repository contains:
 - Two annotated batch scripts implementing the described workflow:    
-    - `Micromamba_bootstrap.bat`
-    - `get_sed.bat`
+    - [Micromamba_bootstrap.bat](https://github.com/pchemguy/Field-Notes/blob/main/03-python-env-windows/Micromamba_bootstrap.bat)
+    - [get_sed.bat](https://github.com/pchemguy/Field-Notes/blob/main/03-python-env-windows/get_sed.bat)
 - This README, providing background, design notes, and usage documentation
 - Drafts and raw discovery/exploration notes containing broader or more technical details not currently included in the main text
 
-Together, these materials form a concise reference implementation for **controlled Micromamba-based environment bootstrapping on Windows**.
+Together, these materials form a concise reference implementation for controlled Micromamba-based environment bootstrapping on Windows.
 
 ## **Background and Motivation**
 
