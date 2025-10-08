@@ -29,6 +29,7 @@ REM
 REM NOTE:
 REM   Micromamba used only for initial environment creation (Python + Mamba + Conda).
 REM   After this, all operations use conventional mamba.bat or conda.bat wrappers.
+REM   Set CONDA_PKGS_DIRS, if not defined, to point to package cache directory.
 REM -----------------------------------------------------------------------------
 
 
@@ -74,6 +75,9 @@ if exist "%~d0\CACHE" (
   set _CACHE=%TEMP%
 )
 
+:: --------------------------------------------------------
+:: Point CONDA_PKGS_DIRS to package cache directory
+:: --------------------------------------------------------
 set _PKGS_DIR=%_CACHE%\Python\pkgs
 if not defined CONDA_PKGS_DIRS (
   set CONDA_PKGS_DIRS=%_PKGS_DIR%
