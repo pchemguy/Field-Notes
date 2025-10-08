@@ -78,8 +78,7 @@ Subsequent installation of required packages is performed by user scripts placed
 
 ## **Summary and Outlook**
 
-The presented workflow provides a controlled and reproducible method for bootstrapping Conda-based Python environments on Windows without relying on shell initialization or persistent configuration.  
-By consolidating all environment setup logic into explicit, script-driven commands, it ensures predictable, self-contained operation while avoiding the side effects of Micromamba’s shell hooks.
+The presented workflow provides a controlled and reproducible method for bootstrapping Conda-based Python environments on Windows without relying on shell initialization or persistent configuration. By consolidating all environment setup logic into explicit, script-driven commands, it ensures predictable, self-contained operation while avoiding the side effects of Micromamba’s shell hooks.
 
 This approach emphasizes:
 - **Transparency:** all steps are explicit and inspectable.
