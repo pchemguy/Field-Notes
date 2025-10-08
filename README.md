@@ -25,6 +25,7 @@ Each topic is contained within its own folder. Inside each folder, you will find
 - Storage Considerations for a New PC (A Two-Part Series)
     - [Part 1: Structuring Internal Storage for Robust Migration and Failure Recovery](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md)
     - [Part 2: Building a Bootable USB Drive](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/BootableUSBDrive.md)
+- [Bootstrapping Python Environments on Windows (via Micromamba)](https://github.com/pchemguy/Field-Notes/blob/main/03-python-env-windows/README.md)
 
 ## Acknowledgments
 
