@@ -74,7 +74,7 @@ if not %EXIT_STATUS% equ 0 goto :EXIT_SED
 :: --------------------------------------------------------
 set "SED_EXE=%PREFIX%\sed\sed.exe"
 if exist "%SED_EXE%" (
-  echo -[OK]- Using cached "%SED_EXE%"
+  echo [INFO] Using cached "%SED_EXE%"
   set "EXIT_STATUS=0" & goto :EXIT_SED
 )
 
@@ -196,7 +196,7 @@ echo [INFO] Using cache folder: "%PREFIX%\jq".
 :: --------------------------------------------------------
 set "JQ_EXE=%PREFIX%\jq\jq.exe"
 if exist "%JQ_EXE%" (
-  echo -[OK]- Using cached "%JQ_EXE%"
+  echo [INFO] Using cached "%JQ_EXE%"
   set "EXIT_STATUS=0" & goto :EXIT_JQ
 )
 
