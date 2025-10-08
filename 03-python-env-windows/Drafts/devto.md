@@ -2,7 +2,7 @@
 title: "Bootstrapping Python on Windows with Micromamba"
 published: true
 description: "A clean, deterministic way to build Python environments on Windows without shell hooks, registry edits, or broken installers. Use Micromamba only for what it does best."
-tags: ["python", "windows", "devtools", "conda", "automation"]
+tags: ["python", "windows", "mamba"]
 cover_image: "https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/03-python-env-windows/visw.jpg"
 canonical_url: "https://github.com/pchemguy/Field-Notes/blob/main/03-python-env-windows/README.md"
 ---
