@@ -1,11 +1,8 @@
-Bootstrapping Python Environments on Windows (via Micromamba)
+Bootstrapping Python Environments on Windows with Micromamba
 
-This post documents an experimental workflow for initializing and managing isolated Python environments on Windows using Micromamba as a lightweight, dependency-free bootstrapper. It consolidates findings, implementation notes, and practical scripts developed to establish a fully self-contained, reproducible environment model without system-wide dependencies or shell-level initialization.
+This post outlines a method for creating self-contained Python environments on Windows. It uses Micromamba as a minimal, dependency-free tool for the initial setup, allowing you to build reproducible environments without a system-wide Python installation or shell modifications.
 
-Key points
-- Do's
-    - Use Micromamba solely for creation of a new basic environment (Python, Mamba, and Conda).
-    - After creation, switch to Mamba/Conda installed in the new environment
-- Don'ts
-    - Do not use system-wide Python installation.
-    - Do not use Micromamba-based shell initialization.
+The Approach
+- Use Micromamba only for bootstrapping. Its sole job is to create a new environment containing Python, Mamba, and Conda.
+- Use Mamba/Conda for management. Once the environment exists, use the Mamba and Conda tools inside it for all package management and activation.
+- Avoid system-wide changes. This method bypasses Micromamba's shell initialization to prevent modifications to your registry or user profile.
