@@ -6,8 +6,8 @@ The repository contains:
 - Two annotated batch scripts implementing the described workflow:    
     - [Micromamba_bootstrap.bat](https://github.com/pchemguy/Field-Notes/blob/main/03-python-env-windows/Micromamba_bootstrap.bat)
     - [get_sed.bat](https://github.com/pchemguy/Field-Notes/blob/main/03-python-env-windows/get_sed.bat)
-- This README, providing background, design notes, and usage documentation
-- Drafts and raw discovery/exploration notes containing broader or more technical details not currently included in the main text
+- This README, providing background, design notes, and usage documentation.
+- Drafts and raw discovery/exploration notes containing broader or more technical details not currently included in the main text.
 
 Together, these materials form a concise reference implementation for controlled Micromamba-based environment bootstrapping on Windows.
 
@@ -39,9 +39,9 @@ Micromamba is a single, dependency-free executable designed for bootstrapping an
 
 However, the official Windows-related Micromamba documentation is lacking, while the provided installation script, `install.bat`, is broken. Further,
 Micromamba's default behavior - particularly the `shell init` and `shell hook` mechanisms - introduces complications on Windows, including:
-- Registry modifications (via `AutoRun`) that affect all future `cmd.exe` sessions
-- Non-portable activation logic relying on parent shell state
-- Hard-coded absolute paths in generated scripts
+- Registry modifications (via `AutoRun`) that affect all future `cmd.exe` sessions.
+- Non-portable activation logic relying on parent shell state.
+- Hard-coded absolute paths in generated scripts.
 
 These issues can be completely avoided by not initializing the shell at all. Instead, a custom bootstrap script uses *micromamba.exe* for creation of the new environment - the process not requiring any mandatory environment configuration, though `CONDA_PKGS_DIRS` should be set to point to package cache directory.
 
@@ -61,8 +61,7 @@ This call performs the following key steps:
 - **Download Micromamba (if not present)**  
     Retrieves the latest binary from the official release channel.
 - **Create a new environment**  
-    Initializes a self-contained environment under `%ENV_PREFIX%` via  
-    `micromamba.exe create -p "%ENV_PREFIX%" python=3.12 mamba conda`  
+    Initializes a self-contained environment under `%ENV_PREFIX%` via `micromamba.exe create -p "%ENV_PREFIX%" python=3.12 mamba conda`  
 - **Activate the environment**  
     Calls a standard script (e.g., `conda.bat`) to enable the environment.
 
