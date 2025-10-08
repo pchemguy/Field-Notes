@@ -33,8 +33,9 @@ This design ensures that each environment can be created, activated, and destroy
 ## **Why Micromamba**
 
 The primary objective is to use a command line bootstrapping tool to create a minimal standalone environment containing:
-- A specific version of Python, and
-- One or more package managers (e.g., Conda and Mamba within the Conda ecosystem)  
+- A specific (or latest by default) version of Python.
+- One or more package managers (e.g., Conda and Mamba within the Conda ecosystem).
+
 Once created, this environment is self-sufficient and can be activated via standard scripts provided by the package managers. All subsequent package management operations (installing, updating, exporting) are handled within the environment itself.
 
 Micromamba is a **single, dependency-free executable** designed for bootstrapping Conda-based environments. It provides the same functionality as Conda and Mamba for environment creation and package installation but does not require an existing Python installation.
