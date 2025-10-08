@@ -66,14 +66,14 @@ Micromamba_bootstrap.bat my_env 3.12
 
 This single command performs several actions:
 
-1. Downloads the `micromamba.exe` binary if it is missing.  
-2. Creates a new, self-contained environment with Python, Mamba, and Conda via the `create` command.
+**1.** Downloads the `micromamba.exe` binary if it is missing.  
+**2.** Creates a new, self-contained environment with Python, Mamba, and Conda via the `create` command.
+
+```
+micromamba.exe create -p "%ENV_PREFIX%" python=3.12 mamba conda
+```
   
-  ```
-  micromamba.exe create -p "%ENV_PREFIX%" python=3.12 mamba conda
-  ```
-  
-3. Activates the new environment once to verify its integrity.
+**3.** Activates the new environment once to verify its integrity.
 
 Your new environment is now ready at a path like `DRIVE:\path\to\envs\my_env_3_12`, complete with `python.exe`, `mamba.exe`, and `conda.exe`.
 
@@ -90,5 +90,4 @@ No tricky commands, no hidden hooks. Just a clean environment that works as expe
 
 ## Final Words
 
-This approach provides a controlled and reproducible method for bootstrapping Python environments on Windows. By keeping the logic explicit and avoiding shell-level modifications, you get a robust setup that is easy to manage, version, and share.
-You can find the annotated `Micromamba_bootstrap.bat` script and full documentation in the [project's GitHub repository](https://github.com/pchemguy/Field-Notes/tree/main/03-python-env-windows).
+This approach provides a controlled and reproducible method for bootstrapping Python environments on Windows. By keeping the logic explicit and avoiding shell-level modifications, you get a robust setup that is easy to manage, version, and share. You can find the annotated `Micromamba_bootstrap.bat` script and full documentation in the [project's GitHub repository](https://github.com/pchemguy/Field-Notes/tree/main/03-python-env-windows).
