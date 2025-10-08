@@ -69,7 +69,7 @@ This single command performs several actions:
 **1.** Downloads the `micromamba.exe` binary if it is missing.  
 **2.** Creates a new, self-contained environment with Python, Mamba, and Conda via the `create` command.
 
-```
+```batch
 micromamba.exe create -p "%ENV_PREFIX%" python=3.12 mamba conda
 ```
   
@@ -81,7 +81,7 @@ Your new environment is now ready at a path like `DRIVE:\path\to\envs\my_env_3_1
 
 With the environment created, you manage it using the standard Mamba or Conda commands from within its `condabin` directory.
 
-```
+```batch
 call "%ENV_PREFIX%\condabin\mamba.bat" activate
 mamba install numpy scipy
 ```
