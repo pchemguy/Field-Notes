@@ -35,7 +35,7 @@ The primary objective is to use a command line bootstrapping tool to create a mi
 
 Once created, this environment is self-sufficient and can be activated via standard scripts provided by the package managers. All subsequent package management operations (installing, updating, exporting) are handled within the environment itself.
 
-Micromamba is a **single, dependency-free executable** designed for bootstrapping Conda-based environments. It provides the same functionality as Conda and Mamba for environment creation and package installation but does not require an existing Python installation.
+Micromamba is a single, dependency-free executable designed for bootstrapping and managing Conda-based environments. It provides the same functionality as Conda and Mamba for environment creation and package installation but does not require an existing Python installation.
 
 However, the official Windows-related Micromamba documentation is lacking, while the provided installation script, `install.bat`, is broken. Further,
 Micromamba's default behavior - particularly the `shell init` and `shell hook` mechanisms - introduces complications on Windows, including:
