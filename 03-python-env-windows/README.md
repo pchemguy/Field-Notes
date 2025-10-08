@@ -92,4 +92,4 @@ This approach emphasizes:
 - **Portability:** environments remain largely relocatable and independent of system configuration.
 - **Robustness:** no hidden dependencies on global state or transient shell settings.
 
-While the current implementation fully addresses the initialization and activation stages, further refinements could improve portability by eliminating residual absolute paths and adding sample scripts for subsequent environment building or activation — though these processes rely entirely on standard workflows of conventional package managers.
+While the current implementation fully addresses the initialization and activation stages, further refinements could improve portability by eliminating residual absolute paths and adding sample scripts for subsequent environment building or activation - though these processes rely entirely on standard workflows of conventional package managers.
