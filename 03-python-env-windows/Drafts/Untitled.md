@@ -90,4 +90,4 @@ No tricky commands, no hidden hooks. Just a clean environment that works as expe
 
 ## Final Words
 
-This approach provides a controlled and reproducible method for bootstrapping Python environments on Windows. By keeping the logic explicit and avoiding shell-level modifications, you get a robust setup that is easy to manage, version, and share. You can find the annotated `Micromamba_bootstrap.bat` script and full documentation in the [project's GitHub repository](https://github.com/pchemguy/Field-Notes/tree/main/03-python-env-windows).
+This approach provides a controlled and reproducible method for bootstrapping Python environments on Windows. By keeping the logic explicit and avoiding shell-level modifications, you get a robust setup that is easy to manage, version, and share. You can find the annotated `Micromamba_bootstrap.bat` script and additional information in the [project's GitHub repository](https://github.com/pchemguy/Field-Notes/tree/main/03-python-env-windows).
