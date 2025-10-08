@@ -43,7 +43,7 @@ Micromamba's default behavior - particularly the `shell init` and `shell hook` m
 - Non-portable activation logic relying on parent shell state
 - Hard-coded absolute paths in generated scripts
 
-These issues can be completely avoided by **not initializing the shell at all**. Instead, all environment variables necessary for new environment creation are explicitly configured in a custom bootstrap script.
+These issues can be completely avoided by not initializing the shell at all. Instead, a custom bootstrap script uses *micromamba.exe* for creation of the new environment - the process not requiring any mandatory environment configuration, though `CONDA_PKGS_DIRS` should be set to point to package cache directory.
 
 ## **Core Workflow and Usage**
 
