@@ -9,7 +9,7 @@ canonical_url: "https://github.com/pchemguy/Field-Notes/blob/main/03-python-env-
 
 Managing Python on Windows can feel like walking through quicksand. Between global installs, conflicting `PATH` entries, and "smart" shell hooks that modify your registry, things get messy fast.
 
-This post documents a cleaner alternative. The workflow uses a standalone tool, Micromamba, and a simple batch script to create Conda-based environments that are lightweight, deterministic, and transparent. It avoids shell initialization, activation hooks, and registry pollution entirely.
+This post documents a cleaner alternative. The workflow uses a standalone tool, [Micromamba](https://github.com/mamba-org/micromamba-releases), and a simple batch script to create Conda-based environments that are lightweight, deterministic, and transparent. It avoids shell initialization, activation hooks, and registry pollution entirely.
 
 The key insight? Don't let Micromamba handle activation or initialization. Just let it do the one thing it excels at: creating environments.
 
@@ -62,16 +62,16 @@ Run the bootstrap script from your terminal to create a new, self-contained envi
 
 ```batch
 Micromamba_bootstrap.bat my_env 3.12
-````
+```
 
 This single command performs several actions:
 
 1. Downloads the `micromamba.exe` binary if it is missing.  
 2. Creates a new, self-contained environment with Python, Mamba, and Conda via the `create` command.
   
-```
-micromamba.exe create -p "%ENV_PREFIX%" python=3.12 mamba conda
-```
+  ```
+  micromamba.exe create -p "%ENV_PREFIX%" python=3.12 mamba conda
+  ```
   
 3. Activates the new environment once to verify its integrity.
 
