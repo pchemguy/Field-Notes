@@ -5,7 +5,7 @@
 This document describes a simplified and reproducible workflow for initializing Conda-based Python environments on Windows **without relying on shell initialization or automatic activation**. The approach focuses on transparent environment construction, deterministic behavior, and compatibility with standard Python tools. The presented method eliminates issues related to Micromamba’s shell hook logic and implicit state persistence while maintaining a lightweight structure. All essential actions - environment creation, configuration, and activation - are performed through explicit commands defined in dedicated batch scripts.
 
 The repository contains:
-- Two annotated batch scripts implementing the described workflow:    
+- Two annotated batch scripts implementing the described workflow:  
     - [Micromamba_bootstrap.bat](https://github.com/pchemguy/Field-Notes/blob/main/03-python-env-windows/Micromamba_bootstrap.bat)
     - [get_sed.bat](https://github.com/pchemguy/Field-Notes/blob/main/03-python-env-windows/get_sed.bat)
 - This README, providing background, design notes, and usage documentation.
