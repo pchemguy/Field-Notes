@@ -1,6 +1,6 @@
 ![](https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/03-python-env-windows/vis.jpg)
 
-# **Bootstrapping Python Environments on Windows (via Micromamba)**
+# **Bootstrapping Python Environments on Windows**
 
 This document describes a simplified and reproducible workflow for initializing Conda-based Python environments on Windows **without relying on shell initialization or automatic activation**. The approach focuses on transparent environment construction, deterministic behavior, and compatibility with standard Python tools. The presented method eliminates issues related to Micromamba’s shell hook logic and implicit state persistence while maintaining a lightweight structure. All essential actions - environment creation, configuration, and activation - are performed through explicit commands defined in dedicated batch scripts.
 
