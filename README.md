@@ -26,6 +26,7 @@ Each topic is contained within its own folder. Inside each folder, you will find
     - [Part 1: Structuring Internal Storage for Robust Migration and Failure Recovery](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md)
     - [Part 2: Building a Bootable USB Drive](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/BootableUSBDrive.md)
 - [Bootstrapping Python Environments on Windows (via Micromamba)](https://github.com/pchemguy/Field-Notes/blob/main/03-python-env-windows/README.md)
+- [Scripted Downloads of Latest GitHub Binary Releases on Windows](https://github.com/pchemguy/Field-Notes/blob/main/04-github-release-download/README.md)
 
 ## Acknowledgments
 
