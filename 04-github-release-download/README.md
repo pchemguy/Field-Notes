@@ -5,9 +5,11 @@
 
 ## **Synopsis**
 
-**Platform tested:** Windows 10 LTSC 2021  
-**Main Script:** `GitHubRelease.bat`
-**Test Script:** `GitHubRelease_Test.bat`
+|                      |                                                                                                                               |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Platform tested:** | Windows 10 LTSC 2021                                                                                                          |
+| **Main Script:**     | [GitHubRelease.bat](https://github.com/pchemguy/Field-Notes/blob/main/04-github-release-download/GitHubRelease.bat)           |
+| **Test Script:**     | [GitHubRelease_Test.bat](https://github.com/pchemguy/Field-Notes/blob/main/04-github-release-download/GitHubRelease_Test.bat) |
 
 ### **Purpose**
 
@@ -28,6 +30,23 @@ This is not a release automation tool - it is a **client-side downloader** that 
 - Operates in two modes:  
   1. **Direct** - download known filename (release file name does not include version number) from `/releases/latest/download/`  
   2. **Indirect** - query the API and select an asset by pattern
+
+### **Design Principles**
+
+- **Procedural modularity:**  
+  The script is structured into clear, reusable blocks. Each procedure has a well-defined input (via environment variables) and output (exit code and cache state),  
+  allowing controlled invocation and easier debugging.
+- **Meticulous error handling:**  
+  Every critical operation - network call, file I/O, extraction - checks for return codes and reports explicit error context through `%EXIT_STATUS%`. This approach prevents silent failures and provides predictable cleanup behavior.
+- **Dependency minimalism:**  
+  Works **without PowerShell** or external utilities. Only stock components are required:  
+    - `curl.exe` (for HTTP transfers)  
+    - `tar.exe` (for extraction)  
+    - `jq.exe` (fetched automatically if missing for JSON parsing)
+- **Caching efficiency:**  
+  Maintains a local hierarchy under `%CACHE%` to reuse already downloaded binaries. This approach avoids redundant downloads and supports reproducible environments even offline.
+- **Operational clarity:**  
+  Uses verbose but color-coded console output for progress and error tracing.
 
 ### **Typical Use Case**
 
@@ -54,8 +73,6 @@ https://github.com/jqlang/jq/releases/latest/download/jq-win64.exe
 ↓
 %CACHE%\JQ\jq.exe
 ```
-
----
 
 ## **Modes of Operation**
 
