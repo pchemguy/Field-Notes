@@ -2,29 +2,25 @@
 
 Title Download latest GitHub Release
 
-goto :CHECK_HELP
+goto :SKIP_HELP
+
 :HELP
-set "H_PREF=[44m ## [0m"
 echo:
-echo [44m ################################################################################# [0m
+echo %HH_BEG% ################################################################################# %ESC_RST%
 echo %H_PREF% Cached download of the latest binary release from GitHub.
 echo %H_PREF% 
 echo %H_PREF% -----------------------------------------------------------------------------
 echo %H_PREF% Usage:
-echo %H_PREF%   Set relevant variables and execute script. Command line interface is not
-echo %H_PREF%   presently implemented. Example:
-echo %H_PREF%     
+echo %H_PREF%   Set relevant variables and execute script. No command line interface at present.
+echo %H_PREF%   IMPORTANT: AVOID EXECUTING THIS SCRIPT WITH ADMIN PRIVILEGES^^!
+echo %H_PREF%   Example:  
 echo %H_PREF%     set "COMMON_NAME=PIXI"
 echo %H_PREF%     set "REPO_NAME=prefix-dev/pixi"
-echo %H_PREF%     REM - Direct download
 echo %H_PREF%     set "ASSET_URL_SUFFIX="
 echo %H_PREF%     set "RELEASE_URL_SUFFIX=pixi-x86_64-pc-windows-msvc.zip"
-echo %H_PREF%     REM - File extension in URL.
 echo %H_PREF%     set "DOWNLOAD_EXT="
 echo %H_PREF%     set "CANONICAL_NAME=pixi.exe"
-echo %H_PREF%     rem Use old file name from URL
 echo %H_PREF%     set "SPECIFIC_NAME=pixi.exe"
-echo %H_PREF%     rem Sets this variable to final absolute executable paths.
 echo %H_PREF%     set "EXE_NAME="
 echo %H_PREF%     call GitHubRelease.bat
 echo %H_PREF%
@@ -48,18 +44,26 @@ echo %H_PREF%   tar.exe and curl.exe.
 echo %H_PREF% -----------------------------------------------------------------------------
 echo %H_PREF% 
 echo %H_PREF% Variables (no quotes in values):
-echo %H_PREF%   COMMON_NAME        - e.g., "JQ" - used for labeling console output and CACHE
-echo %H_PREF%                                     directory name.
-echo %H_PREF%   REPO_NAME          - e.g., "jqlang/jq"
-echo %H_PREF%   RELEASE_URL_SUFFIX - e.g., "micromamba-win-64", "jq-win64.exe",
-echo %H_PREF%                              "pixi-x86_64-pc-windows-msvc.zip"
-echo %H_PREF%   DOWNLOAD_EXT       - e.g.,  ".exe"
-echo %H_PREF%   ASSET_URL_SUFFIX   - e.g., "x64.exe" - must be unset for direct links and set
-echo %H_PREF%                                          for metadata queries.
-echo %H_PREF%   CANONICAL_NAME     - e.g., "jq.exe" - rename downloaded/extracted file.
-echo %H_PREF%   SPECIFIC_NAME      - e.g., "jq-x64.exe" - if defined, used to identify file
-echo %H_PREF%                                             to be renamed. Otherwise - guess.
-echo %H_PREF%   EXE_NAME           - sets to absolute executable paths.
+echo %H_PREF%   COMMON_NAME          - e.g., "JQ" - used for labeling console output and CACHE
+echo %H_PREF%                                       directory name.
+echo %H_PREF%   REPO_NAME            - e.g., "jqlang/jq"
+echo %H_PREF%   RELEASE_URL_SUFFIX   - e.g., "micromamba-win-64", "jq-win64.exe",
+echo %H_PREF%                                "pixi-x86_64-pc-windows-msvc.zip"
+echo %H_PREF%   DOWNLOAD_EXT         - e.g.,  ".exe"
+echo %H_PREF%   ASSET_URL_SUFFIX     - e.g., "x64.exe" - must be unset for direct links and set
+echo %H_PREF%                                            for metadata queries.
+echo %H_PREF%   CANONICAL_NAME       - e.g., "jq.exe" - rename downloaded/extracted file.
+echo %H_PREF%   SPECIFIC_NAME        - e.g., "jq-x64.exe" - if defined, used to identify file
+echo %H_PREF%                                               to be renamed. Otherwise - guess.
+echo %H_PREF%                        
+echo %H_PREF%   EXE_NAME             - computed, is set to absolute executable path.
+echo %H_PREF%                        
+echo %H_PREF%   UPDATE_CACHE         - flag, if defined, existing cache is deleted (except for JQ).
+echo %H_PREF%   NO_TOP_BAR           - flag, if defined, skips top bar in console output.
+echo %H_PREF%   NO_BOTTOM_BAR        - flag, if defined, skips bottom bar in console output.
+echo %H_PREF%   ESCAPE_COLORS_SILENT - flag, if defined, suppresses ESCAPE_COLORS confirmation.
+echo %H_PREF%   BLOCK_TYPE           - selects block label style. Presently can be left set to
+echo %H_PREF%                          "ODD" (default, same as undefined) or "EVEN".
 echo %H_PREF% -----------------------------------------------------------------------------
 echo %H_PREF% 
 echo %H_PREF% NOTE:
@@ -70,26 +74,31 @@ echo %H_PREF%     ASSET_URL_SUFFIX to perform string matching. RELEASE_URL_SUFFI
 echo %H_PREF%     still be set to define downloaded file name (curl does not guess file 
 echo %H_PREF%     name and this code presently does not parse extracted ASSET_URL either.
 echo %H_PREF%   - DIRECT downloads uses RELEASE_URL_SUFFIX to construct download URL.
+echo %H_PREF%   - Uses ANSI escape sequences for output highlighting.
+echo %H_PREF%   - Uses stringed "endlocal" with returned variable set, when necessary.
 echo %H_PREF% -----------------------------------------------------------------------------
-echo [44m ################################################################################# [0m
+echo %HH_BEG% ################################################################################# %ESC_RST%
 echo:
 endlocal & exit /b 0
 
-:CHECK_HELP
+:SKIP_HELP
+
+call :ESCAPE_COLORS
 
 for %%A in ("--help" "-help" "-h" "/?") do (
   if /I "%~1"=="%%~A" goto :HELP
 )
 
-call :ESCAPE_COLORS
-
+:: /************************************************************************************************************/ MAIN BEGIN
+:: /************************************************************************************************************/ 
 :MAIN
-echo:
-echo %ESC%%BG_AUX%;97m ============================================================================ %ESC_RST%
-echo %ESC%%BG_BEG%;94m ================================ BEGIN MAIN ================================ %ESC_RST%
-echo %ESC%%BG_AUX%;97m ============================================================================ %ESC_RST%
-echo:
-
+if not defined NO_TOP_BAR (
+  echo:
+  echo %ESC%%BG_AUX%;97m ============================================================================ %ESC_RST%
+  echo %ESC%%BG_BEG%;94m ================================ BEGIN MAIN ================================ %ESC_RST%
+  echo %ESC%%BG_AUX%;97m ============================================================================ %ESC_RST%
+  echo:
+)
 SetLocal EnableExtensions EnableDelayedExpansion
 set EXIT_STATUS=0
 
@@ -137,15 +146,19 @@ if %EXIT_STATUS% equ 0 (
 ) else (
   set BG_END=%BG_ERR%
 )
-echo:
-echo %ESC%%BG_AUX%;97m  ============================================================================ %ESC_RST%
-echo %ESC%%BG_END%;94m  ================================= END MAIN ================================= %ESC_RST%
-echo %ESC%%BG_AUX%;97m  ============================================================================ %ESC_RST%
-echo:
-EndLocal & exit /b %EXIT_STATUS%
+if not defined NO_BOTTOM_BAR (
+  echo:
+  echo %ESC%%BG_AUX%;97m  ============================================================================ %ESC_RST%
+  echo %ESC%%BG_END%;94m  ================================= END MAIN ================================= %ESC_RST%
+  echo %ESC%%BG_AUX%;97m  ============================================================================ %ESC_RST%
+  echo:
+)
+EndLocal & (set "JQ=%JQ%") & (set "CACHE=%CACHE%") & exit /b %EXIT_STATUS%
+:: /************************************************************************************************************/ MAIN END
+:: /************************************************************************************************************/ 
 
 
-:: ============================================================================
+:: ============================================================================ ESCAPE_COLORS BEGIN
 :: ============================================================================
 :ESCAPE_COLORS
 :: --------------------------------------------------------
@@ -160,6 +173,10 @@ set BG_ERR=101
 set BG_OKI=106
 set BG_ODD_BLOCK=42
 set BG_EVEN_BLOCK=46
+set BG_HELP_FRAME=44
+
+set "HH_BEG=%ESC%%BG_HELP_FRAME%m"
+set "H_PREF=%HH_BEG% ## %ESC_RST%"
 
 set  "INFO=%ESC%%BG_AUX%;92m [INFO]  %ESC_RST%"
 set  "OKOK=%ESC%%BG_BEG%;94m -[OK]-  %ESC_RST%"
@@ -171,14 +188,18 @@ rem echo %OKOK% OK
 rem echo %WARN% WARNING
 rem echo %ERROR% ERROR
 
-echo:
-echo %INFO% Set escape sequence templates for color labels.
-echo:
+if not defined ESCAPE_COLORS_SILENT (
+  echo:
+  echo %INFO% Set escape sequence templates for color labels.
+  echo:
+)
 
 exit /b 0
-
-
 :: ============================================================================
+:: ============================================================================ ESCAPE_COLORS END
+
+
+:: ============================================================================ CACHE_DIR BEGIN
 :: ============================================================================
 :CACHE_DIR
 :: --------------------------------------------------------
@@ -213,9 +234,11 @@ if exist "%USERPROFILE%\Downloads" (
 echo %INFO% CACHE directory: "!CACHE!".
 
 exit /b 0
-
-
 :: ============================================================================
+:: ============================================================================ CACHE_DIR END
+
+
+:: ============================================================================ JQ_DOWNLOAD BEGIN
 :: ============================================================================
 :JQ_DOWNLOAD
 :: --------------------------------------------------------
@@ -224,6 +247,12 @@ exit /b 0
 :: --------------------------------------------------------
 
 setlocal
+
+set "BLOCK_TYPE=EVEN"
+
+:: --- JQ as a tool is excluded from UPDATE_CACHE flag. If necessary, delete local cache manually. ---
+
+set "UPDATE_CACHE="
 
 set "COMMON_NAME=JQ"
 set "REPO_NAME=jqlang/jq"
@@ -239,9 +268,11 @@ set "SPECIFIC_NAME="
 call :ASSET_DOWNLOAD & set "EXIT_STATUS=%ERRORLEVEL%"
 
 endlocal & (set "JQ=%EXE_NAME%") & exit /b %EXIT_STATUS%
-
-
 :: ============================================================================
+:: ============================================================================ JQ_DOWNLOAD END
+
+
+:: ============================================================================ PIXI_DOWNLOAD BEGIN
 :: ============================================================================
 :PIXI_DOWNLOAD
 :: --------------------------------------------------------
@@ -265,9 +296,11 @@ set "SPECIFIC_NAME=pixi.exe"
 call :ASSET_DOWNLOAD & set "EXIT_STATUS=%ERRORLEVEL%"
 
 endlocal & exit /b %EXIT_STATUS%
-
-
 :: ============================================================================
+:: ============================================================================ PIXI_DOWNLOAD END
+
+
+:: ============================================================================ SED_DOWNLOAD BEGIN
 :: ============================================================================
 :SED_DOWNLOAD
 :: --------------------------------------------------------
@@ -291,9 +324,11 @@ set "SPECIFIC_NAME="
 call :ASSET_DOWNLOAD & set "EXIT_STATUS=%ERRORLEVEL%"
 
 endlocal & exit /b %EXIT_STATUS%
-
-
 :: ============================================================================
+:: ============================================================================ SED_DOWNLOAD END
+
+
+:: ============================================================================ LIBJPEG_TURBO_DOWNLOAD BEGIN
 :: ============================================================================
 :LIBJPEG_TURBO_DOWNLOAD
 :: --------------------------------------------------------
@@ -317,24 +352,51 @@ set "SPECIFIC_NAME="
 call :ASSET_DOWNLOAD & set "EXIT_STATUS=%ERRORLEVEL%"
 
 endlocal & exit /b %EXIT_STATUS%
-
-
 :: ============================================================================
+:: ============================================================================ LIBJPEG_TURBO_DOWNLOAD END
+
+
+:: ============================================================================ ASSET_DOWNLOAD BEGIN
 :: ============================================================================
 :ASSET_DOWNLOAD
 :: --------------------------------------------------------
 :: Download and cache the latest GitHub release.
 :: --------------------------------------------------------
 
+if not defined BLOCK_TYPE (
+  set "BLCK_LBL=%ESC%%BG_ODD_BLOCK%m %COMMON_NAME% %ESC_RST%"
+)
+if /I "%BLOCK_TYPE%"=="ODD" (
+  set "BLCK_LBL=%ESC%%BG_ODD_BLOCK%m %COMMON_NAME% %ESC_RST%"
+)
+if /I "%BLOCK_TYPE%"=="EVEN" (
+  set "BLCK_LBL=%ESC%%BG_EVEN_BLOCK%m %COMMON_NAME% %ESC_RST%"
+)
+
 echo:
-set "BLCK_LBL=%ESC%%BG_ODD_BLOCK%m %COMMON_NAME% %ESC_RST%"
 echo %INFO% %BLCK_LBL%: Download, if not cached...
 
+:: --- If UPDATE_CACHE defined, delete existing cache.
+
 set "PREFIX=%CACHE%\%COMMON_NAME%"
+if defined UPDATE_CACHE (
+  if exist "%PREFIX%" (
+    echo %INFO% %BLCK_LBL%: Existing cache "%PREFIX%" found. Cache update flag is set. Attempting to delete...
+    rmdir /S /Q "%PREFIX%"
+    set "EXIT_STATUS=!ERRORLEVEL!"
+  )
+  if not !EXIT_STATUS! equ 0 (
+    set "ERR_MSG=Failed to clear cached "%PREFIX%". Aborting download..."
+    echo %ERROR% %BLCK_LBL%: !ERR_MSG! 
+    exit /b !EXIT_STATUS!
+  ) else (
+    echo %INFO% %BLCK_LBL%: Deleted existing cache "%PREFIX%".
+  )
+)
 if not exist "%PREFIX%" (
   md "%PREFIX%" & set "EXIT_STATUS=!ERRORLEVEL!"
   if not !EXIT_STATUS! equ 0 (
-    set "ERR_MSG=Failed to create prefix: ""%PREFIX%"". Aborting download..."
+    set "ERR_MSG=Failed to create prefix: "%PREFIX%". Aborting download..."
     echo %ERROR% %BLCK_LBL%: !ERR_MSG! 
     exit /b !EXIT_STATUS!
   )
@@ -436,14 +498,16 @@ if defined CANONICAL_NAME (
 :DOWNLOAD_COMPLETE
 
 echo %OKOK% %BLCK_LBL%: %COMMON_NAME% is ready as "%EXE_NAME%"
-
-set ASSET_URL=
 echo:
 
+set ASSET_URL=
+
 exit /b %EXIT_STATUS%
-
-
 :: ============================================================================
+:: ============================================================================ ASSET_DOWNLOAD END
+
+
+:: ============================================================================ RETRIEVE_ASSET_URL BEGIN
 :: ============================================================================
 :RETRIEVE_ASSET_URL
 :: --------------------------------------------------------
@@ -495,10 +559,15 @@ rem Note: could not escape JQ PATTERN for use in FOR LOOP.
 
 set "_ASSET_URL_SUFFIX=%ASSET_URL_SUFFIX:.=\\.%$"
 set "PATTERN=.assets[] | select(.browser_download_url | test(""%_ASSET_URL_SUFFIX%"")) | .browser_download_url"
+
+rem If JQ is set, its validity is intentionally not checked to allow potential failure of the next command.
+rem This omission is probably not generally good for production, and is left unguarded solely to allow for
+rem FINDSTR fallback.
+
 call "%JQ%"  -r "%PATTERN%" "%META_FILE%" >"%TEMP%\ASSET_URL.txt"
 set "EXIT_STATUS=!ERRORLEVEL!"
 if not %EXIT_STATUS% equ 0 (
-  echo %ERROR% %BLCK_LBL%: JQ asset URL extraction failed. ERROR: %EXIT_STATUS%. Will try FINDSTR.
+  echo %WARN% %BLCK_LBL%: JQ asset URL extraction failed. ERROR: %EXIT_STATUS%. Will try FINDSTR.
   set "ASSET_URL="
   goto :FINDSTR_ASSET_URL
 )
@@ -506,25 +575,20 @@ if not %EXIT_STATUS% equ 0 (
 for /f "usebackq delims=" %%A in ("%TEMP%\ASSET_URL.txt") do set "ASSET_URL=%%A"
 del /Q "%TEMP%\ASSET_URL.txt"
 if defined ASSET_URL goto :SKIP_FINDSTR_ASSET_URL
-
 :FINDSTR_ASSET_URL
 :: --- Findstr fallback ---
 
 echo %INFO% %BLCK_LBL%: Parsing %COMMON_NAME% JSON metadata with FINDSTR
-
 rem Escape period in ASSET_URL_SUFFIX with \ for FINSTR command line processing.
 
-set "_ASSET_URL_SUFFIX=%ASSET_URL_SUFFIX:.=\.%$"
-set "PATTERN=^[ ]*.browser_download_url.:[ ]*https://github.com/%REPO%/releases/download/.*-%_ASSET_URL_SUFFIX%"
-for /f "usebackq tokens=2 delims=, " %%A in (`findstr /R /I "%PATTERN%" "%META_FILE%"`) do (
+set "_ASSET_URL_SUFFIX=%ASSET_URL_SUFFIX:.=\.%"
+set "PATTERN=^[ ]*\"browser_download_url\":[ ]*\"https://github.com/%REPO_NAME%/releases/download/.*%_ASSET_URL_SUFFIX%\""
+for /f "usebackq tokens=2 delims=, " %%A in (`findstr /R /I /C:"%PATTERN%" "%META_FILE%"`) do (
   set "ASSET_URL=%%~A"
 )
-set "EXIT_STATUS=!ERRORLEVEL!"
-if not %EXIT_STATUS% equ 0 (
-  echo %ERROR% %BLCK_LBL%: FINDSTR asset URL extraction failed. ERROR: %EXIT_STATUS%. Aborting...
-  set "ASSET_URL="
-  exit /b %EXIT_STATUS%
-)
+REM ERROR HANDLING
+REM   Somehow ERRORLEVEL is set to 1 even on success. Removed this check completely.
+REM   Will rely on the ultimate check of ASSET_URL next.
 
 :SKIP_FINDSTR_ASSET_URL
 
@@ -539,3 +603,5 @@ if not defined ASSET_URL (
 )
 
 exit /b %EXIT_STATUS%
+:: ============================================================================
+:: ============================================================================ RETRIEVE_ASSET_URL END

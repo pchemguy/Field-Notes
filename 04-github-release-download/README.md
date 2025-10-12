@@ -1,6 +1,6 @@
 # A Robust Script for Managing GitHub Binary Releases
 
-This document provides a detailed technical overview of `GitHubRelease.bat`, a command-line script for downloading and caching the latest binary releases from GitHub repositories. It is designed for `cmd.exe` on Windows and relies on native or commonly available tools.
+This document provides a detailed technical overview of [GitHubRelease.bat](https://github.com/pchemguy/Field-Notes/blob/main/04-github-release-download/GitHubRelease.bat), a command-line script for downloading and caching the latest binary releases from GitHub repositories. It is designed for `cmd.exe` on Windows and relies on native or commonly available tools.
 
 ## Overview
 
@@ -130,7 +130,7 @@ endlocal & (set "JQ=%EXE_NAME%") & exit /b %EXIT_STATUS%
 
 ## Testing
 
-The project includes `GitHubRelease_Test.bat`, a companion script that serves as a test suite. It invokes `GitHubRelease.bat` multiple times with different configurations to validate its functionality and robustness across various scenarios, including:
+The project includes [GitHubRelease_Test.bat](https://github.com/pchemguy/Field-Notes/blob/main/04-github-release-download/GitHubRelease_Test.bat), a companion script that serves as a test suite. It invokes `GitHubRelease.bat` multiple times with different configurations to validate its functionality and robustness across various scenarios, including:
 - Successful direct and indirect downloads.
 - Expected failures from bad repository names.
 - Correct fallback from `jq` to `findstr`.
