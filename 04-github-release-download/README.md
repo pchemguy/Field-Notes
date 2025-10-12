@@ -17,12 +17,12 @@ Its entire workflow is controlled via environment variables, making it easy to i
 - **Two Download Modes:**    
     - **Direct Download:** For repositories with version-independent release URLs (e.g., `/latest/download/app-windows.exe`).
     - **Indirect (Metadata) Download:** For repositories where release asset URLs include version numbers. The script fetches release metadata from the GitHub API and parses it to find the correct download URL.
-- **Intelligent Caching:** Downloads are stored in a local cache directory. The script checks for an existing file before initiating a new download. The cache can be forcefully updated via a flag.
+- **Download Caching:** Downloads are stored in a local cache directory. The script checks for an existing file before initiating a new download. The cache can be forcefully updated via a flag.
 - **Archive Handling:** Automatically detects and extracts `.zip` files using `tar.exe` after download.
-- **Smart Parsing:** Uses `jq.exe` to parse GitHub's JSON metadata for high accuracy. If `jq` is not available, it will first attempt to download it. As a final resort, it gracefully falls back to the native Windows `findstr.exe` utility for RegEx-based parsing.
-- **Robust Error Handling:** The script performs checks for all critical operations (dependency availability, network requests, file system actions) and exits early with a clear error message upon failure.
+- **Metadata Parsing:** Uses `jq.exe` to parse GitHub's JSON metadata for high accuracy. If `jq` is not available, it will first attempt to download it. As a final resort, it gracefully falls back to the native Windows `findstr.exe` utility for RegEx-based parsing.
+- **Error Handling:** The script performs checks for all critical operations (dependency availability, network requests, file system actions) and exits early with a clear error message upon failure.
 - **Configurability:** All behavior is controlled through a clear set of environment variables.
-- **Self-Contained Testing:** The script includes internal routines for self-testing, which are executed if no external repository is specified. A companion `GitHubRelease_Test.bat` script provides more extensive test cases.
+- **Included Testing:** The script includes internal routines for self-testing, which are executed if no external repository is specified. A companion [GitHubRelease_Test.bat](https://github.com/pchemguy/Field-Notes/blob/main/04-github-release-download/GitHubRelease_Test.bat) script provides more extensive test cases.
 
 See sample log [screenshots](./Screenshots.md).
 ## Prerequisites
