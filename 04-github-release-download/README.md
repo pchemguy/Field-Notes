@@ -20,19 +20,6 @@ This is not a release automation tool - it is a **client-side downloader** that 
 
 ### **Design Principles**
 
-- Works **without PowerShell** or third-party installers.  
-- Depends only on **stock Windows components**:  
-    - `curl.exe` (bundled with modern Windows)  
-    - `tar.exe` (bundled with modern Windows)  
-    - **`jq.exe`** (for JSON parsing) is downloaded automatically if missing.  
-- Fully self-contained; no external package managers.  
-- Uses a **local cache** to avoid repeated downloads.  
-- Operates in two modes:  
-  1. **Direct** - download known filename (release file name does not include version number) from `/releases/latest/download/`  
-  2. **Indirect** - query the API and select an asset by pattern
-
-### **Design Principles**
-
 - **Procedural modularity:**  
   The script is structured into clear, reusable blocks. Each procedure has a well-defined input (via environment variables) and output (exit code and cache state),  
   allowing controlled invocation and easier debugging.
@@ -170,6 +157,15 @@ This approach avoids name collisions and supports offline reuse.
 | `tar.exe` not found  | Missing system component | Install optional Windows features (or copy from newer OS) |
 | `jq` parsing fails   | Network/redirect issues  | Retry; JSON will be cached locally                        |
 | Asset not found      | Wrong suffix or pattern  | Inspect metadata JSON under `%PREFIX%`                    |
+
+### **Console Formatting and Escape Sequences**
+
+To keep runtime output readable without relying on PowerShell, the script employs **ANSI escape sequences** directly within `echo` commands. The script defines a simple highlighting scheme for information/completion/warning/error messages and block highlighting. The script also limits mixing batch code with escape sequences by setting the chosen color scheme to script variables and including these variables when necessary instead of explicit escape codes. This approach makes it possible to amend/extend the color scheme, if desired, and avoids excessive use of the special ESC character, which might be accidentally lost during certain copy/paste operations. Explicit code is only used to 
+
+
+
+
+
 
 ## **Example Recipes**
 
