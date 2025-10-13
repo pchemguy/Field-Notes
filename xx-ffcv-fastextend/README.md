@@ -1,4 +1,7 @@
+# Summary
 
+It appears that all prereqs, except for OpenCV and pthreads are installed via conda. Both OpenCV and pthreads are installed as portable software.
+For pthreads, the latest (old) release is installed. There is no explicit restrictions on OpenCV versions. FFCV hints at VC15-based (the newest is 4.6, subsequent versions are VC16-based). Gemini analysis suggests sticking with 4.6.
 
 |            |                                                    | Date         |
 | ---------- | -------------------------------------------------- | ------------ |
@@ -16,6 +19,8 @@ pip install "fastxtend[all]"
 ```
 
 replacing pytorch-cuda=12.1 with your preferred supported version of Cuda.
+
+Gemini analysis (https://gemini.google.com/app/c22c3e168bde40db) indicates critical dependence on pin `matplotlib<3.8`, but suggests that it could be relaxed to `matplotlib<=3.8`.
 
 ## FFCV
 
@@ -46,7 +51,7 @@ replacing pytorch-cuda=12.1 with your preferred supported version of Cuda.
 ### OpenCV
 
 Note `/opencv/build/x64/vc15/bin`. The latest VC15 based build is OpenCV 4.6.0 (2022-06-12) https://sourceforge.net/projects/opencvlibrary/files/4.6.0/opencv-4.6.0-vc14_vc15.exe
-Will try a newer VC16-based OpenCV4. Incompatibility risks are relatively low, but should keep this in mind.
+Gemini analysis (https://gemini.google.com/app/6de2654f343e3c01) suggests avoiding using VC16-based versions.
 
 ### Libjpeg-Turbo
 
