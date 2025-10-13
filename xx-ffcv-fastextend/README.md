@@ -78,3 +78,13 @@ Matching version of cupy and associated libraries are installed via conda packag
   - cudnn
   - cutensor
 ```
+
+nvidia::libcublas, nvidia::libcusparse, nvidia::libcufft, nvidia::libcurand
+cudnn
+libcudnn
+cudnn-jit
+cuda-tools
+cuda-visual-tools
+cuda-runtime
+libnvjpeg
+libcufft
