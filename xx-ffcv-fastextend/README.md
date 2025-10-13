@@ -79,6 +79,9 @@ Matching version of cupy and associated libraries are installed via conda packag
   - cutensor
 ```
 
+
+## CUDA Libs
+
 nvidia::libcublas, nvidia::libcusparse, nvidia::libcufft, nvidia::libcurand
 cudnn
 libcudnn
@@ -88,3 +91,13 @@ cuda-visual-tools
 cuda-runtime
 libnvjpeg
 libcufft
+
+ Install PyTorch and RAPIDS together in a new environment
+ 
+```
+conda create -n gpu-env -c rapidsai -c pytorch -c nvidia pytorch rapids cudatoolkit
+ 
+ 
+conda create -n rapids-25.10 -c rapidsai -c conda-forge -c nvidia rapids=25.10 python=3.11 'cuda-version>=12.0,<=12.9' 'pytorch=*=*cuda*' jupyterlab graphistry dash xarray-spatial
+```
+
