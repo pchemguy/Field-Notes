@@ -46,6 +46,7 @@ replacing pytorch-cuda=12.1 with your preferred supported version of Cuda.
 ### OpenCV
 
 Note `/opencv/build/x64/vc15/bin`. The latest VC15 based build is OpenCV 4.6.0 (2022-06-12) https://sourceforge.net/projects/opencvlibrary/files/4.6.0/opencv-4.6.0-vc14_vc15.exe
+Will try a newer VC16-based OpenCV4. Incompatibility risks are relatively low, but should keep this in mind.
 
 ### Libjpeg-Turbo
 
@@ -82,15 +83,8 @@ Matching version of cupy and associated libraries are installed via conda packag
 
 ## CUDA Libs
 
-nvidia::libcublas, nvidia::libcusparse, nvidia::libcufft, nvidia::libcurand
-cudnn
-libcudnn
-cudnn-jit
-cuda-tools
-cuda-visual-tools
-cuda-runtime
-libnvjpeg
-libcufft
+CUDA Runtime (cudatoolkit) vs. SDK (cuda-toolkit): https://gemini.google.com/app/756a72112c16449b
+
 
  Install PyTorch and RAPIDS together in a new environment
  
