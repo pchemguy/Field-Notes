@@ -12,7 +12,7 @@ https://chatgpt.com/c/68ed5ca2-ee7c-8330-a5d1-0d4b81ee3aa0
 | **Symptom**  | pip cannot detect MSVC Build Tools, even though they are installed and functional. |
 | **Cause**    | `setuptools._distutils` fails to check environment variables or PATH entries.      |
 | **Fix**      | Patch `_find_vcvarsall()` to fall back to PATH lookup for `vcvarsall.bat`.         |
-| **Verified** | Works with MSVC 19.44.35217 and Python 3.11.13 on Windows 10.                      |
+| **Verified** | Works with MSVC 19.44.35217 and Python 3.13.8 on Windows 10.                       |
 
 ## **Problem**
 
