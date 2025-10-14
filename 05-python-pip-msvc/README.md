@@ -46,7 +46,7 @@ Online results (including Stack Overflow and Gemini bot) are superficial (e.g., 
 The traceback includes a reference to the following module:
 
 ```
-setuptools\_distutils\compilers\C\msvc.py
+Lib\site-packages\setuptools\_distutils\compilers\C\msvc.py
 ```
 
 Specifically, the `_get_vc_env()` routine, which is responsible for locating MSVC toolchains. Tracing the function chain:
