@@ -20,7 +20,7 @@ When attempting to install certain Python packages from source on Windows, pip m
 Example (Windows 10, Python 3.11.13, pip 25.2, setuptools 80.9.0):
 
 ```bash
-pip install --no-binary :all: pycryptodome
+pip install --no-binary :all: --no-cache-dir pycryptodome
 ```
 
 Results in the familiar but unhelpful error:
@@ -43,7 +43,7 @@ Online results (including Stack Overflow and Gemini bot) are superficial (e.g., 
 
 ## **Investigation**
 
-The traceback includes a reference to the following module:
+Tracking the actual cause of the problem might be a tricky process. While we are solely interested in the part involving detection of the build toolchain, even this process has substantial variations. I have attempted to run `pip install --no-binary :all: --no-cache-dir` on several packages suggested by Gemini as test cases for the installation process that requires compilation of `C` modules. Accidentally, the first suggestion, `pycryptodome`, produced an error trace that not only included the complaint about missing MSVC, but also pointing to the actual culprit, the routine `_get_vc_env()` in
 
 ```
 setuptools\_distutils\compilers\C\msvc.py
@@ -70,6 +70,19 @@ This behavior is not compatible with portable or script-initialized MSVC Build T
 In short:
 
 > The detection logic is defective - it checks registry keys and default paths, but never verifies whether the compiler is already available.
+
+Attempts to install other suggested "test" packages, such as `psutil`, produced completely useless traces only containing the complaint about missing MSVC and no references to error source location.
+
+Another potential problem is associated with the modern building process involving an isolated environment.  Depending on Python version this isolated mode may or may not be enabled by default. The reason this isolated process is problematic in present context is because the defective MSVC detection logic is in a `setuptools` module. As discussed bellow, the copy of this module installed on the Python environment being used can be patched as a workaround. However, while in the non-isolated building mode such a patch fixes this particular problem, in the isolation mode `pip` does not use the  installed copy of `setuptools`. For this reason, this workaround will only work in the non-isolated module, necessitating and additional flag `--no-build-isolation` to `pip install`:
+
+```
+pip install --no-binary :all: --no-build-isolation --no-cache-dir pycryptodome
+```
+
+This flag has limited official [documentation](https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-no-build-isolation) and certain limitations.
+
+Another important flag necessary for the testing purposes is `--no-cache-dir`. When verifying efficacy and necessity of the patch, it is essential that pip does not used a cached copy built with the fix discussed below enabled. Otherwise, after disabling the fix and uninstalling the test package, subsequent attempt to reinstall it, which should fail again due to disabled fix, will not actually fail, because `pip` will use a cached compiled copy instead of attempting to recompile it.
+
 
 ## **Workaround / Temporary Fix**
 
