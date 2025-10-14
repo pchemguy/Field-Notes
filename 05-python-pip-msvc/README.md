@@ -91,6 +91,7 @@ pip install --no-binary :all: --no-build-isolation --no-cache-dir pycryptodome
 
 - `--no-build-isolation` ensures pip uses the local (patched) `setuptools`.
 - `--no-cache-dir` prevents reuse of cached wheels or build artifacts.
+- `--no-binary :all:` prevents installation of prebuild binaries, even if available, forcing local compilation.
 
 When testing the patch, omitting either flag can lead to false positives (e.g., pip using cached binaries instead of recompiling).
 
