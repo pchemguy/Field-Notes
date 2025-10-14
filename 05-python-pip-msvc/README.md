@@ -2,20 +2,21 @@
 https://chatgpt.com/c/68ed5ca2-ee7c-8330-a5d1-0d4b81ee3aa0
 -->
 ![](./vis1.jpg)
+
 # **Python pip Fails to Detect MSVC Build Tools on Windows**
 
 ## **Summary**
 
 | Aspect       | Description                                                                        |
 | ------------ | ---------------------------------------------------------------------------------- |
-| **Symptom**  | Pip cannot find MSVC Build Tools despite them being installed and functional       |
-| **Cause**    | `setuptools._distutils` fails to check environment variables or PATH               |
-| **Fix**      | Manually patch `_find_vcvarsall()` to fall back on PATH lookup for `vcvarsall.bat` |
-| **Verified** | Works with MSVC 19.44.35217 and Python 3.11.13 on Windows 10                       |
+| **Symptom**  | pip cannot detect MSVC Build Tools, even though they are installed and functional. |
+| **Cause**    | `setuptools._distutils` fails to check environment variables or PATH entries.      |
+| **Fix**      | Patch `_find_vcvarsall()` to fall back to PATH lookup for `vcvarsall.bat`.         |
+| **Verified** | Works with MSVC 19.44.35217 and Python 3.11.13 on Windows 10.                      |
 
 ## **Problem**
 
-When attempting to install certain Python packages from source on Windows, pip may fail to detect the Microsoft Visual C++ Build Tools - even when they are properly installed and working.
+When installing certain Python packages from source on Windows, pip may fail to detect the Microsoft Visual C++ Build Tools - even when they are correctly installed and working.
 
 Example (Windows 10, Python 3.11.13, pip 25.2, setuptools 80.9.0):
 
@@ -23,7 +24,7 @@ Example (Windows 10, Python 3.11.13, pip 25.2, setuptools 80.9.0):
 pip install --no-binary :all: pycryptodome
 ```
 
-Results in the familiar but unhelpful error:
+This command results in the familiar but misleading error:
 
 ```
   distutils.errors.DistutilsPlatformError: Microsoft Visual C++ 14.0 or greater is required.
@@ -31,7 +32,7 @@ Results in the familiar but unhelpful error:
   https://visualstudio.microsoft.com/visual-cpp-build-tools/
 ```
 
-Despite the fact that the compiler works perfectly from the same shell:
+Despite this, the compiler works perfectly from the same shell:
 
 ```bash
 G:\dev\AIPY\Anaconda>cl
@@ -39,58 +40,72 @@ Microsoft (R) C/C++ Optimizing Compiler Version 19.44.35217 for x64
 Copyright (C) Microsoft Corporation.
 ```
 
-Online results (including Stack Overflow and Gemini bot) are superficial (e.g., suggesting installing MS Build Tools) and do not provide any working solution for this case.
+Most online sources (including Stack Overflow threads and LLM suggestions) simply advise reinstalling MS Build Tools and do not address the underlying detection issue.
 
 ## **Investigation**
 
-Tracking the actual cause of the problem might be a tricky process. While we are solely interested in the part involving detection of the build toolchain, even this process has substantial variations. I have attempted to run `pip install --no-binary :all: --no-cache-dir` on several packages suggested by Gemini as test cases for the installation process that requires compilation of `C` modules. Accidentally, the first suggestion, `pycryptodome`, produced an error trace that not only included the complaint about missing MSVC, but also pointing to the actual culprit, the routine `_get_vc_env()` in
+Tracing the problem is not straightforward. While we only care about the compiler detection logic, even that process varies significantly.  To isolate it, I tested several packages requiring native C module compilation using:
+
+```bash
+pip install --no-binary :all: --no-cache-dir
+```
+
+The first candidate, `pycryptodome`, luckily yielded a useful trace that pointed directly to the failing routine `_get_vc_env()` inside:
 
 ```
 setuptools\_distutils\compilers\C\msvc.py
 ```
 
-Specifically, the `_get_vc_env()` routine, which is responsible for locating MSVC toolchains. Tracing the function chain:
+This function is responsible for locating MSVC toolchains. Its call chain is:
 
 - `_get_vc_env()` → `_find_vcvarsall()`
-- `_find_vcvarsall()` → `_find_vc2015()` and `_find_vc2017()`
+- `_find_vcvarsall()` → `_find_vc2015()` / `_find_vc2017()`
 
-These routines attempt to discover MSVC installations via **registry keys** (`SxS\VC7`) and **vswhere.exe** lookups. The logic is sound for full Visual Studio installs, but **incomplete** for standalone _Build Tools_ setups.
+These functions attempt to discover MSVC installations through registry keys (`SxS\VC7`) and vswhere.exe lookups. This approach works for full Visual Studio installations but fails for standalone MS Build Tools setups.
 
-Build Tools users typically initialize the compiler environment manually via the provided `vcvarsall.bat` (or a variant thereof). However, the *distutils* logic never checks for:
+Users of the standalone MS Build Tools typically initialize the compiler environment manually using `vcvarsall.bat` or its variants. However, the current `distutils` logic never checks for:
 
-- `vcvarsall.bat` being already available on `PATH`
-- characteristic environment variables, set commonly after  a `vcvarsall.bat` call
-- existing compiler environment (`cl.exe`, `link.exe`, etc.)
+- `vcvarsall.bat` already being accessible on `PATH`,
+- common environment variables set by `vcvarsall.bat`, or
+- existing compiler executables such as `cl.exe` and `link.exe`.
 
-As a result, pip fails to find MSVC even when it is available and configured for the current session.
-
- Evidently, `setuptools._distutils` assumes a traditional Visual Studio installation and ignores any compiler environment configured via shell scripts.  
-This behavior is not compatible with portable or script-initialized MSVC Build Tools setups - a common pattern for automated or Conda environments.
+As a result, pip fails to locate MSVC even when the environment is already properly configured.
 
 In short:
 
-> The detection logic is defective - it checks registry keys and default paths, but never verifies whether the compiler is already available.
+> The detection logic assumes a full Visual Studio installation and ignores compiler environments initialized via shell scripts.
 
-Attempts to install several other suggested "test" packages, such as `psutil`, produced completely useless traces only containing the complaint about missing MSVC and no references to error source location.
+This deficiency makes detection process incompatible with portable, script-driven, or Conda-based setups.
 
-Another potential problem is associated with the modern building process involving an isolated environment.  Depending on Python version this isolated mode may or may not be enabled by default. The reason this isolated process is problematic in present context is because the defective MSVC detection logic is in a `setuptools` module. As discussed bellow, the copy of this module installed on the Python environment being used can be patched as a workaround. However, while in the non-isolated building mode such a patch fixes this particular problem, in the isolation mode `pip` does not use the  installed copy of `setuptools`. For this reason, this workaround will only work in the non-isolated module, necessitating and additional flag `--no-build-isolation` to `pip install`. This flag has limited official [documentation](https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-no-build-isolation) and certain limitations. Another important flag necessary for the testing purposes is `--no-cache-dir`. When verifying efficacy and necessity of the patch, it is essential that pip does not used a cached copy built with the fix discussed below enabled. Otherwise, after disabling the fix and uninstalling the test package, subsequent attempt to reinstall it, which should fail again due to disabled fix, will not actually fail, because `pip` will use a cached compiled copy instead of attempting to recompile it. The full test command for `pycryptodome` is:
+Other test packages such as `psutil` produced less informative traces, offering no clue to the actual source of failure, yet they are affected by the same flaw.
+
+### **Build Isolation Considerations**
+
+Modern versions of pip may build packages inside an **isolated environment** by default. Because the faulty detection logic resides in `setuptools`, patching it only affects the installed copy of that module. During isolated builds, pip instead uses a temporary copy, making the patch ineffective.
+
+To ensure the fix applies, builds must be run with isolation disabled:
 
 ```
 pip install --no-binary :all: --no-build-isolation --no-cache-dir pycryptodome
 ```
 
+- `--no-build-isolation` ensures pip uses the local (patched) `setuptools`.
+- `--no-cache-dir` prevents reuse of cached wheels or build artifacts.
+
+When testing the patch, omitting either flag can lead to false positives (e.g., pip using cached binaries instead of recompiling).
+
 ## **Workaround / Temporary Fix**
 
-1. Add the containing directory of `vcvarsall.bat` to the system or session `PATH`.
-2. Patch the *distutils* helper manually to make it check for `vcvarsall.bat` dynamically.
+1. Add the directory containing `vcvarsall.bat` to your session or system `PATH`.    
+2. Patch the _distutils_ helper to dynamically check for `vcvarsall.bat`.
 
-Inside:
+In:
 
 ```
 Lib\site-packages\setuptools\_distutils\compilers\C\msvc.py
 ```
 
-Locate the `_find_vcvarsall()` function and insert the following lines after the `_find_vc2015()` call:
+Locate the `_find_vcvarsall()` function and insert the following lines immediately after the `_find_vc2015()` call:
 
 ```python
 if not best_dir:
@@ -98,15 +113,18 @@ if not best_dir:
     best_dir = os.path.dirname(shutil.which("vcvarsall.bat"))
 ```
 
-This addition allows setuptools to pick up the compiler when the `vcvarsall.bat` directory is already accessible via `PATH`. After this modification, the same `pip install --no-build-isolation` command succeeds without errors, while the same command with `--no-build-isolation` omitted still fails, because pip would use a completely separate copy of `setuptools` in the isolated environment.
+This change lets setuptools detect the compiler whenever the `vcvarsall.bat` directory is visible via `PATH`.
 
-Another important note that while `psutil` error trace does not produce any references to the `msvc.py` module, the very same fix enables `psutil` building process as well, meaning that the same defective module causes the issue, but the error tracing is also deficient, failing to surface the culprit.
+After applying the patch:
+- `pip install --no-build-isolation` succeeds without errors.
+- The same command **without** that flag still fails (as expected), since isolated builds use a separate `setuptools` instance.
+
+Interestingly, although `psutil`’s trace shows no reference to `msvc.py`, this same patch enables its compilation as well - confirming that the issue lies in the same faulty detection logic.
 
 ## **Notes**
 
-- The core issue lies in outdated compiler discovery logic inherited from the legacy `distutils` module.
-- The upstream fix should ideally include:
-    - Environment variable checks
-    - Detection of `cl.exe` or `vcvarsall.bat` presence
-- This workaround is non-invasive and compatible with virtual environments or Conda shells.
-
+- The root cause is the outdated compiler discovery mechanism inherited from legacy `distutils`.    
+- A proper upstream fix should:
+    - Check for existing compiler-related environment variables.
+    - Detect the presence of `cl.exe` or `vcvarsall.bat` on PATH.
+- This workaround is non-invasive and works seamlessly with virtual or Conda environments.
