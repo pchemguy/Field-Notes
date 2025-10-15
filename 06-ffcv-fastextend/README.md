@@ -1,0 +1,3 @@
+# Installation of FFCV and Fastxtend on Windows
+
+The [Fast Forward Computer Vision (FFCV) library](https://github.com/libffcv/ffcv) aims to address the data loading bottleneck occurring, for example, when training AI models using a large dataset not fitting within RAM and consisting of large number of small files, such as [ImageNet-1K, ILSVRC2012](https://image-net.org/challenges/LSVRC/2012/). A related project, Fastxtend
