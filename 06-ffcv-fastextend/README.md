@@ -62,10 +62,39 @@ Further AI-assisted analysis revealed that `pkgconfig_windows` logic (ffcv-1.0.2
 - `LINK` - General-purpose variable for command line MS linker switches. Names of import library files should be provided in the linker command line as is without any switches, so they are added as space-separated lists to this variable.
 If this variables are correctly set before environment bootstrapping process, `FFCV` build process should, hopefully, succeed.
 
+## Library settings
+
 As can be seen from `setup.py`, FFCV has three build-time dependencies:
-- OpenCV
+- [OpenCV](https://opencv.org/releases)
   FFCV's README only indicates major version requirement (as opencv4), but it does not indicate minor version requirements. However, the Windows installation section refers to `/opencv/build/x64/vc15/bin`, indicating VC15-based OpenCV. Whether VC16-based versions would work just as well would need to be tested. The latest VC15-based version was 4.6.0.
 - LibJPEG-Turbo
-  FFCV's README does not indicate version requirement. However, it links the old [SF repo](https://sourceforge.net/projects/libjpeg-turbo/files/) with the most recent version being 3.0.1. More newer versions are available from a [GitHub repo](https://github.com/libjpeg-turbo/libjpeg-turbo). Furthermore, the full library (not just Python bindings) is also available as a [Conda package](https://anaconda.org/conda-forge/libjpeg-turbo) (also indicated as FFCV dependency). Here, I decided to use the Conda package.
+  FFCV's README does not indicate version requirement. However, it links the old [SF repo](https://sourceforge.net/projects/libjpeg-turbo/files/) with the most recent version being 3.0.1. More newer versions are available from a [GitHub repo](https://github.com/libjpeg-turbo/libjpeg-turbo).
 - [pthreads-win32](https://sourceware.org/pthreads-win32) ([latest release](ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip))
 
+Each of the tree libraries has associated Conda package, containing both runtime (`*.dll`) and build-time (`*.h` and `*.lib`) dependencies. When creating a Conda environment per specification indicated by FFCV installation instructions, all three packages are getting installed into the `Library` subdirectory. All Conda binaries differ from the official releases. Conda's OpenCV build appears to be incompatible with the official release; LibJPEG-Turbo versions appear to be compatible (so Conda package is used for the current build), whereas pthreads package includes a binary variant which appears to be generally compatible.
+
+Often, libraries available as Conda packages that include actual libraries (not just Python bindings) can be used to fulfill DLL dependencies when building other Conda packages from source. Because modern Conda packages install DLLs and build-time dependencies in a standardized location within the environment and relative to its parent directory, building configuration can be substantially simplified. On the other hand, care must be taken when using components of Conda ecosystem for fulfilling dependencies of non-Conda packages, such as PyPI. In the present example, I decided to build FFCV using external copy of pthreads and OpenCV, while using Conda's LibJPEG-Turbo package.
+
+While this build succeeded, it is a risky solution, because of increased risk of name clashes (both header files and binaries may potentially experience this issue) for the following reason. As mentioned above, all modern Conda packages should place library header files within `Library/include`, import libraries within `Library/lib`, and binaries within `Library/bin`, following shared directory structure organization used by Linux. The standard `conda activate` command adds `Library/bin` to the Path, but the two other directories are not added to `INCLUDE` and `LIB`. Activation of any package within this ecosystem mean providing `lib` and `include` libraries to compiler/linker, making all installed packages visible. Now, with the chosen scheme of using LibJPEG-Turbo Conda package, I have to activate this ecosystem. Because I use official variants of the two other libraries, these external versions may clash with their Conda counterparts because of the activated `Library` location.
+
+### pthreads
+
+By examining the directory with prebuilt binaries (renamed to `pthreads` following the FFCV instructions), we deduce:
+- `pthreads/dll/x64` needs to be added to `Path` (DLL name `pthreadVC2.dll`)
+- `pthreads/include` needs to be added to `INCLUDE` (header file `pthread.h`)
+- `pthreads/lib/x64` needs to be added to `LIB`, while also passing `pthreadVC2.lib` to linker.
+
+### OpenCV
+
+The contents of `opencv-4.6.0-vc14_vc15/opencv/build` directory has been moved to `opencv`. According to hints in FFCV instructions, the settings are as follows:
+- `opencv/build/include` - `INCLUDE`
+- `opencv/build/x64/vc15/bin` - `Path`
+- `opencv/build/x64/vc15/lib` - `LIB` and `opencv_world460.lib` should be passed to the linker (the variant with `d` suffix apparently stands for "debug")
+
+### LibJPEG-Turbo
+
+Because using Conda's package, relevant directories are indicated above. By examining the official distro, I determined that the relevant `*.lib` file `turbojpeg.lib`.
+
+### Selection Crosscheck
+
+This package has relatively simple dependency configuration. While there usually one directory for each `Path`/`INCLUDE`/`LIB` variable per dependency, more than one `*.lib` file may need to be specified. Aldo, we can do a simple "crosscheck" by searching the source directory for modules including selected header files. Usually, header files, import libraries and DLLs have related names, so whether the correct `*.lib` file is selected can be roughly checked by looking into included header file names.
