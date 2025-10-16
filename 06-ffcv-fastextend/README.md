@@ -39,4 +39,21 @@ AIPY/Anaconda/Library/include/pthread.h
 
 For certain libraries, a third copy  could be installed with Windows. In this case, there is no DLL name clash, but both names used are official variants. So if setup script is trying to locate any supported official variant, such as these two above, it would match first the library-specific installation first, properly resolving it and building against it, assuming the above Path organization is followed. In fact, a more advanced setup script could readily distinguish between the two versions and use Conda-based version as fallback or the other way around, if appropriate.
 
-Having discussed these issues, we now need examine the `setup.py` script of FFCV, located at the top-level of the distributed source package in an attempt to troubleshoot the installation process. Because I am not proficient with this matter, I actually fed the script to Google Gemini for AI-assisted analysis. 
+Having discussed these issues, we now need examine the `setup.py` script of FFCV, located at the top-level of the distributed source package in an attempt to troubleshoot the installation process. Because I am not proficient with this matter, I actually fed the script to Google Gemini for AI-assisted analysis. The LLM pointed out that under Windows, the relevant section of the script is the `def pkgconfig_windows(package, kw):` routine. This routine attempts to process each dependency and deduce required paths/names for `setuptools`, which, in turn, translates them into appropriate compiler/linker command line switches. Additional insights into what this routine produces can be gained by inserting lines
+
+```python
+    print("==================================================================")
+    print(package)
+    print(kw)
+    print("==================================================================")
+```
+
+at the bottom of the `pkgconfig_windows` routine immediately preceding `return kw`, following by running local build with within unpacked source package directory
+
+```
+python setup.py build_ext --inplace
+```
+
+ Additionally, because the dictionary `kw` is incrementally extended with each dependency via calls from the following code, it makes sense to place the dependency of interest first to see its associated `kw` values.
+
+Further AI-assisted analysis revealed that `pkgconfig_windows` logic (ffcv-1.0.2) is not that much better than choosing random directories and file names, so basically absolute nonsense and it is unclear whether it has ever been actually tested or worked. To install FFCV on Windows, therefore, the setup script needs to be fixed following by installation from local source copy. However, I would rather avoided meddling in the source code, if possible, keeping the environment installation process unaffected. Basically, what the present code does, it passes random useless paths/file names to compiler/linker. At the same time, these options are essentially NOOP within the present context, doing no harm, except for some inconsequential extra unnecessary processing. The idea is than to have environment setting script (or scripts) that determine correct paths/files for the build process before initiating package installation process. Because I am, not aware of the ability to provide correct options via `pip` command line, we can take advantage of an alternative approach, that is setting relevant environment variables (interpreted by compiler/linker directly) inherited first by the `pip` process and then passed to the environments of spawn compiler/linker processes. 
