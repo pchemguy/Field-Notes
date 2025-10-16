@@ -60,4 +60,5 @@ Further AI-assisted analysis revealed that `pkgconfig_windows` logic (ffcv-1.0.2
 - `INCLUDE` - Header file directories
 - `LIB`- Import library directories
 - `LINK` - General-purpose variable for command line MS linker switches. Names of import library files should be provided in the linker command line as is without any switches, so they are added as space-separated lists to this variable.
-If this variables are correctly set before environment bootstrapping process, `FFCV` build process should succeed.
+If this variables are correctly set before environment bootstrapping process, `FFCV` build process should, hopefully, succeed.
+
