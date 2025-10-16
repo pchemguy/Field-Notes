@@ -39,4 +39,4 @@ AIPY/Anaconda/Library/include/pthread.h
 
 For certain libraries, a third copy  could be installed with Windows. In this case, there is no DLL name clash, but both names used are official variants. So if setup script is trying to locate any supported official variant, such as these two above, it would match first the library-specific installation first, properly resolving it and building against it, assuming the above Path organization is followed. In fact, a more advanced setup script could readily distinguish between the two versions and use Conda-based version as fallback or the other way around, if appropriate.
 
-Having discussed these issues, we now need examine the `setup.py` script of FFCV, located at the top-level of the distributed source package in an attempt to troubleshoot the installation process.
+Having discussed these issues, we now need examine the `setup.py` script of FFCV, located at the top-level of the distributed source package in an attempt to troubleshoot the installation process. Because I am not proficient with this matter, I actually fed the script to Google Gemini for AI-assisted analysis. 
