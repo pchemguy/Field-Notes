@@ -466,7 +466,7 @@ echo %INFO% %BLCK_LBL%: Extracting "%PREFIX%\%DOWNLOAD_FILE%".
 set "_CD=%CD%"
 cd /d "%PREFIX%"
 tar -xf "%DOWNLOAD_FILE%" & set "EXIT_STATUS=!ERRORLEVEL!"
-cd /d "%_CD%" & set set "_CD="
+cd /d "%_CD%" & set "_CD="
 if not !EXIT_STATUS! equ 0 (
   echo %ERROR% %BLCK_LBL%: Extraction failure - "%PREFIX%\%DOWNLOAD_FILE%".
   exit /b !EXIT_STATUS!
