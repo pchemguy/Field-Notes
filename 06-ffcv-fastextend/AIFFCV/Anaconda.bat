@@ -5,12 +5,9 @@ echo :========== ========== ========== ========== ==========:
 echo  Bootstrapping Micromamba
 echo :---------- ---------- ---------- ---------- ----------:
 
+:: --- Escape sequence templates for color coded console output ---
 
-set  "INFO=[100;92m [INFO]  [0m"
-set  "OKOK=[103;94m -[OK]-  [0m"
-set  "WARN=[106;35m [WARN]  [0m"
-set "ERROR=[105;34m [ERROR] [0m"
-
+call :COLOR_SCHEME
 
 :: --------------------------------------------------------
 :: BASE CONFIG
@@ -28,19 +25,24 @@ echo %INFO% Using environment file "!YAML!".
 :: --------------------------------------------------------
 :: Determine cache directory
 :: --------------------------------------------------------
-if exist "%~d0\CACHE" (
-  set "_CACHE=%~d0\CACHE"
-  echo %INFO% Using "!_CACHE!" cache directory.
-) else (
-  if exist "%~dp0CACHE" (
-    set "_CACHE=%~dp0CACHE"
-    echo %INFO% Using "!_CACHE!" cache directory.
-  ) else (
-    set "_CACHE=%TEMP%"
-    echo %INFO% Cache directory "!_CACHE!" does not exist. Will use TEMP instead.
-  )
+if not defined _CACHE (
+  call :CACHE_DIR & set "EXIT_STATUS=!ERRORLEVEL!"
 )
+if not defined _CACHE (
+  echo %ERROR% Failed to set CACHE directory. Aborting...
+  exit /b 1
+)
+echo:
 
+:: --------------------------------------------------------
+:: Download Libraries
+:: --------------------------------------------------------
+call "%~dp0libs.bat" & set "EXIT_STATUS=!ERRORLEVEL!"
+if not !ERRORLEVEL! equ 0 (
+  echo %ERROR% Failed to obtain libraries. ERRORLEVEL: !ERRORLEVEL!. Script: "%~dp0libs.bat" Aborting...
+  exit /b !ERRORLEVEL!
+)
+call :COLOR_SCHEME
 
 :: --------------------------------------------------------
 :: Determine base components of environment path
@@ -50,16 +52,16 @@ if not exist "%_ENV_PREFIX%" md "%_ENV_PREFIX%"
 
 
 :: --------------------------------------------------------
-:: Point CONDA_PKGS_DIRS to package cache directory
+:: Point CONDA_PKGS_DIRS and PIP_CACHE_DIR to package cache directory
 :: --------------------------------------------------------
-set CONDA_PKGS_DIRS=%_CACHE%\python\pkgs
+set "CONDA_PKGS_DIRS=%_CACHE%\Python\pkgs"
 if not defined CONDA_PKGS_DIRS (
-  set CONDA_PKGS_DIRS=%_PKGS_DIR%
+  set "CONDA_PKGS_DIRS=%_PKGS_DIR%"
 ) else (
-  set _PKGS_DIR=%CONDA_PKGS_DIRS%
+  set "_PKGS_DIR=%CONDA_PKGS_DIRS%"
 )
 if not exist "%CONDA_PKGS_DIRS%" md "%CONDA_PKGS_DIRS%"
-
+set "PIP_CACHE_DIR=%~d0\CACHE\Python\pip"
 
 :: --------------------------------------------------------
 :: Download Micromamba
@@ -87,6 +89,64 @@ exit /b 0
 :: ============================================================================
 
 
+:: ============================================================================ COLOR_SCHEME BEGIN
+:: ============================================================================
+:: --------------------------------------------------------
+:: COLOR SCHEME
+:: --------------------------------------------------------
+:COLOR_SCHEME
+
+:: --- Set console color scheme
+
+set  "INFO=[100;92m [INFO]  [0m"
+set  "OKOK=[103;94m -[OK]-  [0m"
+set  "WARN=[106;35m [WARN]  [0m"
+set "ERROR=[105;34m [ERROR] [0m"
+
+exit /b 0
+:: ============================================================================ 
+:: ============================================================================ COLOR_SCHEME END
+
+
+:: ============================================================================ CACHE_DIR BEGIN
+:: ============================================================================
+:CACHE_DIR
+:: --------------------------------------------------------
+:: Determine cache directory
+:: --------------------------------------------------------
+if exist "%_CACHE%" (
+  goto :CACHE_DIR_SET
+) else (
+  set "_CACHE=%TEMP%"
+)
+
+if exist "%~d0\CACHE" (
+  set "_CACHE=%~d0\CACHE"
+  goto :CACHE_DIR_SET
+)
+
+if exist "%~dp0CACHE" (
+  set "_CACHE=%~dp0CACHE"
+  goto :CACHE_DIR_SET
+)
+
+if exist "%USERPROFILE%\Downloads" (
+  if exist "%USERPROFILE%\Downloads\CACHE" (
+    set "_CACHE=%USERPROFILE%\Downloads\CACHE"
+  ) else (
+    set "_CACHE=%USERPROFILE%\Downloads"
+  )
+  goto :CACHE_DIR_SET
+)
+
+:CACHE_DIR_SET
+echo %INFO% CACHE directory: "!_CACHE!".
+
+exit /b 0
+:: ============================================================================
+:: ============================================================================ CACHE_DIR END
+
+
 :: ============================================================================ MICROMAMBA_DOWNLOAD BEGIN
 :: ============================================================================
 :MICROMAMBA_DOWNLOAD
@@ -94,21 +154,24 @@ exit /b 0
 :: --------------------------------------------------------
 :: Download Micromamba
 :: --------------------------------------------------------
+echo %WARN% Micromamba
 set "RELEASE_URL=https://github.com/mamba-org/micromamba-releases/releases/latest/download/micromamba-win-64"
 set "MAMBA_EXE=%_CACHE%\micromamba\micromamba.exe"
 if not exist "%_CACHE%\micromamba" md "%_CACHE%\micromamba"
 if exist "%MAMBA_EXE%" (
-  echo %INFO% Using cached "%MAMBA_EXE%"
+  echo %INFO% Micromamba: Using cached "%MAMBA_EXE%"
 ) else (
-  echo %INFO% Downloading: %RELEASE_URL%
-  echo %INFO% Destination: %MAMBA_EXE%
+  echo %INFO% Micromamba: Downloading: %RELEASE_URL%
+  echo %INFO% Micromamba: Destination: %MAMBA_EXE%
   curl --fail --retry 3 --retry-delay 2 -L -o "%MAMBA_EXE%" "%RELEASE_URL%"
   if not !ERRORLEVEL! equ 0 (
-    echo %ERROR% Micromamba download failure. Aborting bootstrapping...
+    echo %ERROR% Micromamba: Download failure. Aborting bootstrapping...
     exit /b 1
   )
 )
 set RELEASE_URL=
+echo %OKOK% Micromamba: Completed
+echo:
 
 exit /b 0
 :: ============================================================================
@@ -122,7 +185,7 @@ exit /b 0
 :: --------------------------------------------------------
 :: Create new Python environment
 :: --------------------------------------------------------
-echo %INFO% Creating new Python environment...
+echo %WARN% Creating new Python environment...
 if exist "%APPDATA%\mamba" (
   echo %WARN% Warning: I am about to delete "%APPDATA%\mamba". Press any key to continue.
   pause
@@ -146,9 +209,9 @@ if exist "%APPDATA%\mamba" (
 
 if exist "%~dp0conda_far.bat" (
   echo %INFO% Preactivating dev environment.
-  set "CONDA_PREFIX=%_ENV_PREFIX%"
+  set "_CONDA_PREFIX=%_ENV_PREFIX%"
   call "%~dp0conda_far.bat" /preactivate
-  set "CONDA_PREFIX="
+  set "_CONDA_PREFIX="
 )
 
 set PKGS=mamba conda uv %_PYTHON_PKG%

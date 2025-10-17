@@ -1,0 +1,9 @@
+name: aipy
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - pip
+  - pip:
+    - helloworld
+

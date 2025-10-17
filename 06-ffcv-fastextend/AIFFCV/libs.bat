@@ -1,0 +1,229 @@
+@echo off
+
+
+:: --- Escape sequence templates for color coded console output ---
+
+call :COLOR_SCHEME
+
+:: --------------------------------------------------------
+:: Determine cache directory
+:: --------------------------------------------------------
+if not defined _CACHE (
+  call :CACHE_DIR & set "EXIT_STATUS=!ERRORLEVEL!"
+)
+if not defined _CACHE (
+  echo %ERROR% Failed to set CACHE directory. Aborting...
+  exit /b 1
+)
+
+:: --------------------------------------------------------
+:: Verify availablity of curl and tar.
+:: --------------------------------------------------------
+for %%A in ("curl.exe" "tar.exe") do (
+  where %%~A >nul 2>nul || (
+    echo %ERROR% "%%~A" not found.
+    exit /b 1
+  )
+)
+
+:: --------------------------------------------------------
+:: pthreads
+:: --------------------------------------------------------
+call :PTHREADS_DOWNLOAD & set "EXIT_STATUS=!ERRORLEVEL!"
+if not "%EXIT_STATUS%"=="0" goto :MAIN_EXIT
+
+:: --------------------------------------------------------
+:: OpenCV
+:: --------------------------------------------------------
+call :OPENCV_DOWNLOAD & set "EXIT_STATUS=!ERRORLEVEL!"
+if not "%EXIT_STATUS%"=="0" goto :MAIN_EXIT
+
+
+:MAIN_EXIT
+
+:: --- Clean up ---
+
+set  "INFO="
+set  "OKOK="
+set  "WARN="
+set "ERROR="
+set "__CONDA_PREFIX="
+
+exit /b %EXIT_STATUS%
+:: ============================================================================
+:: ============================================================================
+:: ============================================================================
+
+
+:: ============================================================================ COLOR_SCHEME BEGIN
+:: ============================================================================
+:: --------------------------------------------------------
+:: COLOR SCHEME
+:: --------------------------------------------------------
+:COLOR_SCHEME
+
+:: --- Set console color scheme
+
+set  "INFO=[100;92m [INFO]  [0m"
+set  "OKOK=[103;94m -[OK]-  [0m"
+set  "WARN=[106;35m [WARN]  [0m"
+set "ERROR=[105;34m [ERROR] [0m"
+
+exit /b 0
+:: ============================================================================ 
+:: ============================================================================ COLOR_SCHEME END
+
+:: ============================================================================ CACHE_DIR BEGIN
+:: ============================================================================
+:CACHE_DIR
+:: --------------------------------------------------------
+:: Determine cache directory
+:: --------------------------------------------------------
+if exist "%_CACHE%" (
+  goto :CACHE_DIR_SET
+) else (
+  set "_CACHE=%TEMP%"
+)
+
+if exist "%~d0\_CACHE" (
+  set "_CACHE=%~d0\CACHE"
+  goto :CACHE_DIR_SET
+)
+
+if exist "%~dp0_CACHE" (
+  set "_CACHE=%~dp0CACHE"
+  goto :CACHE_DIR_SET
+)
+
+if exist "%USERPROFILE%\Downloads" (
+  if exist "%USERPROFILE%\Downloads\CACHE" (
+    set "_CACHE=%USERPROFILE%\Downloads\CACHE"
+  ) else (
+    set "_CACHE=%USERPROFILE%\Downloads"
+  )
+  goto :CACHE_DIR_SET
+)
+
+:CACHE_DIR_SET
+echo %INFO% CACHE directory: "!_CACHE!".
+echo:
+
+exit /b 0
+:: ============================================================================
+:: ============================================================================ CACHE_DIR END
+
+
+:: ============================================================================ PTHREADS_DOWNLOAD BEGIN
+:: ============================================================================
+:PTHREADS_DOWNLOAD
+
+echo %WARN% pthreads
+:: --------------------------------------------------------
+:: Download pthreads
+:: --------------------------------------------------------
+set "RELEASE_URL=ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip"
+set "PTHREADS_ZIP=%_CACHE%\pthreads\pthreads-w32-2-9-1-release.zip"
+
+set "PREFIX=%_CACHE%\pthreads"
+if not exist "%PREFIX%" md "%PREFIX%"
+if exist "%PTHREADS_ZIP%" (
+  echo %INFO% pthreads: Using cached "%PTHREADS_ZIP%"
+) else (
+  echo %INFO% pthreads: Downloading: %RELEASE_URL%
+  echo %INFO% pthreads: Destination: %PTHREADS_ZIP%
+  curl --fail --retry 3 --retry-delay 2 -L -o "%PTHREADS_ZIP%" "%RELEASE_URL%"
+  if not "!ERRORLEVEL!"=="0" (
+    echo %ERROR% pthreads: Download failure. Aborting bootstrapping...
+    exit /b 1
+  )
+)
+set RELEASE_URL=
+
+echo %INFO% pthreads: Extracting "%PTHREADS_ZIP%".
+set "_CD=%CD%"
+cd /d "%PREFIX%"
+tar -xf "%PTHREADS_ZIP%" & set "EXIT_STATUS=!ERRORLEVEL!"
+cd /d "%_CD%" & set "_CD="
+if not "!EXIT_STATUS!"=="0" (
+  echo %ERROR% pthreads: Extraction failure - "%PTHREADS_ZIP%".
+  exit /b !EXIT_STATUS!
+) else (
+  echo %INFO% pthreads: Extracted from "%PTHREADS_ZIP%".
+)
+
+xcopy /H /Y /B /E /Q "%PREFIX%\Pre-built.2\*.*" "%~dp0pthreads" 1>nul & set "EXIT_STATUS=!ERRORLEVEL!"
+if not "!EXIT_STATUS!"=="0" (
+  echo %ERROR% pthreads: Move failure - "%PREFIX%\Pre-built.2".
+  exit /b !EXIT_STATUS!
+) else (
+  echo %INFO% pthreads: Moved from "%PREFIX%\Pre-built.2".
+)
+
+xcopy /H /Y /B /E /Q "%~dp0patched\pthread.h" "%~dp0pthreads\include" 1>nul & set "EXIT_STATUS=!ERRORLEVEL!"
+if not "!EXIT_STATUS!"=="0" (
+  echo %ERROR% pthreads: Move failure - "%~dp0patched\pthread.h".
+  exit /b !EXIT_STATUS!
+) else (
+  echo %INFO% pthreads: Moved from "%~dp0patched\pthread.h".
+)
+
+echo %OKOK% pthreads: Completed.
+echo:
+
+exit /b 0
+:: ============================================================================
+:: ============================================================================ PTHREADS_DOWNLOAD END
+
+
+:: ============================================================================ PTHREADS_DOWNLOAD BEGIN
+:: ============================================================================
+:OPENCV_DOWNLOAD
+
+echo %WARN% OpenCV
+:: --------------------------------------------------------
+:: Download OpenCV
+:: --------------------------------------------------------
+set "RELEASE_URL=https://github.com/opencv/opencv/releases/download/4.6.0/opencv-4.6.0-vc14_vc15.exe"
+set "OPENCV_SFX=%_CACHE%\OpenCV\opencv-4.6.0-vc14_vc15.exe"
+
+set "PREFIX=%_CACHE%\OpenCV"
+if not exist "%PREFIX%" md "%PREFIX%"
+if exist "%OPENCV_SFX%" (
+  echo %INFO% OpenCV: Using cached "%OPENCV_SFX%"
+) else (
+  echo %INFO% OpenCV: Downloading: %RELEASE_URL%
+  echo %INFO% OpenCV: Destination: %OPENCV_SFX%
+  curl --fail --retry 3 --retry-delay 2 -L -o "%OPENCV_SFX%" "%RELEASE_URL%"
+  if not "!ERRORLEVEL!"=="0" (
+    echo %ERROR% OpenCV: Download failure. Aborting bootstrapping...
+    exit /b 1
+  )
+)
+set RELEASE_URL=
+
+echo %INFO% OpenCV: Extracting "%OPENCV_SFX%".
+set "_CD=%CD%"
+cd /d "%PREFIX%"
+"%OPENCV_SFX%" -o -y & set "EXIT_STATUS=!ERRORLEVEL!"
+cd /d "%_CD%" & set "_CD="
+if not "!EXIT_STATUS!"=="0" (
+  echo %ERROR% OpenCV: Extraction failure - "%OPENCV_SFX%".
+  exit /b !EXIT_STATUS!
+) else (
+  echo %INFO% OpenCV: Extracted from "%OPENCV_SFX%".
+)
+
+xcopy /H /Y /B /E /Q /I "%PREFIX%\opencv\build" "%~dp0opencv\build" 1>nul & set "EXIT_STATUS=!ERRORLEVEL!"
+if not "!EXIT_STATUS!"=="0" (
+  echo %ERROR% OpenCV: Move failure - "%PREFIX%\opencv\build".
+  exit /b !EXIT_STATUS!
+) else (
+  echo %INFO% OpenCV: Moved from "%PREFIX%\opencv\build".
+)
+
+echo %OKOK% OpenCV: Completed.
+echo:
+
+exit /b 0
+:: ============================================================================
+:: ============================================================================ PTHREADS_DOWNLOAD END

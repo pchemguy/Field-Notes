@@ -1,0 +1,7 @@
+REGEDIT4
+
+; Enable delayed expansion
+
+[HKEY_CURRENT_USER\Software\Microsoft\Command Processor]
+"DelayedExpansion"=dword:00000001
+"EnableExtensions"=dword:00000001

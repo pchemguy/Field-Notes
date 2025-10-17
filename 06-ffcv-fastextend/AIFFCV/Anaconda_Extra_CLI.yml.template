@@ -1,0 +1,10 @@
+name: aipy
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - matplotlib
+  - pip
+  - pip:
+    - pipx
+
