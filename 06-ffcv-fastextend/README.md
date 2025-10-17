@@ -98,3 +98,7 @@ Because using Conda's package, relevant directories are indicated above. By exam
 ### Selection Crosscheck
 
 This package has relatively simple dependency configuration. While there usually one directory for each `Path`/`INCLUDE`/`LIB` variable per dependency, more than one `*.lib` file may need to be specified. Aldo, we can do a simple "crosscheck" by searching the source directory for modules including selected header files. Usually, header files, import libraries and DLLs have related names, so whether the correct `*.lib` file is selected can be roughly checked by looking into included header file names.
+
+## Sample Project
+
+This repository contains a sample project designed to bootstrap an FFCV/fastxtend Conda environment with minimal prerequisites 
