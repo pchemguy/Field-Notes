@@ -26,7 +26,14 @@ echo %INFO% Using environment file "!YAML!".
 :: Determine cache directory
 :: --------------------------------------------------------
 if not defined _CACHE (
-  call :CACHE_DIR & set "EXIT_STATUS=!ERRORLEVEL!"
+  call :CACHE_DIR
+  set "EXIT_STATUS=!ERRORLEVEL!"
+) else (
+  set "EXIT_STATUS=0"
+)
+if not "!EXIT_STATUS!"=="0" (
+  echo %ERROR% Failed to set CACHE directory. Aborting...
+  exit /b !EXIT_STATUS!
 )
 if not defined _CACHE (
   echo %ERROR% Failed to set CACHE directory. Aborting...
@@ -37,10 +44,11 @@ echo:
 :: --------------------------------------------------------
 :: Download Libraries
 :: --------------------------------------------------------
-call "%~dp0libs.bat" & set "EXIT_STATUS=!ERRORLEVEL!"
-if not !ERRORLEVEL! equ 0 (
-  echo %ERROR% Failed to obtain libraries. ERRORLEVEL: !ERRORLEVEL!. Script: "%~dp0libs.bat" Aborting...
-  exit /b !ERRORLEVEL!
+call "%~dp0libs.bat"
+set "EXIT_STATUS=!ERRORLEVEL!"
+if not "%EXIT_STATUS%"=="0" (
+  echo %ERROR% Failed to obtain libraries. ERRORLEVEL: %EXIT_STATUS%. Script: "%~dp0libs.bat" Aborting...
+  exit /b %EXIT_STATUS%
 )
 call :COLOR_SCHEME
 
@@ -140,7 +148,31 @@ if exist "%USERPROFILE%\Downloads" (
 )
 
 :CACHE_DIR_SET
-echo %INFO% CACHE directory: "!_CACHE!".
+:: --------------------------------------------------------
+:: Verify file system access
+:: --------------------------------------------------------
+set "_DUMMY=%_CACHE%\$$$_DELETEME_ACCESS_CHECK_$$$"
+if exist "%_DUMMY%" rmdir /Q /S "%_DUMMY%"
+set "EXIT_STATUS=!ERRORLEVEL!"
+if exist "%_DUMMY%" set "EXIT_STATUS=1"
+if not "!EXIT_STATUS!"=="0" (
+  echo %ERROR% Failed to delete test directory "%_DUMMY%".
+  echo %ERROR% Expected a full-access at this location "%_CACHE%".
+  echo %ERROR% Aborting...
+  exit /b !EXIT_STATUS!
+)
+
+md "%_DUMMY%"
+set "EXIT_STATUS=!ERRORLEVEL!"
+if not exist "%_DUMMY%" set "EXIT_STATUS=1"
+if not "!EXIT_STATUS!"=="0" (
+  echo %ERROR% Failed to create test directory "%_DUMMY%".
+  echo %ERROR% Expected a full-access at this location "%_CACHE%".
+  echo %ERROR% Aborting...
+  exit /b !EXIT_STATUS!
+)
+
+echo %INFO% CACHE directory: "%_CACHE%".
 
 exit /b 0
 :: ============================================================================
@@ -164,9 +196,10 @@ if exist "%MAMBA_EXE%" (
   echo %INFO% Micromamba: Downloading: %RELEASE_URL%
   echo %INFO% Micromamba: Destination: %MAMBA_EXE%
   curl --fail --retry 3 --retry-delay 2 -L -o "%MAMBA_EXE%" "%RELEASE_URL%"
-  if not !ERRORLEVEL! equ 0 (
+  set "EXIT_STATUS=!ERRORLEVEL!"
+  if not "!EXIT_STATUS!"=="0" (
     echo %ERROR% Micromamba: Download failure. Aborting bootstrapping...
-    exit /b 1
+    exit /b !EXIT_STATUS!
   )
 )
 set RELEASE_URL=
@@ -218,9 +251,10 @@ set PKGS=mamba conda uv %_PYTHON_PKG%
 echo:
 echo === call "%MAMBA_EXE%" create -vv --yes --no-rc --use-uv -f "%YAML%" --prefix "%_ENV_PREFIX%" %PKGS% ===
 call "%MAMBA_EXE%" create -vv --yes --no-rc --use-uv -f "%YAML%" --prefix "%_ENV_PREFIX%" %PKGS%
-if not !ERRORLEVEL! equ 0 (
-  echo %ERROR% Failed to create a new environment. ERRORLEVEL: !ERRORLEVEL!. Aborting...
-  exit /b !ERRORLEVEL!
+set "EXIT_STATUS=%ERRORLEVEL%"
+if not "%EXIT_STATUS%"=="0" (
+  echo %ERROR% Failed to create a new environment. ERRORLEVEL: %EXIT_STATUS%. Aborting...
+  exit /b %EXIT_STATUS%
 ) else (
   echo %OKOK% Environment "%_ENV_PREFIX%" is created.
 )

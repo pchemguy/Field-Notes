@@ -46,7 +46,8 @@ if not exist "%_VCVARS%" (
 if exist "%_VCVARS%" (
   echo:
   echo %WARN% Activating MS Build Tools.
-  call "%_VCVARS%" & (set "EXIT_STATUS=!ERRORLEVEL!")
+  call "%_VCVARS%"
+  set "EXIT_STATUS=!ERRORLEVEL!"
   if not "!EXIT_STATUS!"=="0" (
     echo %ERROR% MS Build Tools activation failed!
   ) else (
@@ -94,11 +95,12 @@ if /I not "%_MODE%"=="/f" (
   ) else (
     echo:
     echo %WARN% Activating Conda.
-    call "%__CONDA_PREFIX%\condabin\conda.bat" activate & (set "EXIT_STATUS=!ERRORLEVEL!")
+    call "%__CONDA_PREFIX%\condabin\conda.bat" activate
+    set "EXIT_STATUS=!ERRORLEVEL!"
   )
   if not "!EXIT_STATUS!"=="0" (
     echo %ERROR% Conda activation failed! Aborting...
-    exit /b 1
+    exit /b !EXIT_STATUS!
   ) else (
     echo %OKOK% Conda activation succeeded!
   )
@@ -109,7 +111,8 @@ if /I not "%_MODE%"=="/f" (
 if exist "%~dp0pthreads\activate.bat" (
   echo:
   echo %WARN% Activating pthreads library.
-  call "%~dp0pthreads\activate.bat" %_MODE% & (set "EXIT_STATUS=!ERRORLEVEL!")
+  call "%~dp0pthreads\activate.bat" %_MODE%
+  set "EXIT_STATUS=!ERRORLEVEL!"
   call :COLOR_SCHEME
 ) else (
   echo %ERROR% pthreads activation script not found: "%~dp0pthreads\activate.bat".
@@ -125,7 +128,8 @@ if not "%EXIT_STATUS%"=="0" (
 if exist "%~dp0opencv\activate.bat" (
   echo:
   echo %WARN% Activating OpenCV library.
-  call  "%~dp0opencv\activate.bat" %_MODE% & (set "EXIT_STATUS=!ERRORLEVEL!")
+  call  "%~dp0opencv\activate.bat" %_MODE%
+  set "EXIT_STATUS=!ERRORLEVEL!"
   call :COLOR_SCHEME
 ) else (
   echo %WARN% OpenCV activation script not found: "%~dp0opencv\activate.bat".
@@ -141,7 +145,8 @@ if not "%EXIT_STATUS%"=="0" (
 if exist "%~dp0libjpeg-turbo\activate.bat" (
   echo:
   echo %WARN% Activating LibJPEG-Turbo library.
-  call "%~dp0libjpeg-turbo\activate.bat" %_MODE% & (set "EXIT_STATUS=!ERRORLEVEL!")
+  call "%~dp0libjpeg-turbo\activate.bat" %_MODE%
+  set "EXIT_STATUS=!ERRORLEVEL!"
   call :COLOR_SCHEME
 ) else (
   echo %ERROR% LibJPEG-Turbo activation script not found: "%~dp0libjpeg-turbo\activate.bat".

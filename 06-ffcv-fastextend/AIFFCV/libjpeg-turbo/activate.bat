@@ -74,6 +74,7 @@ if /I "%~1"=="/f" (set "_FORCE=1") else (set "_FORCE=")
 :: available by the time the specified pip packages are ready to be installed.
 :: Use "/f" switch to force environment initialization, ignoring check results.
 
+
 set "_LIBRARY=LibJPEG-Turbo"
 echo:
 echo ==========================================================================
@@ -84,10 +85,25 @@ echo ==========================================================================
 echo:
 
 
+if defined CONDA_PREFIX (
+  set "LJT_PREFIX=%CONDA_PREFIX%"
+) else (if defined _CONDA_PREFIX (
+  set "LJT_PREFIX=%_CONDA_PREFIX%"
+) else (if defined __CONDA_PREFIX (
+  set "LJT_PREFIX=%__CONDA_PREFIX%"
+)))
+if not defined LJT_PREFIX (
+  echo %ERROR% %_LIBRARY%: Failed to determine target location.
+  echo %ERROR% %_LIBRARY%: One of [CONDA_PREFIX, _CONDA_PREFIX, __CONDA_PREFIX]
+  echo %ERROR% %_LIBRARY%: must be defined. Aborting...
+  exit /b 1
+)
+
+
 echo ==========================================================================
 echo %INFO% %_LIBRARY%: PATH
 echo ==========================================================================
-set "_BINPATH=%CONDA_PREFIX%\Library\bin"
+set "_BINPATH=%LJT_PREFIX%\Library\bin"
 set "_BINNAME=turbojpeg.dll"
 
 set "EXIT_STATUS=0"
@@ -117,7 +133,7 @@ set "_BINNAME="
 echo ==========================================================================
 echo %INFO% %_LIBRARY%: INCLUDE
 echo ==========================================================================
-set "_INCPATH=%CONDA_PREFIX%\Library\include"
+set "_INCPATH=%LJT_PREFIX%\Library\include"
 set "_INCNAME=turbojpeg.h"
 set "_INCEXT="
 
@@ -148,7 +164,7 @@ set "_INCNAME="
 echo ==========================================================================
 echo %INFO% %_LIBRARY%: LIB
 echo ==========================================================================
-set "_LIBPATH=%CONDA_PREFIX%\Library\lib"
+set "_LIBPATH=%LJT_PREFIX%\Library\lib"
 set "_LIBNAME=turbojpeg.lib"
 
 set "EXIT_STATUS=0"

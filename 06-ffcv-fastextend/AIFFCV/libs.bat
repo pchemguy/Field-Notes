@@ -9,12 +9,20 @@ call :COLOR_SCHEME
 :: Determine cache directory
 :: --------------------------------------------------------
 if not defined _CACHE (
-  call :CACHE_DIR & set "EXIT_STATUS=!ERRORLEVEL!"
+  call :CACHE_DIR
+  set "EXIT_STATUS=!ERRORLEVEL!"
+) else (
+  set "EXIT_STATUS=0"
+)
+if not "!EXIT_STATUS!"=="0" (
+  echo %ERROR% Failed to set CACHE directory. Aborting...
+  exit /b !EXIT_STATUS!
 )
 if not defined _CACHE (
   echo %ERROR% Failed to set CACHE directory. Aborting...
   exit /b 1
 )
+echo:
 
 :: --------------------------------------------------------
 :: Verify availablity of curl and tar.
@@ -25,17 +33,25 @@ for %%A in ("curl.exe" "tar.exe") do (
     exit /b 1
   )
 )
+echo %WARN% The script uses download caching, but does not handle interrupted partial downloads.
+echo %WARN% If interrupted, the script will attempt to use deffective downloaded file, most likely
+echo %WARN% causing subsequent unconditional extraction failure. If such an error occurs, manually
+echo %WARN% delete defective files, which should be indicated in the error message; then rerun
+echo %WARN% the script.
+echo:
 
 :: --------------------------------------------------------
 :: pthreads
 :: --------------------------------------------------------
-call :PTHREADS_DOWNLOAD & set "EXIT_STATUS=!ERRORLEVEL!"
+call :PTHREADS_DOWNLOAD
+set "EXIT_STATUS=!ERRORLEVEL!"
 if not "%EXIT_STATUS%"=="0" goto :MAIN_EXIT
 
 :: --------------------------------------------------------
 :: OpenCV
 :: --------------------------------------------------------
-call :OPENCV_DOWNLOAD & set "EXIT_STATUS=!ERRORLEVEL!"
+call :OPENCV_DOWNLOAD
+set "EXIT_STATUS=!ERRORLEVEL!"
 if not "%EXIT_STATUS%"=="0" goto :MAIN_EXIT
 
 
@@ -105,8 +121,31 @@ if exist "%USERPROFILE%\Downloads" (
 )
 
 :CACHE_DIR_SET
-echo %INFO% CACHE directory: "!_CACHE!".
-echo:
+:: --------------------------------------------------------
+:: Verify file system access
+:: --------------------------------------------------------
+set "_DUMMY=%_CACHE%\$$$_DELETEME_ACCESS_CHECK_$$$"
+if exist "%_DUMMY%" rmdir /Q /S "%_DUMMY%"
+set "EXIT_STATUS=!ERRORLEVEL!"
+if exist "%_DUMMY%" set "EXIT_STATUS=1"
+if not "!EXIT_STATUS!"=="0" (
+  echo %ERROR% Failed to delete test directory "%_DUMMY%".
+  echo %ERROR% Expected a full-access at this location "%_CACHE%".
+  echo %ERROR% Aborting...
+  exit /b !EXIT_STATUS!
+)
+
+md "%_DUMMY%"
+set "EXIT_STATUS=!ERRORLEVEL!"
+if not exist "%_DUMMY%" set "EXIT_STATUS=1"
+if not "!EXIT_STATUS!"=="0" (
+  echo %ERROR% Failed to create test directory "%_DUMMY%".
+  echo %ERROR% Expected a full-access at this location "%_CACHE%".
+  echo %ERROR% Aborting...
+  exit /b !EXIT_STATUS!
+)
+
+echo %INFO% CACHE directory: "%_CACHE%".
 
 exit /b 0
 :: ============================================================================
@@ -132,26 +171,36 @@ if exist "%PTHREADS_ZIP%" (
   echo %INFO% pthreads: Downloading: %RELEASE_URL%
   echo %INFO% pthreads: Destination: %PTHREADS_ZIP%
   curl --fail --retry 3 --retry-delay 2 -L -o "%PTHREADS_ZIP%" "%RELEASE_URL%"
-  if not "!ERRORLEVEL!"=="0" (
+  set "EXIT_STATUS=!ERRORLEVEL!"
+  if not "!EXIT_STATUS!"=="0" (
     echo %ERROR% pthreads: Download failure. Aborting bootstrapping...
-    exit /b 1
+    exit /b !EXIT_STATUS!
   )
 )
 set RELEASE_URL=
 
+:: --------------------------------------------------------
+:: Extract pthreads
+:: --------------------------------------------------------
 echo %INFO% pthreads: Extracting "%PTHREADS_ZIP%".
 set "_CD=%CD%"
 cd /d "%PREFIX%"
-tar -xf "%PTHREADS_ZIP%" & set "EXIT_STATUS=!ERRORLEVEL!"
-cd /d "%_CD%" & set "_CD="
+tar -xf "%PTHREADS_ZIP%"
+set "EXIT_STATUS=!ERRORLEVEL!"
+cd /d "%_CD%"
+set "_CD="
 if not "!EXIT_STATUS!"=="0" (
-  echo %ERROR% pthreads: Extraction failure - "%PTHREADS_ZIP%".
+  echo %ERROR% pthreads: Extraction failure - "%PTHREADS_ZIP%". Error - "!EXIT_STATUS!".
+  echo %ERROR% pthreads: The error may be due to corrupted cached files due to previously
+  echo %ERROR% pthreads: interrupted downloads. Try manually deleting "%PTHREADS_ZIP%"
+  echo %ERROR% pthreads: and run the script again.
   exit /b !EXIT_STATUS!
 ) else (
   echo %INFO% pthreads: Extracted from "%PTHREADS_ZIP%".
 )
 
-xcopy /H /Y /B /E /Q "%PREFIX%\Pre-built.2\*.*" "%~dp0pthreads" 1>nul & set "EXIT_STATUS=!ERRORLEVEL!"
+xcopy /H /Y /B /E /Q "%PREFIX%\Pre-built.2\*.*" "%~dp0pthreads" 1>nul
+set "EXIT_STATUS=!ERRORLEVEL!"
 if not "!EXIT_STATUS!"=="0" (
   echo %ERROR% pthreads: Move failure - "%PREFIX%\Pre-built.2".
   exit /b !EXIT_STATUS!
@@ -159,7 +208,8 @@ if not "!EXIT_STATUS!"=="0" (
   echo %INFO% pthreads: Moved from "%PREFIX%\Pre-built.2".
 )
 
-xcopy /H /Y /B /E /Q "%~dp0patched\pthread.h" "%~dp0pthreads\include" 1>nul & set "EXIT_STATUS=!ERRORLEVEL!"
+xcopy /H /Y /B /E /Q "%~dp0patched\pthread.h" "%~dp0pthreads\include" 1>nul
+set "EXIT_STATUS=!ERRORLEVEL!"
 if not "!EXIT_STATUS!"=="0" (
   echo %ERROR% pthreads: Move failure - "%~dp0patched\pthread.h".
   exit /b !EXIT_STATUS!
@@ -194,26 +244,36 @@ if exist "%OPENCV_SFX%" (
   echo %INFO% OpenCV: Downloading: %RELEASE_URL%
   echo %INFO% OpenCV: Destination: %OPENCV_SFX%
   curl --fail --retry 3 --retry-delay 2 -L -o "%OPENCV_SFX%" "%RELEASE_URL%"
-  if not "!ERRORLEVEL!"=="0" (
+  set "EXIT_STATUS=!ERRORLEVEL!"
+  if not "!EXIT_STATUS!"=="0" (
     echo %ERROR% OpenCV: Download failure. Aborting bootstrapping...
-    exit /b 1
+    exit /b !EXIT_STATUS!
   )
 )
 set RELEASE_URL=
 
+:: --------------------------------------------------------
+:: Extract OpenCV
+:: --------------------------------------------------------
 echo %INFO% OpenCV: Extracting "%OPENCV_SFX%".
 set "_CD=%CD%"
 cd /d "%PREFIX%"
-"%OPENCV_SFX%" -o -y & set "EXIT_STATUS=!ERRORLEVEL!"
-cd /d "%_CD%" & set "_CD="
+"%OPENCV_SFX%" -o -y
+set "EXIT_STATUS=!ERRORLEVEL!"
+cd /d "%_CD%"
+set "_CD="
 if not "!EXIT_STATUS!"=="0" (
   echo %ERROR% OpenCV: Extraction failure - "%OPENCV_SFX%".
+  echo %ERROR% OpenCV: The error may be due to corrupted cached files due to previously
+  echo %ERROR% OpenCV: interrupted downloads. Try manually deleting "%OPENCV_SFX%"
+  echo %ERROR% OpenCV: and run the script again.
   exit /b !EXIT_STATUS!
 ) else (
   echo %INFO% OpenCV: Extracted from "%OPENCV_SFX%".
 )
 
-xcopy /H /Y /B /E /Q /I "%PREFIX%\opencv\build" "%~dp0opencv\build" 1>nul & set "EXIT_STATUS=!ERRORLEVEL!"
+xcopy /H /Y /B /E /Q /I "%PREFIX%\opencv\build" "%~dp0opencv\build" 1>nul
+set "EXIT_STATUS=!ERRORLEVEL!"
 if not "!EXIT_STATUS!"=="0" (
   echo %ERROR% OpenCV: Move failure - "%PREFIX%\opencv\build".
   exit /b !EXIT_STATUS!
