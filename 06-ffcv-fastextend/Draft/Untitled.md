@@ -20,70 +20,52 @@ The environment is designed for Windows 10+ with ANSI-color-capable terminals (s
 
 ## 💡 Motivation
 
-While FFCV and Fastxtend are powerful tools for high-throughput data loading and fastai integration, their Windows installation paths have long been underdocumented and partially broken. The original build process lacks correct setup logic for native dependencies and fails to properly interface with the MSVC toolchain. This project was created to close that gap - providing a transparent, reproducible build system that makes native Windows installations reliable, scriptable, and educational for developers studying Python package compilation and dependency resolution.
+While FFCV and Fastxtend might be powerful tools for high-throughput data loading and fastai integration, their Windows installation paths have long been underdocumented and partially broken. The original build process lacks correct setup logic for native dependencies and fails to properly interface with the MSVC toolchain. This project was created to close that gap - providing a transparent, reproducible build system that makes native Windows installations reliable, scriptable, and educational for developers studying Python package compilation and dependency resolution.
 
 ➡ **Skip ahead if you just want to build and run.**  
 The next section walks you through the one-command setup for a fully functional Windows environment with FFCV and Fastxtend preinstalled, followed by a technical deep dive.
 
-
-
-
-
-
-
-
-
-
-
-
-You’re right—thanks for the correction. After `call Anaconda.bat` the environment is fully bootstrapped **including FFCV and fastxtend**. Here’s the fixed drop-in **Quick Start**.
-
----
-
-## ⚡ Quick Start (One-Command Setup)
+## ⚡ Quick Start
 
 ### Prerequisites
 
 - Windows 10+
-    
-- MS Build Tools installed (C++ workload)
-    
+- [MS Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools) installed (C++ workload, see [also](https://stackoverflow.com/a/64262038/17472988))
 - `curl` and `tar` on `PATH` (default on modern Win10)
-    
 - Internet access
-    
 
-> Tip: set `NO_COLOR=1` to disable ANSI colors if your console doesn’t support them.
+> Tip: set `NOCOLOR=1` to disable ANSI colors if your console doesn’t support them.
 
-### 1) Clone
+### 1. Clone
 
 ```cmd
-git clone https://github.com/<your-username>/AIFFCV.git
+git clone https://github.com/pchemguy/FFCVonWindows.git
 cd AIFFCV
 ```
 
 ### 2) Bootstrap + Install (everything)
 
-Run the single entry point. It will:
-
-- verify prerequisites (MSVC, GPU via `nvidia-smi`, curl/tar),
-    
-- set up caches,
-    
-- download Micromamba,
-    
-- create the environment,
-    
-- fetch/prepare libraries (OpenCV, pthreads, libjpeg-turbo),
-    
-- and **install `ffcv` + `fastxtend`** via `pip`.
-    
+Run the single entry point.
 
 ```cmd
 call Anaconda.bat
 ```
 
-**Success cues** include lines like:
+It will:
+- verify prerequisites (MSVC, GPU via `nvidia-smi`, curl/tar),    
+- set up cache,
+- fetch/prepare libraries (OpenCV, pthreads, libjpeg-turbo),
+- download Micromamba,
+- create the environment,
+- and install `ffcv` + `fastxtend`.
+
+> [!WARNING]
+> 
+> - The Conda environment file included in the project contains some extra components that are not dependencies of FFCV.
+> - The environment resolution process is slow and does not output any progress feedback to console.
+
+
+Success cues include lines like:
 
 ```
 -[OK]- Micromamba: Completed
@@ -103,35 +85,10 @@ PY
 
 (or just `python` if you’re already in the activated shell).
 
-### Optional: power-user shells
-
-- Pre-activate toolchains only (no FAR):
-    
-    ```cmd
-    call conda_far.bat /preactivate
-    ```
-    
-- Batch (skip interactive FAR launch, when applicable):
-    
-    ```cmd
-    call conda_far.bat /batch
-    ```
-    
-
 ### Idempotency
 
-Re-running `Anaconda.bat` is safe: caches are reused, activations are guarded, and already-installed components are skipped.
+Re-running `Anaconda.bat` is safe: environment bootstrapping process will terminated if existing Python executable is found.
 
-### Quick Troubleshooting
-
-|Symptom|What to check|
-|---|---|
-|MSVC not detected|Launch once from “Developer Command Prompt” or ensure Build Tools installed; look for `%VSINSTALLDIR%`.|
-|OpenCV/pthreads link errors|Confirm `LINK` includes `opencv_world460.lib` / `pthreadVC2.lib`.|
-|DLL not found at runtime|Ensure `PATH` contains `opencv\build\x64\vc15\bin` and `pthreads\dll\x64`.|
-|`nvidia-smi` missing|Install/repair NVIDIA driver; not strictly required unless you’ll use GPU.|
-
----
 
 
 

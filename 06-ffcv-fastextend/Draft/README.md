@@ -118,7 +118,7 @@ DEPRECATION: Building 'ffcv' using the legacy setup.py bdist_wheel mechanism, wh
           Pattern 'LICENSE.txt' did not match any files.
   
           By 2026-Mar-20, you need to update your project and remove deprecated calls
-          or your builds will no longer be supported.
+          or your builds will no longer be supported.          
           ********************************************************************************
   
   !!
