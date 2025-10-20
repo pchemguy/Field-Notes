@@ -264,3 +264,11 @@ Each module performs one explicit task and cleans up its variables before return
 - [SO: How to install MS Build Tools for pip](https://stackoverflow.com/a/64262038/17472988)
 - [Field Notes: Bootstrapping Python Environments on Windows](https://github.com/pchemguy/Field-Notes/blob/main/03-python-env-windows/README.md)
 - [Field Notes: Python pip & MSVC Detection Issues](https://github.com/pchemguy/Field-Notes/blob/main/05-python-pip-msvc/README.md)
+
+
+## Troubleshooting
+
+- Missing compiler - SO install MSVC
+- Missing package - paths
+- Missing compiler - SO configure MSVC (DISTUTILS SDK)
+- DLL loading error
