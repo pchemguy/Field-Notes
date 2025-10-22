@@ -25,8 +25,8 @@ To build and run a package with native dependencies successfully on Windows, it 
 Potential issues
 - Name clashing
       When Compiler/Linker/OS search for required `*.h`/`*.lib`/`*.dll` files, they will attempt to use the first file with matching name found and will fail, if the found file is not "compatible". While name clashing might arise between the required dependencies, a more likely cause is between multiple different versions/variants of the same dependency exposed to the build toolchain or the OS:
-        - OS integrates and provides an older version of dependency system-wise,
-        - OS does not integrate such a dependency out-of-the-box, but the user installed such a dependency system-wise previously (instead of including it as part of an isolated environment); some of the third-party applications may also perform such installation.
+        - OS integrates and provides an older version of dependency system-wise (this is primarily run-time `*.dll` concern, as developer `*.h`/`*.lib` files are not generally included in stock Windows and are provided as part of a separate Win SDK installation),
+        - OS does not integrate such a dependency out-of-the-box, but the user installed such a dependency system-wise previously (instead of including it as part of an isolated environment); some of the third-party applications may also perform such installation (also most likely may affect `*.dll`, rather than `*.h`/`*.lib`).
         - a managed isolated environment ecosystem may need to include a particular dependency in user-configured environment.
         - a non-managed copy of the dependency acquired by the user.
 - Feature or ABI incompatibility due to mismatched dependency version or the toolset used to build a binary dependency (may happen due to incorrectly selected version/variant OR due to name clashing).
@@ -37,6 +37,12 @@ For example, `pthreads-win32` library is available on Windows 10 as a system-lev
 - Feature compatibility
       The author of the package needs to specify compatible version of dependencies that provide expected functionality needed by the package.
 - ABI stability
-      While the C ABI (`extern C` calls) are quite stable, especially when compiled using the native MSVC toolchain, the C++ ABI has been relatively "volatile" on Windows until MSVS 2015. Starting from MSVS 2015, all versions with the same major number (`14.*`) have [generally compatible the C++ ABI](https://learn.microsoft.com/en-us/cpp/porting/binary-compat-2015-2017) (unless dependency is built with `/GL` or `/LTCG` switches), that is dependencies built by different MSVC versions with the same major number can be mixed. Import libraries, however, are generally not backward compatible, meaning the particular MSVS version must be as new as the newest MSVC version used for building all import libraries used.
+      While the C ABI (`extern C` calls) are quite stable, especially when compiled using the native MSVC toolchain, the C++ ABI has been relatively "volatile" on Windows until MSVS 2015. Starting from MSVS 2015, all versions with the same major number (`14.*`) have [generally compatible the C++ ABI](https://learn.microsoft.com/en-us/cpp/porting/binary-compat-2015-2017) (unless dependency is built with `/GL`, [whole program optimization](https://learn.microsoft.com/en-us/cpp/build/reference/gl-whole-program-optimization), or `/LTCG`, [link-time code generation](https://learn.microsoft.com/en-us/cpp/build/reference/ltcg-link-time-code-generation), switches), that is dependencies built by different MSVC versions with the same major number can be mixed. Import libraries, however, are generally not backward compatible, meaning the particular MSVS version must be as new as the newest MSVC version used for building all import libraries used.
 
-Assuming 
+Focusing on There are three major error groups:
+- compiler
+- linker
+- package loading process (run-time, OS/Python)
+
+As far as 
+When required `*.h` header files (that is called in `#include` statements) are not 
