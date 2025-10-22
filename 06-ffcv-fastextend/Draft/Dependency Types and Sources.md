@@ -39,10 +39,25 @@ For example, `pthreads-win32` library is available on Windows 10 as a system-lev
 - ABI stability
       While the C ABI (`extern C` calls) are quite stable, especially when compiled using the native MSVC toolchain, the C++ ABI has been relatively "volatile" on Windows until MSVS 2015. Starting from MSVS 2015, all versions with the same major number (`14.*`) have [generally compatible the C++ ABI](https://learn.microsoft.com/en-us/cpp/porting/binary-compat-2015-2017) (unless dependency is built with `/GL`, [whole program optimization](https://learn.microsoft.com/en-us/cpp/build/reference/gl-whole-program-optimization), or `/LTCG`, [link-time code generation](https://learn.microsoft.com/en-us/cpp/build/reference/ltcg-link-time-code-generation), switches), that is dependencies built by different MSVC versions with the same major number can be mixed. Import libraries, however, are generally not backward compatible, meaning the particular MSVS version must be as new as the newest MSVC version used for building all import libraries used.
 
-Focusing on There are three major error groups:
-- compiler
-- linker
-- package loading process (run-time, OS/Python)
+Focusing specifically on searching for the required modules, there are three major error groups:
+**1.** compiler
+   When required `*.h` header files (that is called in `#include` statements) are not found in directories indicated in the compiler's command line or via the `INCLUDE` environment variable, compiler should generally emit a related error, indicating unresolved identifiers and, thus, pointing to the source of error (at least roughly).
+**2.** linker
+   When correct search paths and file names for the required `*.lib` import library files are specified in the linker's command line or via the `LIB` (for paths) and `LINK` (for space separated list of file names) environment variables, linker should generally emit a related error about a missing dependency. A likely indistinguishable  error message will likely be emitted if incompatible `*.lib` files are provided or if an accidental name clashing occur and the linker finds a wrong module first. Importantly, the error message should include a list of unresolved identifiers that hints at which dependencies caused the error.
 
-As far as 
-When required `*.h` header files (that is called in `#include` statements) are not 
+```
+libffcv.obj : error LNK2001: unresolved external symbol tjTransform
+libffcv.obj : error LNK2001: unresolved external symbol tjInitDecompress
+libffcv.obj : error LNK2001: unresolved external symbol tjDecompress2
+libffcv.obj : error LNK2001: unresolved external symbol tjFree
+libffcv.obj : error LNK2001: unresolved external symbol tjInitTransform
+build\lib.win-amd64-cpython-311\ffcv\_libffcv.cp311-win_amd64.pyd : fatal error LNK1120: 5 unresolved externals
+error: command 'G:\\dev\\MSBuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\link.exe' failed with exit code 1120
+```
+
+**3.** package loading process (run-time, OS/Python)
+   The primary error message emitted by this process states that a ==certain library file cannot be found==. This is, perhaps, one of the most problematic errors to troubleshoot, as this error may occur, because the specified module
+   - is in fact not found.
+   - is incompatible (mismatched version/variant or name clashing).
+   - one of its dependencies are missing or incompatible.
+   Without additional details/clues, resolving such an issue may prove not practically feasible.
