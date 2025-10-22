@@ -39,10 +39,37 @@ For example, `pthreads-win32` library is available on Windows 10 as a system-lev
 - ABI stability
       While the C ABI (`extern C` calls) are quite stable, especially when compiled using the native MSVC toolchain, the C++ ABI has been relatively "volatile" on Windows until MSVS 2015. Starting from MSVS 2015, all versions with the same major number (`14.*`) have [generally compatible the C++ ABI](https://learn.microsoft.com/en-us/cpp/porting/binary-compat-2015-2017) (unless dependency is built with `/GL`, [whole program optimization](https://learn.microsoft.com/en-us/cpp/build/reference/gl-whole-program-optimization), or `/LTCG`, [link-time code generation](https://learn.microsoft.com/en-us/cpp/build/reference/ltcg-link-time-code-generation), switches), that is dependencies built by different MSVC versions with the same major number can be mixed. Import libraries, however, are generally not backward compatible, meaning the particular MSVS version must be as new as the newest MSVC version used for building all import libraries used.
 
-Focusing specifically on searching for the required modules, there are three major error groups:
-**1.** compiler
+Focusing specifically on searching for the required modules, there are four major error groups:
+**1.** `pip`/`setuptools`/`setup.py`
    When required `*.h` header files (that is called in `#include` statements) are not found in directories indicated in the compiler's command line or via the `INCLUDE` environment variable, compiler should generally emit a related error, indicating unresolved identifiers and, thus, pointing to the source of error (at least roughly).
-**2.** linker
+
+```
+G:\dev\Anaconda\FFCVTest3\Anaconda>pip install ffcv
+
+Collecting ffcv
+  Using cached ffcv-1.0.2.tar.gz (2.6 MB)
+  Preparing metadata (setup.py) ... error
+  error: subprocess-exited-with-error
+
+  × python setup.py egg_info did not run successfully.
+  │ exit code: 1
+  ╰─> [8 lines of output]
+      Traceback (most recent call last):
+        File "<string>", line 2, in <module>
+        File "<pip-setuptools-caller>", line 35, in <module>
+        File "C:\Users\pcuser\AppData\Local\Temp\pip-install-0kju4u76\ffcv_8ca97d5276f84a38ae7cd4a4d58e5d54\setup.py", line 87, in <module>
+          extension_kwargs = pkgconfig_windows('opencv4', extension_kwargs)
+        File "C:\Users\pcuser\AppData\Local\Temp\pip-install-0kju4u76\ffcv_8ca97d5276f84a38ae7cd4a4d58e5d54\setup.py", line 62, in pkgconfig_windows
+          raise Exception(f"Could not find required package: {package}.")
+      Exception: Could not find required package: opencv4.
+      [end of output]
+```
+
+Note, example above shows complex paths due to default `isolated environment` mode installation. However, `setup.py` of `ffcv` is still clearly identified.
+
+**2.** compiler
+   When required `*.h` header files (that is called in `#include` statements) are not found in directories indicated in the compiler's command line or via the `INCLUDE` environment variable, compiler should generally emit a related error, indicating unresolved identifiers and, thus, pointing to the source of error (at least roughly).
+**3.** linker
    When correct search paths and file names for the required `*.lib` import library files are specified in the linker's command line or via the `LIB` (for paths) and `LINK` (for space separated list of file names) environment variables, linker should generally emit a related error about a missing dependency. A likely indistinguishable  error message will likely be emitted if incompatible `*.lib` files are provided or if an accidental name clashing occur and the linker finds a wrong module first. Importantly, the error message should include a list of unresolved identifiers that hints at which dependencies caused the error.
 
 ```
@@ -55,9 +82,21 @@ build\lib.win-amd64-cpython-311\ffcv\_libffcv.cp311-win_amd64.pyd : fatal error 
 error: command 'G:\\dev\\MSBuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\link.exe' failed with exit code 1120
 ```
 
-**3.** package loading process (run-time, OS/Python)
+**4.** package loading process (run-time, OS/Python)
    The primary error message emitted by this process states that a ==certain library file cannot be found==. This is, perhaps, one of the most problematic errors to troubleshoot, as this error may occur, because the specified module
    - is in fact not found.
    - is incompatible (mismatched version/variant or name clashing).
    - one of its dependencies are missing or incompatible.
    Without additional details/clues, resolving such an issue may prove not practically feasible.
+
+```
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "G:\dev\Anaconda\FFCVTest3\Anaconda\lib\site-packages\ffcv\__init__.py", line 1, in <module>
+    from .loader import Loader
+  <INTERMEDIATE TRACE DETAILS>
+  File "G:\dev\Anaconda\FFCVTest3\Anaconda\lib\site-packages\ffcv\libffcv.py", line 6, in <module>
+    import ffcv._libffcv
+ImportError: DLL load failed while importing _libffcv: The specified module could not be found.
+```
+   
