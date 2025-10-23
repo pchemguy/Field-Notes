@@ -63,7 +63,9 @@ It will:
 > 
 > - The Conda environment file included in the project contains some extra components that are not dependencies of FFCV.
 
-#### Color Coding
+#### Color Convention
+
+![](./AIFFCV/Screenshots/MSBuild_failed.jpg)
 
 
 ```
