@@ -1,249 +1,221 @@
 @echo off
 
+:: ============================================================================
+::  Purpose:
+::    Orchestrates initialization and activation of a minimal Conda-based
+::    development environment for Windows-based FFCV/fastxtend builds.
+::    Ensures correct setup of MS Build Tools, Conda/Micromamba environment,
+::    and native library dependencies (pthreads, OpenCV, libjpeg-turbo).
+::
+::  Description:
+::    This script serves as the main entry point for environment activation
+::    and dependency management. It guarantees that:
+::      - cmd.exe Delayed Expansion is enabled
+::      - The shell is free from preactivated Python/Conda contexts
+::      - MS Build Tools are available and activated
+::      - Required libraries are initialized via their respective scripts
+::      - Proper INCLUDE, LIB, LINK, and PATH variables are configured
+::      - Environment is ready for subsequent FFCV installation or builds
+::
+::  Invocation Modes:
+::      /batch        - Activates environment variables only; does not launch
+::                      FAR Manager or start a new interactive shell.
+::
+::      /preactivate  - Performs environment pre-initialization
+::
+::      (no argument) - Activates full environment and launches FAR Manager
+::                      (if detected) or opens a regular cmd.exe session.
+::
+::  Behavioral Summary:
+::      1. Verifies cmd.exe configuration and base environment cleanliness.
+::      2. Activates MS Build Tools environment or notifies user of failure.
+::      3. Ensures Conda (or Micromamba) environment readiness.
+::      4. Sequentially activates pthreads, OpenCV, and libjpeg-turbo.
+::      5. Updates INCLUDE, LIB, and LINK paths to integrate Conda libraries.
+::      6. Exposes DISTUTILS_USE_SDK=1 to enable setuptools to reuse the
+::         existing MSVC environment instead of launching new compiler shells.
+::      7. Starts FAR Manager if available, or leaves the user in a prepared
+::         cmd.exe session.
+::
+::  Exit Codes:
+::      0   - Success
+::      1+  - Failure during activation (refer to last console output)
+::
+::  Notes:
+::      - Requires Windows 10+ with ANSI color output support.
+::      - Requires curl.exe and tar.exe in PATH (included by default in Win10+).
+::      - Colorized output can be disabled by defining NOCOLOR=1.
+:: ============================================================================
 
-:: --- Use `/batch` to activate shell environment without starting FAR MANAGER ---
-:: --- Use `/preactivate` to preactivate environment ---
+echo:
+echo ==========================================================================
+echo %INFO% Setting up environment
+echo %INFO%
+echo %WARN% CLI: "%~f0" %*
+echo ==========================================================================
+echo:
 
-if /I "%~1"=="/preactivate" (
-  set "_MODE=/f"
-) else (
-  set "_MODE="
-)
-set "EXIT_STATUS="
-
+set "EXIT_STATUS=1"
 
 :: --- Escape sequence templates for color coded console output ---
 
 call :COLOR_SCHEME
 
+:: --- Default Conda Prefix ---
+
+if defined _CONDA_PREFIX (
+  set "__CONDA_PREFIX=%_CONDA_PREFIX%"
+) else (
+  set "__CONDA_PREFIX=%~dp0Anaconda"
+)
+set "CONDA_BAT=%__CONDA_PREFIX%\condabin\conda.bat"
+set "MAMBA_BAT=%__CONDA_PREFIX%\condabin\mamba.bat"
+
 :: --- Make sure cmd.exe delayed expansion is enabled by default ---
 
 call :CHECK_DELAYED_EXPANSION
-if not "%ERRORLEVEL%"=="0" (
-  set "EXIT_STATUS=1"
-  goto :EXIT_MAIN
+if not "%ERRORLEVEL%"=="0" if not "%~1"=="" (
+
+  rem -- Delayed Expansion is disabled, running in non-interactive mode ---
+  
+  set "FINAL_EXIT_CODE=%ERRORLEVEL%"
+  echo %ERROR% Delayed Expansion is disabled while running in non-interactive mode. Aborting...
+  goto :CLEANUP
+) else (
+
+  rem --- Delayed Expansion is disabled, running in interactive mode ---
+  
+  setlocal EnableDelayedExpansion EnableExtensions
 )
+
+:: --- Determine cache directory ---
+
+if not defined _CACHE (
+  call :CACHE_DIR
+  set "EXIT_STATUS=!ERRORLEVEL!"
+) else (
+  set "EXIT_STATUS=0"
+)
+if not defined _CACHE (
+  echo %ERROR% Failed to set CACHE directory. Aborting...
+  set "FINAL_EXIT_CODE=1"
+  goto :CLEANUP
+)
+echo:
 
 :: --- Base / Root environment guard ---
 
 call :NO_ROOT_ENVIRONMENT
+if not "%ERRORLEVEL%"=="0" (
+  echo %ERROR% Aborting due to pre-existing Python/Conda environment.
+  set "FINAL_EXIT_CODE=%ERRORLEVEL%"
+  goto :CLEANUP
+)
 
 :: --- MS Build Tools ---
-::
-:: Assume that activated shell must have variable VSINSTALLDIR set and
-:: main activation script present in
-:: "%VSINSTALLDIR%\VC\Auxiliary\Build\vcvarsall.bat"
 
-if exist "%VSINSTALLDIR%\VC\Auxiliary\Build\vcvarsall.bat" goto :SKIP_MSBUILD_ACTIVATION
-
-set "_VSINSTALLDIR=%~dp0..\MSBuildTools"
-set "_VCVARS=%_VSINSTALLDIR%\VC\Auxiliary\Build\vcvars64.bat"
-if not exist "%_VCVARS%" (
-  set "_VSINSTALLDIR=%~d0\dev\MSBuildTools"
-  set "_VCVARS=!_VSINSTALLDIR!\VC\Auxiliary\Build\vcvars64.bat"
+if not exist "%~dp0msbuild.bat" (
+  echo %ERROR% MSBUILD activation script not found: "%~dp0msbuild.bat". Aborting...
+  set "FINAL_EXIT_CODE=1"
+  goto :CLEANUP
 )
-
-if exist "%_VCVARS%" (
-  echo:
-  echo %WARN% Activating MS Build Tools.
-  call "%_VCVARS%"
-  set "EXIT_STATUS=!ERRORLEVEL!"
-  if not "!EXIT_STATUS!"=="0" (
-    echo %ERROR% MS Build Tools activation failed!
-  ) else (
-    echo %OKOK% MS Build Tools activation succeeded!
-  )
+call "%~dp0msbuild.bat"
+if not "%ERRORLEVEL%"=="0" (
+  echo %ERROR% MSBuild activation failed. Aborting...
+  set "FINAL_EXIT_CODE=1"
+  goto :CLEANUP
 )
-
-if not exist "%VSINSTALLDIR%\VC\Auxiliary\Build\vcvarsall.bat" (
-  echo %ERROR% MS Build Tools activation script not found: "%VSINSTALLDIR%\VC\Auxiliary\Build\vcvarsall.bat".
-  echo %ERROR% Tried:                                      "%_VCVARS%".
-  echo %INFO% If MS Build Tools are installed, either
-  echo %INFO%   - verify or ajust variables above AND/OR
-  echo %INFO%   - start this script from a preactivated MS Build Tools shell
-  echo %INFO% See this accepted SO answer https://stackoverflow.com/a/64262038/17472988
-  echo %INFO% regarding MS Build Tools installation.
-  echo:
-  echo %INFO% FFCV will not get installed without compiler.
-  pause
-)
-set "_VCVARS="
-set "_VSINSTALLDIR="
-
-:SKIP_MSBUILD_ACTIVATION
-
-:: --- Default Conda Prefix ---
-
-if defined __CONDA_PREFIX (
-  set "__CONDA_PREFIX=_CONDA_PREFIX"
-) else (
-  set "__CONDA_PREFIX=%~dp0Anaconda"
-)
-
-:: --- Unless preactivating, python.exe and conda.bat must exist in Conda environment ---
-
-if /I not "%_MODE%"=="/f" (
-  if not exist "%__CONDA_PREFIX%\python.exe" (
-    echo:
-    echo %ERROR% Python not found: "%__CONDA_PREFIX%\python.exe"! Aborting...
-    exit /b 1
-  )
-  if not exist "%__CONDA_PREFIX%\condabin\conda.bat" (
-    echo:
-    echo %ERROR% Conda activation script not found: "%__CONDA_PREFIX%\condabin\conda.bat". Aborting...
-    exit /b 1
-  ) else (
-    echo:
-    echo %WARN% Activating Conda.
-    call "%__CONDA_PREFIX%\condabin\conda.bat" activate
-    set "EXIT_STATUS=!ERRORLEVEL!"
-  )
-  if not "!EXIT_STATUS!"=="0" (
-    echo %ERROR% Conda activation failed! Aborting...
-    exit /b !EXIT_STATUS!
-  ) else (
-    echo %OKOK% Conda activation succeeded!
-  )
-)
-
-:: --- pthreads ---
-
-if exist "%~dp0pthreads\activate.bat" (
-  echo:
-  echo %WARN% Activating pthreads library.
-  call "%~dp0pthreads\activate.bat" %_MODE%
-  set "EXIT_STATUS=!ERRORLEVEL!"
-  call :COLOR_SCHEME
-) else (
-  echo %ERROR% pthreads activation script not found: "%~dp0pthreads\activate.bat".
-)
-if not "%EXIT_STATUS%"=="0" (
-  echo %ERROR% pthreads activation failed!
-) else (
-  echo %OKOK% pthreads activation succeeded!
-)
-
-:: --- OpenCV ---
-
-if exist "%~dp0opencv\activate.bat" (
-  echo:
-  echo %WARN% Activating OpenCV library.
-  call  "%~dp0opencv\activate.bat" %_MODE%
-  set "EXIT_STATUS=!ERRORLEVEL!"
-  call :COLOR_SCHEME
-) else (
-  echo %WARN% OpenCV activation script not found: "%~dp0opencv\activate.bat".
-)
-if not "%EXIT_STATUS%"=="0" (
-  echo %ERROR% OpenCV activation failed!
-) else (
-  echo %OKOK% OpenCV activation succeeded!
-)
-
-:: --- LibJPEG-Turbo ---
-
-if exist "%~dp0libjpeg-turbo\activate.bat" (
-  echo:
-  echo %WARN% Activating LibJPEG-Turbo library.
-  call "%~dp0libjpeg-turbo\activate.bat" %_MODE%
-  set "EXIT_STATUS=!ERRORLEVEL!"
-  call :COLOR_SCHEME
-) else (
-  echo %ERROR% LibJPEG-Turbo activation script not found: "%~dp0libjpeg-turbo\activate.bat".
-)
-if not "%EXIT_STATUS%"=="0" (
-  echo %ERROR% LibJPEG-Turbo activation failed!
-) else (
-  echo %OKOK% LibJPEG-Turbo activation succeeded!
-)
-echo ==========================================================================
-echo:
-
-set "_MODE="
-set "_PREFIX="
-set "_VCVARS="
-
-:: --- Reset COLOR_SCHEME as it may have been reset n called scripts. ---
-
-call :COLOR_SCHEME
-
-:: --- Update INCLUDE if new item has not been added before ---
-
-set "_INCPATH=%__CONDA_PREFIX%\Library\include"
-if "!INCLUDE!"=="!INCLUDE:%_INCPATH%=!" (
-  set "INCLUDE=%_INCPATH%;%INCLUDE%"
-) else (
-  echo %INFO% "%_INCPATH%" already added to %%INCLUDE%%
-)
-set "_INCPATH="
-
-:: --- Update LIB if new item has not been added before ---
-
-set "_LIBPATH=%__CONDA_PREFIX%\Library\lib"
-if "!LIB!"=="!LIB:%_LIBPATH%=!" (
-  set "LIB=%_LIBPATH%;%LIB%"
-) else (
-  echo %INFO% "%_LIBPATH%" already added to %%LIB%%
-)
-set "_LIBPATH="
-
-:: --- Update LINK if new item has not been added before ---
-
-if not defined LINK set "LINK= "
-if "!LINK!"=="!LINK:%_LIBLIB%=!" (
-  set "LINK=%_LIBLIB% %LINK%"
-) else (
-  echo %INFO% "%_LIBLIB%" already added to %%LINK%%
-)
-set "_LIBLIB="
-
-:: --- Set pip cache location ---
-
-set "PIP_CACHE_DIR=%~d0\CACHE\Python\pip"
 
 :: --- Have Python/setuptools/distutils use preactivated MS Build Tools environment. ---
 
 set "DISTUTILS_USE_SDK=1"
 
-:: --- Clean up ---
+call :COLOR_SCHEME
 
-set  "INFO="
-set  "OKOK="
-set  "WARN="
-set "ERROR="
+:: --- Python.exe and conda.bat must exist in Conda environment ---
+
+if not exist "%__CONDA_PREFIX%\python.exe" (
+  echo %ERROR% Python not found: "%__CONDA_PREFIX%\python.exe". Aborting...
+  set "FINAL_EXIT_CODE=1"
+  goto :CLEANUP
+)
+if not exist "%CONDA_BAT%" (
+  echo %ERROR% Conda activation script not found: "%CONDA_BAT%". Aborting...
+  set "FINAL_EXIT_CODE=1"
+  goto :CLEANUP
+)
+if not exist "%MAMBA_BAT%" (
+  echo %ERROR% Conda activation script not found: "%MAMBA_BAT%". Aborting...
+  set "FINAL_EXIT_CODE=1"
+  goto :CLEANUP
+)
+
+:: --- Activate Conda environment ---
+
+echo:
+echo %WARN% Activating Conda PREFIX "%__CONDA_PREFIX%".
+call "%CONDA_BAT%" activate
+if not "%ERRORLEVEL%"=="0" (
+  set "FINAL_EXIT_CODE=%ERRORLEVEL%"
+  echo %ERROR% Conda environment activation failed. Aborting...
+  goto :CLEANUP
+)
+if not exist "!CONDA_PREFIX!\python.exe" (
+  echo %ERROR% Conda environment activation failed - Python "!CONDA_PREFIX!\python.exe" not found. Aborting...
+  set "FINAL_EXIT_CODE=1"
+  goto :CLEANUP
+)
+echo %OKOK% Conda activation succeeded.
+
+:: --- Activate dependencies ---
+
+if not exist "%~dp0libs.bat" (
+  echo %ERROR% Library activation script not found: "%~dp0libs.bat". Aborting...
+  set "FINAL_EXIT_CODE=1"
+  goto :CLEANUP
+)
+if /I "%~1"=="/preactivate" (
+  call "%~dp0libs.bat" /preactivate
+  set "EXIT_STATUS=!ERRORLEVEL!"
+) else (
+  call "%~dp0libs.bat" /activate
+  set "EXIT_STATUS=!ERRORLEVEL!"
+)
+
+call :COLOR_SCHEME
+
+if "%EXIT_STATUS%"=="0" (
+  echo %OKOK% Library activation complete.
+  echo:
+) else (
+  echo %ERROR% Library activation failed. EXIT_STATUS: "%EXIT_STATUS%".
+  echo:
+  set "FINAL_EXIT_CODE=%EXIT_STATUS%"
+  goto :CLEANUP
+)
 
 :: --- Use "/batch" to activate shell environment without starting FAR MANAGER ---
 
-if /I "%~1"=="/batch" (goto :EXIT_MAIN)
-if /I "%~1"=="/preactivate" (goto :EXIT_MAIN)
+set "FINAL_EXIT_CODE=0"
+if /I "%~1"=="/batch" goto :CLEANUP
+if /I "%~1"=="/preactivate" goto :CLEANUP
 
 :: --- Start FAR MANAGER ---
 
-set "_FARMANAGER="
 for %%A in ("far.bat" "far.exe") do (
-  where %%~A >nul 2>nul && (
+  where /Q %%~A >nul 2>nul && (
     set "_FARMANAGER=%%~A"
     goto :START_FARMANAGER
   )
 )
 
 :START_FARMANAGER
-if not defined _FARMANAGER (set "_FARMANAGER=cd")
-set "_FARMANAGER=""%_FARMANAGER%"""
-if defined _FARMANAGER cmd /K "%_FARMANAGER% ""%__CONDA_PREFIX%"""
 
+if not defined _FARMANAGER set "_FARMANAGER=cd"
+cmd /E:ON /V:ON /K "%_FARMANAGER% ""%__CONDA_PREFIX%"""
+set "_FARMANAGER="
 
-:EXIT_MAIN
-
-:: --- Clean up ---
-
-set  "INFO="
-set  "OKOK="
-set  "WARN="
-set "ERROR="
-set "__CONDA_PREFIX="
-
-exit /b %EXIT_STATUS%
+goto :CLEANUP
 :: ============================================================================
 :: ============================================================================
 :: ============================================================================
@@ -251,63 +223,206 @@ exit /b %EXIT_STATUS%
 
 :: ============================================================================ COLOR_SCHEME BEGIN
 :: ============================================================================
-:: --------------------------------------------------------
-:: COLOR SCHEME
-:: --------------------------------------------------------
 :COLOR_SCHEME
+:: ---------------------------------------------------------------------
+:: Color Scheme (with NOCOLOR fallback)
+:: ---------------------------------------------------------------------
 
-:: --- Set console color scheme
-
-set  "INFO=[100;92m [INFO]  [0m"
-set  "OKOK=[103;94m -[OK]-  [0m"
-set  "WARN=[106;35m [WARN]  [0m"
-set "ERROR=[105;34m [ERROR] [0m"
+if defined NOCOLOR (
+  set  "INFO= [INFO]  "
+  set  "OKOK= [-OK-]  "
+  set  "WARN= [WARN]  "
+  set "ERROR= [ERROR] "
+) else (
+  set  "INFO=[100;92m [INFO]  [0m"
+  set  "OKOK=[103;94m [-OK-]  [0m"
+  set  "WARN=[106;35m [WARN]  [0m"
+  set "ERROR=[105;34m [ERROR] [0m"
+)
 
 exit /b 0
 :: ============================================================================ 
 :: ============================================================================ COLOR_SCHEME END
 
 
+:: ============================================================================ CLEANUP BEGIN
+:: ============================================================================
+:: --- Clean up; prefer as the primary script exit point ---
+:: To exit script, set FINAL_EXIT_CODE and goto CLEANUP
+
+:CLEANUP
+
+set  "INFO="
+set  "OKOK="
+set  "WARN="
+set "ERROR="
+set "EXIT_STATUS="
+set "__CONDA_PREFIX="
+
+:: --- Ensure a valid exit code is always returned ---
+
+if not defined FINAL_EXIT_CODE set "FINAL_EXIT_CODE=1"
+exit /b %FINAL_EXIT_CODE%
+:: ============================================================================ 
+:: ============================================================================ CLEANUP END
+
+
+:: ============================================================================ CACHE_DIR BEGIN
+:: ============================================================================
+:CACHE_DIR
+:: --------------------------------------------------------
+:: Determine cache directory
+:: --------------------------------------------------------
+if exist "%_CACHE%" (
+  goto :CACHE_DIR_SET
+) else (
+  set "_CACHE=%TEMP%"
+)
+
+if exist "%~d0\CACHE" (
+  set "_CACHE=%~d0\CACHE"
+  goto :CACHE_DIR_SET
+)
+
+if exist "%~dp0CACHE" (
+  set "_CACHE=%~dp0CACHE"
+  goto :CACHE_DIR_SET
+)
+
+if exist "%USERPROFILE%\Downloads" (
+  if exist "%USERPROFILE%\Downloads\CACHE" (
+    set "_CACHE=%USERPROFILE%\Downloads\CACHE"
+  ) else (
+    set "_CACHE=%USERPROFILE%\Downloads"
+  )
+  goto :CACHE_DIR_SET
+)
+
+:CACHE_DIR_SET
+:: --------------------------------------------------------
+:: Verify file system access
+:: --------------------------------------------------------
+set "_DUMMY=%_CACHE%\$$$_DELETEME_ACCESS_CHECK_$$$"
+if exist "%_DUMMY%" rmdir /Q /S "%_DUMMY%"
+set "EXIT_STATUS=%ERRORLEVEL%"
+if exist "%_DUMMY%" set "EXIT_STATUS=1"
+if not "!EXIT_STATUS!"=="0" (
+  echo %ERROR% Failed to delete test directory "%_DUMMY%".
+  echo %ERROR% Expected a full-access at this location "%_CACHE%".
+  echo %ERROR% Aborting...
+  set "_CACHE="
+  exit /b !EXIT_STATUS!
+)
+
+md "%_DUMMY%"
+set "EXIT_STATUS=%ERRORLEVEL%"
+if not exist "%_DUMMY%" set "EXIT_STATUS=1"
+if not "!EXIT_STATUS!"=="0" (
+  echo %ERROR% Failed to create test directory "%_DUMMY%".
+  echo %ERROR% Expected a full-access at this location "%_CACHE%".
+  echo %ERROR% Aborting...
+  set "_CACHE="
+  exit /b !EXIT_STATUS!
+)
+
+:: --------------------------------------------------------
+:: Point CONDA_PKGS_DIRS and PIP_CACHE_DIR to package cache directory
+:: --------------------------------------------------------
+set "_PKGS_DIR=%_CACHE%\Python\pkgs"
+
+if not defined CONDA_PKGS_DIRS (
+  set "CONDA_PKGS_DIRS=%_PKGS_DIR%"
+) else (
+  set "_PKGS_DIR=%CONDA_PKGS_DIRS%"
+)
+if not exist "%CONDA_PKGS_DIRS%" md "%CONDA_PKGS_DIRS%"
+if not "%ERRORLEVEL%"=="0" (
+  echo %ERROR% Failed to create directory "%CONDA_PKGS_DIRS%".
+  set "_CACHE="
+  exit /b !EXIT_STATUS!
+)
+set "PIP_CACHE_DIR=%_CACHE%\Python\pip"
+
+echo %INFO% CACHE directory: "%_CACHE%".
+echo %INFO% CONDA_PKGS_DIRS directory: "%CONDA_PKGS_DIRS%".
+echo %INFO% PIP_CACHE_DIR   directory: "%PIP_CACHE_DIR%".
+
+exit /b 0
+:: ============================================================================
+:: ============================================================================ CACHE_DIR END
+
+
 :: ============================================================================ CHECK_DELAYED_EXPANSION BEGIN
 :: ============================================================================
 :CHECK_DELAYED_EXPANSION
+::
+:: Purpose:
+::   Checks if Delayed Expansion is enabled.
+::
+:: Return:
+::   DELAYED_EXPANSION=1 - Enabled
+::   DELAYED_EXPANSION=0 - Disabled
+::
+:: Exit Codes:
+::   0 - Enabled
+::   1 - Disabled
 
 echo:
 echo %WARN% Checking cmd.exe delayed expansion availability
+echo %INFO%
+echo %INFO% When running with any arguments, Delayed Expansion feature must be
+echo %INFO% enabled by the caller!
+echo %INFO% When running withhout arguments, the script is supposed to spawn
+echo %INFO% an activated shell, so Delayed Expansion can be enabled locally.
 
-
-if "%ComSpec%"=="!ComSpec!" (
+if "!ComSpec!"=="%ComSpec%" (
+  set "DELAYED_EXPANSION=1"
   echo %INFO% --------------------------
   echo %OKOK% CHECK PASSED
-  echo %INFO% Delayed Expansion enabled!
+  echo %INFO% Delayed Expansion enabled.
   echo %INFO% --------------------------
   echo:
   exit /b 0
+) else (
+  set "DELAYED_EXPANSION=0"
 )
 
-
 echo:
-echo %INFO% ----------------------------------------------------------
+echo %INFO% ------------------------------------------------------------------------
 echo %ERROR% CHECK FAILED
-echo %INFO% cmd.exe Delayed Expansion is not active. Set the following
-echo %INFO% setting (either variant should do), start a new shell, run
-echo %INFO% this script again, and make sure the check passes.
-echo %INFO% Otherwise, try rebooting your computer.
-echo %INFO% ----------------------------------------------------------
+echo %WARN% Delayed Expansion disabled.
+echo %INFO% This script should be generally called with Delayed Expansion enabled
+echo %INFO% by the caller. When used interactively without any arguments, this 
+echo %INFO% script will activate Conda environment aand spawn an activated shell.
+echo %INFO% In this mode, Delayed Expansion mode can be activated by this script.
+echo %INFO% In batch mode, this script is used to activate caller's environment,
+echo %INFO% and, therefore this script will be unable to activate both Delayed
+echo %INFO% Expansion and the caller's environment. Use one of the following
+echo %INFO% options, then rerun this script with "/batch" switch to verify that the
+echo %INFO% test passes.
+echo %INFO% 
+echo %INFO% 1. "setlocal EnableDelayedExpansion EnableExtensions"
+echo %INFO%    Use this command in the parent script before calling this script.
+echo %INFO%    
+echo %INFO% 2. Start a new cmd.exe shell as "cmd.exe /E:ON /V:ON".
+echo %INFO% 
+echo %INFO% 3. Enable Delayed Expansion permanently via the following registry
+echo %INFO%    setting (either variant should do), start a new shell, 
+echo %INFO% ------------------------------------------------------------------------
 echo: 
 echo %INFO% Delayed expansion activation settings. 
 echo: 
-echo %INFO% ---------------------------------------------------------
+echo %INFO% ------------------------------------------------------------------------
 echo %INFO% [HKEY_CURRENT_USER\Software\Microsoft\Command Processor]
 echo %INFO% "DelayedExpansion"=dword:00000001
 echo %INFO% "EnableExtensions"=dword:00000001
-echo:%INFO% 
+echo %INFO% 
 echo %INFO% --- OR ---
-echo:
+echo %INFO% 
 echo %INFO% [HKEY_LOCAL_MACHINE\Software\Microsoft\Command Processor]
 echo %INFO% "DelayedExpansion"=dword:00000001
 echo %INFO% "EnableExtensions"=dword:00000001
-echo %INFO% ---------------------------------------------------------
+echo %INFO% ------------------------------------------------------------------------
 echo:
 
 exit /b 1
@@ -331,40 +446,48 @@ exit /b 1
 :: as this very script, deactivation will not remove any custom envirnoment
 :: settings. In such a case, effectively partial deactivation may result in
 :: issues, potentially subtle, in the new environment. In particular, this
-:: script activates external build dependencies for FFCV, and associted
+:: script activates external build dependencies for FFCV, and associated
 :: settings may result in wrong dependency references and failed builds, if
 :: new environment is not started from a clean system shell.
 :: --------------------------------------------------------
 :NO_ROOT_ENVIRONMENT
 
-:: Check if Conda or Python is in Path
+echo:
+echo ====================================================================================
+echo ====================================================================================
+echo == %WARN%                                                            %WARN% ==
+echo == %WARN%         Checking for activated Conda environment           %WARN% ==
+echo == %WARN%                                                            %WARN% ==
+echo ====================================================================================
+echo ====================================================================================
+echo:
+
+:: --- Check if Conda or Python is on the Path ---
 
 set "_CONDA="
-set "_PYTHONE="
-where "conda.bat" >nul 2>nul && (set "_CONDA=conda.bat")
-where "python.exe" >nul 2>nul && (set "_PYTHON=python.exe")
-if not defined _CONDA if not defined _PYTHONE exit /b 0
+set "_PYTHON="
+echo %INFO% Checking if Python on the Path
+where "python.exe" 2>nul && (set "_PYTHON=python.exe")
+echo %INFO% Checking if Conda on the Path
+where "conda.bat" 2>nul && (set "_CONDA=conda.bat")
+if not defined _CONDA if not defined _PYTHON (
+  echo %OKOK% Python/Conda not detected.
+  set "_CONDA="
+  set "_PYTHON="
+  exit /b 0
+)
 
 echo:
+if defined _PYTHON (
+  echo %WARN% Detected "python.exe" in Path.
+)
 if defined _CONDA (
-  echo %WARN% Detected "conda.bat" in Path!
+  echo %WARN% Detected "conda.bat" in Path.
 )
-if defined _PYTHONE (
-  echo %WARN% Detected "python.exe" in Path!
-)
+
 echo %WARN% It is strongly recommended to start this script from a clean
 echo %WARN% environment. No Conda or Python variables should be in Path.
-echo %WARN% If you wish to proceed, the script will attempt to clean up
-echo %WARN% environment (no guarantees)...
-pause
 
-if defined _CONDA (
-  "%_CONDA %" deactivate
-  set "CONDA_EXE="
-  set "CONDA_PYTHON_EXE="
-  set "CONDA_SHLVL="
-)
-
-exit /b 0
+exit /b 1
 :: ============================================================================ 
 :: ============================================================================ NO_ROOT_ENVIRONMENT END

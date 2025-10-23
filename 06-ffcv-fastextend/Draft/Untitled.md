@@ -48,7 +48,7 @@ cd AIFFCV
 Run the single entry point.
 
 ```cmd
-call Anaconda.bat
+>Anaconda.bat
 ```
 
 It will:
@@ -62,10 +62,9 @@ It will:
 > [!WARNING]
 > 
 > - The Conda environment file included in the project contains some extra components that are not dependencies of FFCV.
-> - The environment resolution process is slow and does not output any progress feedback to console.
 
+#### Color Coding
 
-Success cues include lines like:
 
 ```
 -[OK]- Micromamba: Completed
