@@ -239,9 +239,11 @@ This is a failure from `link.exe` (the linker). This means the linker was told t
 
 This is the most difficult error to debug. It occurs _after_ the package has successfully compiled and installed, but fails when you try to `import` it in Python.
 
+![](./AIFFCV/Screenshots/DLLL_Load_Error.jpg)
+
 This error message is deeply misleading. It does not necessarily mean that `_libffcv.pyd` (the module being imported) could not be found. It can mean one of several things:
 
-1. **The module is not found:** The file (`_libffcv.pyd`) is actually missing. (This is rare if `pip install` reported success).
+1. **The module is not found:** The file (`_libffcv*.pyd`) is actually missing. (This is rare if `pip install` reported success).
 2. **A direct dependency is not found:** The file `_libffcv.pyd` _was_ found, but the Windows OS loader could not find a DLL it _depends on_ (e.g., `opencv_world460.dll` or `pthreadVC2.dll`). The loader normally, but not always, checks for these DLLs in the active `PATH`.
 3. **A transitive dependency is not found:** A dependency _of a dependency_ is missing. For example, `opencv_world460.dll` might itself depend on `SomeOtherLibrary.dll`, and if _that_ file is not on the `PATH`, the load will fail with the same error.
 4. **An incompatible dependency was found:** A dependency _was_ found on the `PATH`, but it is incompatible (e.g., a 32-bit DLL was loaded by a 64-bit Python process, or it was compiled with an incompatible C++ runtime).
