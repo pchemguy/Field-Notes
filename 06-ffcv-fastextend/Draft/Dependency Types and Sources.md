@@ -101,4 +101,23 @@ ImportError: DLL load failed while importing _libffcv: The specified module coul
 ```
    
 The section on DLL loading troubleshooting should be extended.
-Two essential tools to again insights into what is going
+Two essential tools to again insights into what is going are [Dependencies](https://github.com/lucasg/Dependencies) and [Sysinternals Process Monitor](https://learn.microsoft.com/en-us/sysinternals/downloads/procmon). The last installation step of the provided scripts is copying DLLs of external dependencies, `OpenCV` and `pthreads-win32` are used as such external dependencies, while the Conda package for LibJPEG-Turbo is used in present setup to fulfill the third dependency. Early iterations of the presented scripts did not involve copying the required `OpenCV` and `pthreads-win32` DLLs into Python environments, but instead the scripts added external location to the `Path`. In theory this configuration should provide the OS the necessary information to find all dependencies. However, attempted test command `python -c "import ffcv"` resulted in error shown in this screenshot:
+
+{}
+
+Since the module in question, `_libffcv.cp310-win_amd64.pyd` was in the root of the `ffcv` package being imported, I opened it in Dependencies. The screenshot below shows that Python DLL and the three library dependencies are missing. Ok, so while Dependencies is not a console application (though it provides a command-line variant as well), when the process is started, it should inherit parent's environment, including `Path`. If it is started from plain shell or Windows Explorer, the process normally inherits the default system shell. But that is not exactly what the OS should see, when attempting `import ffcv`. In that case, the command was executed from an activated shell, including locations of dependencies. After I started a new copy of `Dependencies` from an activated (via the `conda_far.bat` script) shell, the picture has changed to expected successful resolution of all dependencies, meaning the `Path` should be in fact set correctly.
+
+{}
+
+The next level of insight not provided by Windows would be to sneak pick at the actual dependency loading process. And that is where the Process Monitor shines. Specifically, I wanted to focus on the actual DLL search process, focusing on DLL names shown in the `Dependencies` screenshots. The first step is configuration. Before capturing the events, we want to tell ProcMon to show file events only, and create four  *include* filters,
+- Process name is `python.exe`
+- Path ends with {DLL_NAME} (one for each dependency)
+as shown in the screenshot below
+
+{}
+
+Once filters are all set, activate the capture mode and run `python -c "import ffcv"` from an activated shell, and voila. The result displayed below correspond to the early bootstrapping variant not involving copying the external dependencies into Conda environment. (To see the same output, the DLL would need to be removed from the created Conda environment.)
+
+{}
+
+The only line with result reading "FILE LOCKED..." is for the `turbojpej.dll` which, as ca be seen from the `Path` column is the module sitting in the standard location of the Conda environment. All other lines read "NAME NOT FOUND", which is expected given the indicated locations. It also makes sense that the first places Python checks is the directory containing the `pyd` module (the `ffcv` package top directory with `site-packages`). That location is checked for all three files unsuccessfully, as expected. The critical observation is that the only location checked outside the Conda environment is `%SystemRoot%\System32`. Every other path component outside the Conda environment is ignored. According to Google Gemini (I do not see a solid source right away), "DLL Search Order in Python 3.8+ on Windows: Current Working Directory and PATH: In Python 3.8 and later, the current working directory and directories listed in the system's PATH environment variable are not included in the default DLL search path for dependent DLLs of extension modules. This change was implemented to mitigate DLL hijacking vulnerabilities." So `Path` is no longer a good tool for the task. While there are several approaches to resolve the issue, the least invasive that does not touch FFCV's source code would be to copy DLLs into one of the directories shown as checked in the ProcMon's screenshot. There are two natural places - the `ffcv` package directory, if these libraries are only needed for this package only, or, perhaps the standard location - `Library/bin`, which is what the provided scripts do at the end.
