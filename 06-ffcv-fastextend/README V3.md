@@ -75,12 +75,12 @@ set "BUILDTOOLS=C:\Program Files\Microsoft Visual Studio\2022\BuildTools"
 
 Scripts use consistent, minimal color-coded labels (set `NOCOLOR=1` for plain text):
 
-| **Label**   | **Meaning**                                                                        |
-| ----------- | ---------------------------------------------------------------------------------- |
-| **[WARN]**  | Major stage banner, beginning of a subtask, or warning (e.g. MS Build Tools check) |
-| **[INFO]**  | Progress and diagnostic output                                                     |
-| **[-OK-]**  | Successful task or step completion                                                 |
-| **[ERROR]** | Critical failure causing termination                                               |
+| **Label**     | **Meaning**                                                                        |
+| ------------- | ---------------------------------------------------------------------------------- |
+| **`[WARN]`**  | Major stage banner, beginning of a subtask, or warning (e.g. MS Build Tools check) |
+| **`[INFO]`**  | Progress and diagnostic output                                                     |
+| **`[-OK-]`**  | Successful task or step completion                                                 |
+| **`[ERROR]`** | Critical failure causing termination                                               |
 
 At the end of a successful installation, you should see an `[OK]` banner as shown below.
 

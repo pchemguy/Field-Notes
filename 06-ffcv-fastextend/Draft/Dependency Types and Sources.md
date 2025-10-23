@@ -100,3 +100,5 @@ Traceback (most recent call last):
 ImportError: DLL load failed while importing _libffcv: The specified module could not be found.
 ```
    
+The section on DLL loading troubleshooting should be extended.
+Two essential tools to again insights into what is going
