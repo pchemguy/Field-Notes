@@ -129,15 +129,44 @@ Unlike Linux, which uses standard paths like `/usr/include`, Windows paths are f
 
 If these variables are pre-set with the correct paths _before_ `pip install` is run, the build should succeed even if the package's `setup.py` logic is broken.
 
-### The Missing Link: Forcing `pip` to Respect the Environment
+### The MSVC Detection Trap: `cl.exe` is on PATH, but `pip` Fails
 
-A common frustration on Windows is that even after _manually_ activating the MSVC environment (e.g., by running `vcvars64.bat`), `pip` and `setuptools` will _still_ fail, claiming the compiler is missing. This issue arises because, by default, `setuptools` tries to find the compiler itself instead of using the one already active in the shell. The solution, implemented in `conda_far.bat`, is to set:
+A common and deeply frustrating error on Windows is pip failing with:
+
+```
+Microsoft Visual C++ 14.0 or greater is required.
+```
+
+This is especially confusing when you have _already_ activated the MSVC environment (e.g., by running `vcvarsall.bat`) and can successfully run `cl.exe` from your terminal.
+
+The problem is that `setuptools` (specifically the `setuptools\_distutils\compilers\C\msvc.py` module) ignores your `PATH`. Instead of checking for `cl.exe`, its `_get_vc_env()` function attempts to "find" MSVC using its own limited logic:
+
+1. It calls `_find_vc2017()`, which looks for `vswhere.exe` in a **hardcoded** `%ProgramFiles(x86)%` path.
+2. It calls `_find_vc2015()`, which checks a **specific registry key** (`HKLM\Software\Microsoft\VisualStudio\SxS\VC7`).
+
+If you have MSVC installed in a custom location, are using a portable version, or have simply activated the environment via `vcvarsall.bat` _without_ it being in the default path/registry, these checks will fail. `setuptools` will incorrectly conclude that MSVC is not installed and raise the error, even though it is perfectly available in your shell.
+
+#### The Solution: `DISTUTILS_USE_SDK=1`
+
+The `setuptools` code provides an escape hatch. The _very first thing_ the `_get_vc_env()` function does is check for an environment variable:
+
+```python
+def _get_vc_env(plat_spec):
+    if os.getenv("DISTUTILS_USE_SDK"):
+        return {key.lower(): value for key, value in os.environ.items()}
+    
+    # ... rest of the detection logic ...
+```
+
+If `DISTUTILS_USE_SDK=1` is set, `setuptools` skips its entire limited detection logic and simply trusts the environment variables (`INCLUDE`, `LIB`, `LINK`, `PATH`) that are already active in the shell.
+
+This is precisely why `conda_far.bat` (which is called by the main `Anaconda.bat` bootstrapper) sets:
 
 ```
 set "DISTUTILS_USE_SDK=1"
 ```
 
-This environment variable forces `setuptools` to trust and reuse the existing environment variables (`INCLUDE`, `LIB`, `LINK`, `PATH`) that my scripts have carefully prepared. This setting is a critical, non-obvious step for most native Windows builds.
+This single line forces `pip` and `setuptools` to respect the environment that `msbuild.bat` has prepared, making the native compilation robust and reliable.
 
 ### The FFCV-Specific Problem
 
@@ -177,7 +206,6 @@ Setting the variables above is sufficient for the _build_ to complete. However, 
 
 While our `conda_far.bat` adds these to the `PATH` for the _current shell_, this is not a permanent solution. To make the environment self-contained, `Anaconda.bat` runs a final step:
 
-DOS
 
 ```
 call :COPY_DLLS
