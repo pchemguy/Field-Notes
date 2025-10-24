@@ -1,9 +1,10 @@
 <!--
 https://chatgpt.com/c/68ed5ca2-ee7c-8330-a5d1-0d4b81ee3aa0
 -->
-![](./vis1.jpg)
 
 # **Python pip Fails to Detect MS Build Tools on Windows**
+
+![](./vis1.jpg)
 
 ## **Summary**
 
