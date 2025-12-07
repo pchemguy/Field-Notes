@@ -1,3 +1,5 @@
+https://chatgpt.com/c/6935d3da-f2e0-8325-910f-9c9f2190c6de
+
 ## **Mastering Gemini Pro Agentic Coding Features for Python Development on Windows 10**
 
 ### **0. Context & Constraints (MANDATORY)**
@@ -18,7 +20,7 @@ The environment:
     * Multiple projects, each with isolated Python environments
 * **Editor**: Visual Studio Code with the **Gemini Code Assist extension**
 * **Project hosting**: GitHub (issues, PRs, projects, discussions available)
-* **Optional tools available**: MSYS2 environment from Ruby installer
+* **Optional tools available**: MSYS2 environment from Ruby installer (may or may not be useful)
 * **Primary goal**: Professional Python development, including multi-module projects, agents, build scripts, automated workflows.
 
 You must **tailor all explanations to this specific environment**.
