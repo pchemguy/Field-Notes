@@ -15,6 +15,7 @@ https://developers.googleblog.com/new-in-gemini-code-assist/
 https://blog.google/technology/developers/introducing-gemini-cli-github-actions/
 https://github.com/google-github-actions/run-gemini-cli
 https://developers.googleblog.com/en/gemini-cli-vs-code-native-diffing-context-aware-workflows/
+https://cloud.google.com/blog/topics/developers-practitioners/gemini-cli-custom-slash-commands
 
 
 `npm install --cache /path/to/your/cache -g @google/gemini-cli@latest`
