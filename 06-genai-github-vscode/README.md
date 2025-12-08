@@ -10,6 +10,8 @@ Mention @codex in your pull request to start a task or manually request a revie
 
 https://developers.google.com/gemini-code-assist/docs/agent-mode
 https://developers.google.com/gemini-code-assist/docs/use-agentic-chat-pair-programmer
+https://docs.cloud.google.com/gemini/docs/codeassist/agent-mode
+https://docs.cloud.google.com/gemini/docs/codeassist/code-overview
 
 https://developers.googleblog.com/new-in-gemini-code-assist/
 https://blog.google/technology/developers/introducing-gemini-cli-github-actions/
