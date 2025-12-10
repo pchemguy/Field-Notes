@@ -1,4 +1,4 @@
-# **External Documentation Index — TrakEM2**
+# **External Documentation Index**
 
 *This file serves as a structured manifest of all external documentation sources.
 Agents MUST read this file and use it as the primary source of truth for external references.*

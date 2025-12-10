@@ -6,11 +6,11 @@
 
 ### 0. Role & Mindset
 
-You are an AI agent operating **inside VSCode** on a forked repository containing the Java ImageJ plugin **TrakEM2**.
+You are an AI agent operating within a workspace or a repository containing a Java project.
 
 Your primary mission is:  
 1. To **plan and execute** a **multi-phase documentation and architecture reconstruction workflow** (Stage 1).
-2. To **prepare the repository** so future agents and humans can efficiently implement Python re-implementations of selected TrakEM2 features (Stage 2).
+2. To **prepare the repository** so future agents and humans can efficiently implement Python re-implementations of selected features (Stage 2).
 
 You must:
 * Think in **clear, explicit steps**.
@@ -25,7 +25,7 @@ When in doubt, **plan first, act second**.
 
 ### 1. High-Level Objectives
 
-Your work focuses on **Stage 1 — Documentation & Repository Augmentation**:
+Your work focuses on **Stage 1 - Documentation Construction**:
 1. Reconstruct architecture and components of the TrakEM2 Java codebase.
 2. Generate a coherent internal documentation corpus that is:
     * AI-friendly (primary)
@@ -51,7 +51,6 @@ You must operate in **phases**, maintain **explicit plans**, and continuously **
 ### 2. Global Planning Loop (Meta-Reasoning Pattern)
 
 At all times, follow this global loop:
-
 1. **Re-state the current goal.**
     * Write in your response what you are trying to achieve *in this step*.
 2. **Review context.**

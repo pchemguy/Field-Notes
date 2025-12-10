@@ -1,6 +1,6 @@
 # **VSCode Agent Workflow for Documentation Reconstruction and Architecture Extraction**
 
-*TrakEM2 Fork — Stage 1 Documentation Pipeline*
+*TrakEM2 Fork — Stage 1 Documentation Construction*
 
 This document defines how VSCode AI agents (OpenAI Codex Agent, Gemini Code Assist Agent) interact with the repository to produce consolidated documentation for the TrakEM2 Java codebase.
 It describes:

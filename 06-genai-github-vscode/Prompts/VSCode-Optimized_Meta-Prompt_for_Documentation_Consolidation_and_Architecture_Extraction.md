@@ -19,7 +19,6 @@ All outputs must be created as files inside the repo, using VSCode agent abiliti
 ### **Local Workspace (Primary Source):**
 
 The repository contents, including:
-
 * Java source code under `src/`
 * Existing docs (if present)
 * Any notes or partial documentation currently in the repo
@@ -37,19 +36,17 @@ You must fetch and analyze these autonomously.
 
 # **2. Objectives (Agent-Facing)**
 
-Your tasks in VSCode are:
+Your tasks are:
 
-## **Stage 1 (This Prompt): Documentation Construction**
+## **Stage 1 - Documentation Construction**
 
 Create a coherent internal documentation corpus optimized for both:
-
 * LLM agents, and
 * Human engineers.
 
 Documentation must be written to maximize downstream **code comprehension**, **architecture inference**, and **Python translation**.
 
 Deliverables include:
-
 * `docs/DESIGN.md`
 * `docs/ARCHITECTURE.md`
 * `docs/COMPONENTS.md`
@@ -62,7 +59,6 @@ Deliverables include:
 ## **Stage 2 (Future): Interactive Exploration for Python Re-implementation**
 
 Your documentation must prepare the repo so future VSCode agent workflows can:
-
 * Answer architectural questions
 * Generate Python equivalents of selected algorithms
 * Produce wrappers, adapters, tests
@@ -74,8 +70,6 @@ Stage 2 is not performed now; *prepare for it through Stage 1 outputs*.
 
 # **3. Agent Constraints and Operating Mode**
 
-Inside VSCode:
-
 * Use **file-level actions**: create, update, restructure, extract.
 * Always propose a file-generation plan before writing.
 * Use **minimal hallucination**; if information is missing, request clarification or source excerpts from the user.
@@ -86,12 +80,11 @@ Inside VSCode:
 
 # **4. Core Tasks You Must Execute**
 
-As the VSCode agent, you must develop:
+You must develop:
 
 ## **4.1. A Repo Documentation Pipeline**
 
 You will generate a pipeline with explicit steps:
-
 1. Workspace scan
 2. Symbol extraction (packages, classes, interfaces)
 3. High-level architecture reconstruction
@@ -123,7 +116,6 @@ docs/
 ## **4.3. Agent-Powered Code Analysis**
 
 Perform tasks such as:
-
 * Enumerate all packages and their responsibilities.
 * Extract class-level summaries.
 * Describe interactions between subsystems.
@@ -133,7 +125,6 @@ Perform tasks such as:
 ## **4.4. Prompt Templates for Reuse**
 
 Generate generalized prompts that can be applied to any repo:
-
 * “Scan workspace and generate subsystem map”
 * “Extract execution flow for class X”
 * “Generate algorithm summary for method Y”
@@ -149,22 +140,15 @@ These will be written into `docs/AGENTS.md`.
 
 Your output (as the agent) must be a **complete guide** that includes:
 
-### 1. **A multi-phase workflow** for documentation synthesis
-
-### 2. **A concrete set of steps the user should follow inside VSCode**
-
-### 3. **When to use Agent Mode vs ChatGPT/Gemini in the browser**
-
-### 4. **Prompts that the user should issue to the VSCode agent**
-
-### 5. **The documentation structure and file definitions**
-
-### 6. **A plan for iterative refinement and verification**
-
-### 7. **A standard pattern applicable to other repositories**
+1. **A multi-phase workflow** for documentation synthesis
+2. **A concrete set of steps the user should follow inside VSCode**
+3. **When to use Agent Mode vs ChatGPT/Gemini in the browser**
+4. **Prompts that the user should issue to the VSCode agent**
+5. **The documentation structure and file definitions**
+6. **A plan for iterative refinement and verification**
+7. **A standard pattern applicable to other repositories**
 
 This guide must instruct explicitly:
-
 * what the agent does,
 * what the user does,
 * how files evolve across iterations.
