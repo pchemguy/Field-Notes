@@ -1,12 +1,9 @@
-# **VSCODE_AGENT_WORKFLOW.md**
-
 # **VSCode Agent Workflow for Documentation Reconstruction and Architecture Extraction**
 
 *TrakEM2 Fork — Stage 1 Documentation Pipeline*
 
 This document defines how VSCode AI agents (OpenAI Codex Agent, Gemini Code Assist Agent) interact with the repository to produce consolidated documentation for the TrakEM2 Java codebase.
 It describes:
-
 * The multi-phase workflow
 * Agent responsibilities
 * Human responsibilities
@@ -40,7 +37,6 @@ The workflow is divided into five major phases:
 ## **Human**
 
 * Dispatches tasks to the VSCode agent.
-* Provides missing source excerpts from external docs.
 * Reviews and approves generated files.
 * Performs Git commits.
 * Requests refinements.
@@ -98,7 +94,6 @@ The agent produces a structured tree with notes.
 ## **Phase 1 — Symbol Extraction**
 
 Agent tasks:
-
 * Enumerate all Java packages.
 * List classes, interfaces, enums.
 * Extract class responsibilities (based on names, comments, context).
@@ -110,7 +105,6 @@ docs/_analysis/symbol_map.md
 ```
 
 Deliverables include:
-
 * Package → classes map
 * Class → description draft
 * Identification of probable subsystems
@@ -121,7 +115,6 @@ Deliverables include:
 ## **Phase 2 — Architecture Reconstruction**
 
 Agent tasks:
-
 * Identify principal subsystems (UI, data structures, operations, rendering, IO, etc.).
 * Extract execution flows for main entry points.
 * Identify algorithm clusters.
@@ -166,15 +159,9 @@ Agent generates:
 
 ## **Phase 4 — Cross-Linking External Documentation**
 
-Human provides excerpts from:
-
-* ImageJ plugin page
-* GitHub wiki
-* Outdated manual
-* Fiji Javadoc (filtered)
-
 Agent tasks:
-
+- Reads `docs/EXTERNAL_SOURCES.md` and fetches external documentation based on information within `docs/EXTERNAL_SOURCES.md`. All external content must come from this manifest unless the user explicitly provides additional sources.
+- Performs additional tasks related to external documentation specified in `docs/EXTERNAL_SOURCES.md` 
 * Integrate references into `LEGACY_REFERENCES.md`
 * Back-link architecture and algorithm descriptions
 * Resolve conceptual gaps
@@ -184,14 +171,12 @@ Agent tasks:
 ## **Phase 5 — Refinement Cycles**
 
 Agent:
-
 * Re-runs symbol extraction to detect missing pieces
 * Highlights documentation inconsistencies
 * Suggests reorganization or expansion
 * Updates files incrementally
 
 Human:
-
 * Reviews changes and approves further tasks
 
 ---
@@ -273,22 +258,19 @@ repository, interpret documentation, and answer user architectural questions.
 # **6. Refinement Procedure**
 
 Each refinement cycle follows this pattern:
-
 1. Human requests a specific action (“Refine X”).
 2. Agent performs targeted analysis or documentation update.
 3. Agent outputs changes to files.
 4. Human reviews file diffs.
 5. Human either:
-
-   * Requests further refinements, or
-   * Commits changes.
+    * Requests further refinements, or
+    * Commits changes.
 
 ---
 
 # **7. Quality Expectations**
 
 Documentation must be:
-
 * Accurate
 * Internally consistent
 * Organized
@@ -296,6 +278,4 @@ Documentation must be:
 * Useful to both LLM agents and human developers
 * Suitable for downstream Python re-implementations
 
----
 
-# **End of VSCODE_AGENT_WORKFLOW.md**

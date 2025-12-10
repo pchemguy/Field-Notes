@@ -6,7 +6,7 @@ https://chatgpt.com/c/69373bd1-b290-8326-80e3-48ca3f89790d
 
 ## **Purpose**
 
-You (the VSCode Agent: OpenAI Codex or Gemini Code Assist) must plan and execute a multi-stage workflow for consolidating documentation and reconstructing the architecture of the Java-based ImageJ plugin **TrakEM2**, located in the current workspace (a forked repository).
+You must plan and execute a multi-stage workflow for consolidating documentation and reconstructing the architecture of the Java-based project, located in the current workspace.
 
 You will propose workflows, generate documentation files, analyze source code, summarize components, and prepare the repository for downstream AI-assisted Python re-implementation.
 
@@ -26,14 +26,12 @@ The repository contents, including:
 
 ### **External Documentation (Secondary Source):**
 
-To be referenced by human-provided Deep Research results:
+* ImageJ TrakEM2 plugin page - https://imagej.net/plugins/trakem2
+* GitHub wiki - https://github.com/trakem2/TrakEM2/wiki
+* Outdated manual - https://syn.mrc-lmb.cam.ac.uk/acardona/INI-2008-2011/trakem2_manual.html
+* Fiji Javadoc (must filter by TrakEM2 classes) - https://javadoc.scijava.org/Fiji
 
-* ImageJ TrakEM2 plugin page
-* GitHub wiki
-* Outdated manual
-* Fiji Javadoc filtered by TrakEM2 classes
-
-You *do not* fetch these autonomously; the human will paste relevant content or summaries when required.
+You must fetch and analyze these autonomously.
 
 ---
 
@@ -41,11 +39,11 @@ You *do not* fetch these autonomously; the human will paste relevant content or 
 
 Your tasks in VSCode are:
 
-## **Stage 1: Documentation Construction**
+## **Stage 1 (This Prompt): Documentation Construction**
 
 Create a coherent internal documentation corpus optimized for both:
 
-* LLM agents (including yourself), and
+* LLM agents, and
 * Human engineers.
 
 Documentation must be written to maximize downstream **code comprehension**, **architecture inference**, and **Python translation**.
@@ -99,7 +97,7 @@ You will generate a pipeline with explicit steps:
 3. High-level architecture reconstruction
 4. Per-component summaries
 5. Algorithm extraction
-6. Cross-link Java classes with external docs (based on human-provided excerpts)
+6. Cross-link Java classes with external docs
 7. Documentation synthesis into canonical files
 8. AI-targeted navigation guidance
 9. Validation, refinement, and linking
@@ -175,7 +173,7 @@ The deliverable should be written as a structured technical document inside VSCo
 
 ---
 
-# **6. How You (the VSCode Agent) Must Format Your Guide**
+# **6. How You Must Format Your Guide**
 
 Your generated guide must include:
 
@@ -208,14 +206,14 @@ How to iteratively improve docs through commits.
 # **7. Tone & Style Requirements**
 
 * Use **concise professional technical writing**.
-* Reference VSCode agent operations explicitly (e.g., “Create file at path X”).
+* Reference agent operations explicitly (e.g., “Create file at path X”).
 * Avoid speculative content.
 * Use accurate references to workspace paths.
 * Propose improvements, but do not unilaterally reorganize code.
 
 ---
 
-# **8. Final Instruction to the VSCode Agent**
+# **8. Final Instruction to the Agent**
 
 **Generate the complete documentation-creation guide described above, formatted as a standalone file (`docs/VSCODE_AGENT_WORKFLOW.md`).
 Include multi-phase workflows, prompts, templates, file structures, and operating instructions.

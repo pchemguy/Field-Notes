@@ -1,11 +1,3 @@
-# **Git Commit Plan for Managing Stage 1 Documentation `docs/GIT_COMMIT_PLAN.md`**
-
-Below is the commit strategy tuned for working with VSCode agent iterations and continuous refinement.
-
----
-
-## **GIT_COMMIT_PLAN.md**
-
 # **Git Commit Plan for Stage 1 Documentation**
 
 *TrakEM2 Architecture Reconstruction & Documentation Consolidation*
@@ -224,4 +216,3 @@ Optional enhancements:
 
 ---
 
-# **End of GIT_COMMIT_PLAN.md**
