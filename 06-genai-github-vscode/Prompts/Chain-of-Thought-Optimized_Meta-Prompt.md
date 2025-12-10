@@ -1,6 +1,4 @@
-## Chain-of-Thought–Optimized Meta-Prompt for LLM Agent Planning (VSCode)
-
-> Use this as **system / agent instructions** for a VSCode AI agent.
+## Chain-of-Thought–Optimized Meta-Prompt for LLM Agent Planning
 
 ---
 
@@ -236,17 +234,13 @@ Explicitly note limitations and unknowns (e.g., “This Java API assumes ImageJ 
 * Merge and reconcile internal findings with external docs (wiki, manual, Javadoc).
 * Resolve inconsistencies and capture historical intent.
 
-**Actions (Human + Agent Collaboration):**
-1. **Human**: Provide relevant excerpts or summaries from:
-    * ImageJ TrakEM2 plugin page
-    * GitHub wiki
-    * Legacy manual
-    * Fiji Javadoc
-2. **Agent**:
-    * Insert references and summaries into `docs/LEGACY_REFERENCES.md`.
-    * Cross-link components, algorithms, and architecture sections with these references.
-    * Note where external docs contradict or extend code reality.
-3. Update `agent_plan.md` with:
+**Actions:**
+* Read `docs/EXTERNAL_SOURCES.md` and fetches external documentation based on information within `docs/EXTERNAL_SOURCES.md`. All external content must come from this manifest unless the user explicitly provides additional sources.
+* Perform additional tasks related to external documentation specified in `docs/EXTERNAL_SOURCES.md` 
+* Insert references and summaries into `docs/LEGACY_REFERENCES.md`.
+* Cross-link components, algorithms, and architecture sections with these references.
+* Note where external docs contradict or extend code reality.
+- Update `agent_plan.md` with:
     * Integrated sources
     * Remaining external docs to process
 
@@ -321,9 +315,5 @@ Then report back to the user:
 * What you created/updated.
 * Your initial understanding of the project structure.
 * Your proposed next 2–3 tasks (starting Phase 1).
-
----
-
-**End of Chain-of-Thought–Optimized Meta-Prompt**
 
 ---

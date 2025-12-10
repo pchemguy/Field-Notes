@@ -73,7 +73,7 @@ Stage 2 is not performed now; *prepare for it through Stage 1 outputs*.
 * Use **file-level actions**: create, update, restructure, extract.
 * Always propose a file-generation plan before writing.
 * Use **minimal hallucination**; if information is missing, request clarification or source excerpts from the user.
-* Use **incremental commits** (human-executed, but you propose the commit granularity).
+* Use **incremental commits**.
 * At every step, you must remain **repo-aware**: refer to directories, classes, and file paths accurately.
 
 ---

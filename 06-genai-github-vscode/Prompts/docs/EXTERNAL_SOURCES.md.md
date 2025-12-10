@@ -35,7 +35,6 @@ type: website
 url: [https://imagej.net/plugins/trakem2](https://imagej.net/plugins/trakem2)
 priority: high
 notes:
-
 * Official ImageJ plugin documentation overview.
 * May contain current descriptions of functionality + screenshots.
   extraction_status: pending
@@ -51,7 +50,6 @@ type: github_wiki
 url: [https://github.com/trakem2/TrakEM2/wiki](https://github.com/trakem2/TrakEM2/wiki)
 priority: high
 notes:
-
 * Multiple pages; requires enumerating wiki subpages.
 * Contains design discussions, usage notes, legacy documentation.
   extraction_status: pending
@@ -67,7 +65,6 @@ type: html_manual
 url: [https://syn.mrc-lmb.cam.ac.uk/acardona/INI-2008-2011/trakem2_manual.html](https://syn.mrc-lmb.cam.ac.uk/acardona/INI-2008-2011/trakem2_manual.html)
 priority: medium
 notes:
-
 * Outdated but contains architectural insights and original author intent.
   extraction_status: pending
   summary:
@@ -82,7 +79,6 @@ type: javadoc
 url: [https://javadoc.scijava.org/Fiji](https://javadoc.scijava.org/Fiji)
 priority: medium
 notes:
-
 * Must filter for classes containing “trakem2” in package or class name.
 * Useful for understanding API surfaces and relationships.
   extraction_status: pending

@@ -38,13 +38,13 @@ The workflow is divided into five major phases:
 
 * Dispatches tasks to the VSCode agent.
 * Reviews and approves generated files.
-* Performs Git commits.
 * Requests refinements.
 
 ## **AI Agent**
 
 * Analyzes Java code.
 * Creates or updates documentation files.
+* Performs incremental Git commits.
 * Extracts architectural insights.
 * Identifies unclear or incomplete areas.
 * Suggests follow-up tasks.
