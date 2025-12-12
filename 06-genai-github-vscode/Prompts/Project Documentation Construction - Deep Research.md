@@ -1,6 +1,6 @@
 https://chatgpt.com/c/69373bd1-b290-8326-80e3-48ca3f89790d
 
-# **Project Documentation Construction**
+# **Project Documentation Construction - Deep Research**
 
 ---
 
