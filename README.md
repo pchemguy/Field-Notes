@@ -28,6 +28,7 @@ Each topic is contained within its own folder. Inside each folder, you will find
 - [Bootstrapping Python Environments on Windows (via Micromamba)](https://github.com/pchemguy/Field-Notes/blob/main/03-python-env-windows/README.md)
 - [Scripted Downloads of Latest GitHub Binary Releases on Windows](https://github.com/pchemguy/Field-Notes/blob/main/04-github-release-download/README.md)
 - [Python pip Fails to Detect MSVC Build Tools on Windows](./05-python-pip-msvc/README.md)
+- [Resumable git clone for large code base and slow/unreliable connection](./07-resumable-git-clone/README.md)
 
 ## Acknowledgments
 
