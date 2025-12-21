@@ -1,0 +1,5 @@
+git clone --filter=blob:none --no-checkout https://github.com/pchemguy/FGVC_Aircraft_dataset.git
+git reset
+git ls-files --deleted
+git gc --prune=now
+git update-index --refresh
