@@ -1,23 +1,88 @@
-# Resumable Git Clone
+<!-- https://chatgpt.com/c/69486ad4-e3cc-832c-9956-839a9ba31f9f -->
 
-I find it absolutely ridiculous and inexcusable that git developers apparently never bothered implementing a proper robust download management. Cloning of relatively large repositories over limited bandwidth/stability connection may readily becomes a big problem, because on network failure git starts the process from scratch, rendering the core command `git clone` largely useless. There are actually several problems here. In addition to complete lack of "resume on failure" feature, it does not separate metadata (its size a small fraction of that of the code base) and the code base. It is, in fact, possible to clone the repo metadata only via command (why a simple direct command for this task is not available is unclear):
+# Resumable Git Clone via Sparse Checkout (Windows, Low-Bandwidth)
 
+## Problem Statement
+
+`git clone` does **not** support resumable downloads. On unstable or bandwidth-limited connections, cloning large repositories becomes fragile: a single network failure causes the entire transfer to restart from scratch.
+
+Two structural limitations are involved:
+
+1. **No resume-on-failure semantics** for blob transfer.
+2. **No clean separation between metadata and blobs** in the default workflow, despite the fact that metadata is typically a small fraction of repository size.
+
+While Git supports *partial clones*, it provides no first-class, resumable mechanism for completing the blob transfer in controlled batches.
+
+---
+
+## Metadata-Only Clone
+
+Git *can* clone repository metadata without blobs:
+
+```bash
+git clone --filter=blob:none --no-checkout <URL>
 ```
-git clone --filter=blob:none --no-checkout %URL%
-```
- 
- Getting blobs in a resumable fashion proved to be tricky. I tried a few options, but the one that worked best was based on the `sparse-checkout` feature that enables batched checkout. While blobs are not actually fetched, an attempt to perform a checkout command after the command above causes git to fetch blobs automatically. While `fetch` command does not provide batched mode, this indirect fetching makes it possible.
- 
- Now, because the above command clones all metadata, but not blobs, all files present in a checked out currently active branch will appear as deleted to git. A full list of files can be generated:
+
+This creates a valid repository with:
+
+* full commit history,
+* trees,
+* refs,
+* but **no file contents**.
+
+At this stage, all files appear as deleted in the working tree.
+
+---
+
+## Strategy: Indirect, Batched Blob Fetching
+
+Git does **not** offer a batched or resumable `git fetch` for blobs. However:
+
+* `git sparse-checkout add` *implicitly fetches blobs*
+* Sparse paths can be supplied incrementally
+* Each successful checkout persists downloaded blobs
+
+This makes it possible to:
+
+* split the file list into batches,
+* fetch blobs batch-by-batch,
+* retry failed batches,
+* resume safely after interruption.
+
+---
+
+## Generating the File List
+
+After metadata-only clone:
 
 ```batch
 git reset >nul
-git ls-files --deleted >"%ROOT%/filelist.txt"
+git ls-files --deleted > filelist.txt
 ```
 
-This full list of files that need to be downloaded can then be used for resumable process. The simplest approach is to split it into batch files of predefined size (files per batch), have a sparse-checkout loop over the directory containing these batch files, delete individual batch files immediately after a successful sparse-checkout process, and wrap the full loop in a retry loop, forcing retry, if the number of predefined maximum retries is not reached and there are some batch file lists still remaining due to prior errors.
+This produces the full list of paths requiring blob download.
 
-The full proof-of-concept Windows batch script is presented bellow:
+---
+
+## Execution Model
+
+1. Split file list into fixed-size batches
+2. Initialize sparse checkout (non-cone mode)
+3. Iteratively:
+    * add batch paths via stdin,
+    * delete batch file on success,
+    * retry remaining batches on failure
+4. Disable sparse checkout after completion
+
+This approach is:
+
+* resumable,
+* deterministic,
+* connection-failure tolerant.
+
+---
+
+## Proof-of-Concept Windows Batch Script
 
 ```batch
 @echo off
@@ -87,5 +152,23 @@ if exist "%ROOT%/%REPO%_batches/batch*.txt" (
 call git sparse-checkout disable
 echo Batched checkout is complete.
 rmdir /S /Q "%ROOT%/%REPO%_batches"
-
 ```
+
+---
+
+## Notes & Limitations
+
+* This is a **workflow hack**, not a replacement for native resumable clone support.
+* Performance depends on batch size and server behavior.
+* The approach is especially useful for:
+    * large datasets,
+    * archival repositories,
+    * constrained or unstable networks.
+
+---
+
+## Takeaway
+
+Git already contains the primitives needed for resumable cloning — but they are not composed into a usable, documented workflow. Sparse checkout can be repurposed to bridge this gap.
+
+---
