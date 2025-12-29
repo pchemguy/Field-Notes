@@ -1,29 +1,62 @@
-# Setting up WSL
+<!-- https://gemini.google.com/app/cf4f2fb394b7efe5 -->
 
-AI finally managed to persuade me that attempting any serious AI training on a pure Windows machine may not be worth it as Windows has performance-related architectural limitations on multiple levels. At the same time, I am not ready to go all the way Linux (though I provisioned a second system drive for potentially dually bootable Windows/Linux arrangement in the future). According to AI, WSL2 on Windows 11 supposedly should largely resolve key Windows issues, minimizing performance penalties, so I decided to stick with this configuration for now before having a dedicated Linux system.
+# Setting up WSL for AI Development
 
-Windows Subsystem for Linux ([official WSL docs](https://learn.microsoft.com/windows/wsl)) enables running a virtual Linux machine with minimalistic performance penalty. The default installation workflow, while appears to be relatively simple, is also largely a blackboxed. At the same time, a more advanced installation strategy does offer a more exposed alternative.
+While native Linux remains the gold standard for machine learning workflows due to Windows' architectural overhead, transitioning to a full dual-boot system isn't always immediate. A robust compromise is WSL 2 (Windows Subsystem for Linux). It resolves key performance bottlenecks by running a lightweight Linux kernel alongside Windows, minimizing the virtualization penalty compared to traditional VMs.
 
-The setup process proceeds in two stages. The first stage
+The default WSL installation process is often a "black box", burying the virtual disk deep within the Windows system drive. For a data-intensive AI setup, we need granular control over storage locations.
 
-```
+This setup proceeds in two distinct stages: **Engine Installation** and **Distro Import**.
+
+## Stage 1: The WSL Engine
+
+The first step installs the hypervisor and Linux kernel without registering a default distribution, avoiding creation of an unwanted Ubuntu instance on the Windows system drive.
+
+```batch
 wsl --install --no-distribution
 ```
 
-downloads and installs the [latest release](https://github.com/microsoft/WSL) of the core WSL setup (offline installation option is also [available](https://learn.microsoft.com/windows/wsl/install#offline-install)). This process should create a directory `%ProgramFiles%/WSL` that should contain `wsl.exe`, `wslservice.exe`, and `system.vhd` among other files.
+This command installs the [latest release](https://github.com/microsoft/WSL) of the core WSL components.
 
-The second stage involves installing the target Linux distribution(s). WSL supports a fully automatic download/installation process from a library of provided distros given their names. A major limitation of the the fully automatic installation is that it does not provide a means to control where the actual Linux files are placed. What the installation process does, it creates a virtual drive image file `ext4.vhdx` holding the installed virtual Linux system. The automatic installation process buries this image file somewhere inside the Windows user account, which is suboptimal. A better approach would be placing this image on a separate NTFS partion (or even drive). In order to do that, the distro installation process should use an alternative `import` command. Now the 'install' and `import` commands expect slightly different distributions. For example, for `Ubuntu 24.04 LTS`, the `install` command expects a WSL image `*.wsl` available from [here](https://releases.ubuntu.com/noble/), while the `import` command expects a root fs tarball `*.rootfs.tar.gz` available from [here](https://cloud-images.ubuntu.com/wsl/releases/24.04/current/). According,
+* **Verification:** After a mandatory reboot, verify the installation by checking `%ProgramFiles%\WSL`.
+* **Key Artifacts:** You should see `wsl.exe`, `wslservice.exe`, and `system.vhd`.
 
-```
+## Stage 2: Custom Distro Import
+
+The standard `wsl --install` command offers no control over where the Linux filesystem (`ext4.vhdx`) is stored. To place the system image on a dedicated partition (e.g., `D:\WSL_System`), we must manually import the distribution.
+
+### The File Formats
+
+Crucially, the `install` and `import` commands require different source file formats:
+
+1. **Standard Installer (`.wsl`/`.appx`):** WSL image used by the automatic installer. Wraps the OS in Windows store metadata and triggers an automatic setup wizard.
+2. **RootFS Tarball (`.rootfs.tar.gz`):** A raw archive of the OS filesystem. This is required for manual importing.
+
+* **Download Source:** [Ubuntu Cloud Images (WSL Releases)](https://cloud-images.ubuntu.com/wsl/releases/24.04/current/)
+* **Target File:** `ubuntu-noble-wsl-amd64-24.04lts.rootfs.tar.gz`
+
+### The Import Command
+
+Instead of the default installation:
+
+```batch
+# AVOID: Installs to default C: location
 wsl --install --from-file ubuntu-24.04.3-wsl-amd64.wsl
 ```
 
-installs the distro into default location within the user account, while
+We use the import command to define a custom location:
 
-```
+```batch
+# RECOMMENDED: Creates the system disk on the D: drive
 wsl --import "UbuntuLTS" "D:\WSL_System\UbuntuLTS" "ubuntu-noble-wsl-amd64-24.04lts.rootfs.tar.gz" --version 2
 ```
 
-creates the image file in the specified location.
+## Stage 3: Data Strategy
 
-This image file contains the operating system. While user data files used by Linux could also go inside this image, a better approach is to place data files on a dedicated ext4-formatted drive mounted via `wsl --mount` command.
+While the OS image (`ext4.vhdx`) now resides on a dedicated NTFS partition, placing heavy training data inside a virtual disk file is still suboptimal.
+
+**Best Practice:**
+
+1. **System:** Keep the OS image small (on the NTFS partition).
+2. **Data:** Format a dedicated physical drive as ext4.
+3. **Mount:** Pass the raw physical drive directly to WSL using `wsl --mount`. This approach bypasses NTFS translation entirely for native Linux I/O performance.
