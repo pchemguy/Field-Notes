@@ -131,10 +131,34 @@ When executed, this script for each subdirectory under "APPDATA" creates a direc
 
 ## Database Analysis Workflow
 
-
-
-
-
+1) Start `ERD Concepts` and create a *New* file based on *SQLite 3* template.
+2) `Database -> Connect to Database -> New`
+3) Select *Connection name*, for example, "WordNet Database"
+4) Select *Database*: **SQLite 3.x**
+5) *Connection string*
+   If you can provide ADO connection string directly, that would be the quickest route, e.g.:
 ```
 DRIVER=SQLite3 ODBC Driver;Timeout=1000;NoTXN=0;SyncPragma=NORMAL;StepAPI=1;FKSupport=1;NoCreat=0;Database=C:\Users\evgeny\Downloads\wn.db;
 ```
+
+Assuming you have properly installed `SQLite3 ODBC Driver` referenced above, this connection string may be use as a template, with the only necessary change being correctly specifying database path instead of `C:\Users\evgeny\Downloads\wn.db`.
+
+Alternatively, connection string can be saved as a data source. Because a complete valid connection string must include SQLite database path either directly or provided via a saved data source file, a generic data source for an SQLite database can only be configured with an empty database and permission to create a new database. If such a data source is selected, a new blank database will be created when initiating a connection. To connect to an existing database file via a data source file, the actual path to the database must be saved in the database-specific data source. Such a data source can be created, if desired via
+ - click `Configure`, select `Microsoft OLE DB Provider for ODBC Driver`;
+ - go to `Connection` tab;
+ - `1. Specify the source of data`;
+ - select `Use data source name` if using previously created data source;
+ - select `Use connection string` for a new database connection;
+ - click `Build`
+ - stay on the `File Data Source` tab and click `New`
+ - select `SQLite ODBC Driver` (could be a different driver, if installed)
+ - click `Next`, select name and location of the new data source file, then `Finish`;
+ - at this point the connection string dialog should popup (at least if `SQLite ODBC Driver` is used) that can be used to select options for the connection string.
+   Note that `SQLite ODBC Driver` is not developed very actively, so some of the options included may be obsolete, while missing on newer options.
+- Finally, accept the constructed connection string.
+Click connect to establish connection using either directly provided or constructed connection string.
+Note, if database creation option is selected in the connection string, SQLite generally would silently create a new database, if it cannot connect to the specified database file. While the result will be a successful connection with no error, such a setup will useless if the goal is to analyze the structure of an existing database.
+
+Go to `Database -> Reverse Engineering... -> Next`. If the database connection was actually properly configured and matched the location of the database file, the Wizard should successfully extract database tables and show a list. An empty list would suggest a misconfigured connection string that resulted in a connection to a new empty database. On success, click `Start -> Accept`. It is possible to unselect tables before the final `Accept`, but table objects can also be removed from the chart after the chart is created.
+
+Once the chart is created, move table object around to minimize relation intersections, consider if there are table objects that may not be necessary. It is a good idea to save a copy of this `*.ecm` file before deleting table objects, though the analysis process can be repeated from scratch, if necessary.
