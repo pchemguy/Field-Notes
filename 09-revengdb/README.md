@@ -1,27 +1,32 @@
 # Reverse Engineering SQLite3 Databases with ERD Concepts
 
-Reverse engineering of database schema is an important technique for understanding the backend data model and potential limitations/issues of legacy databases and databases where graphical representations of the schema is not available. While the reverse engineering process may quite complex, aiming for a variety database aspects, my particular interest is development of a graphical representation of the schema focused on understanding the relationship between the tables defined by foreign key constraints. Another important consideration is the type of the database. My sole interest is on local serverless SQLite3 databases. For such databases, database communication and analysis is very efficient (no server/network limitations).
+Reverse engineering a database schema is a critical technique for understanding backend data models, particularly for legacy systems or databases where graphical documentation is missing. While the process can be complex, my specific focus is generating a graphical representation of the schema to visualize table relationships defined by foreign key constraints.
 
-[ERD Concepts](https://erdconcepts.com) is a powerful professional  database designer software with a broad spectrum of features/functionality. While it has been discontinued in 2018, it is perfectly suitable for working with very conservative SQLite3 databases. Its final release (October 2018 / 8.0.4) is available on the official website under the MIT license license free of charge. Additionally, the vendor also released a number of auxiliary database-related tools (such as `Data Generator` and ADO `Connection String Checker`) also [available for downloading](https://erdconcepts.com/dbtoolbox.html). Here, I would like to go over the workflow for creating schema diagrams for existing SQLite3 databases.
+My primary interest lies in local, serverless SQLite3 databases. Due to their file-based nature, communication and analysis are highly efficient, avoiding network latency and server throughput limitations.
 
-## Prerequisite
+## The Tool: ERD Concepts
 
-A common way to access SQLite3 databases on Windows is via the ADO library using an ODBC driver. Windows ships with a copy of the SQLite3 library providing the C-API interface, but does not include higher-level drivers, so one needs to be installed. A common open source driver is the [SQLite ODBC Driver](http://ch-werner.de/sqliteodbc) (custom MSYS2/MinGW build scripts are also available from the [SQLite ICU MinGW project](https://pchemguy.github.io/SQLite-ICU-MinGW/odbc)).
+[ERD Concepts](https://erdconcepts.com) is a professional-grade database design tool. Although discontinued in 2018, its final release (v8.0.4, October 2018) remains robust and perfectly suitable for stable, conservative database engines like SQLite3. It is available under the MIT license free of charge.
 
-Relevant installation artifacts:
-- File system:
-    - Program files in
-        - `%ProgramFiles%\SQLite ODBC Driver`
-        - `%ProgramFiles(x86)%\SQLite ODBC Driver`
-    - `sqlite3odbc.dll` in
-        - `%SystemRoot%\System32` (64-bit)
-        - `%SystemRoot%\SysWOW64` (32-bit)
+The vendor also provides potentially useful auxiliary tools, such as a Data Generator and an ADO Connection String Checker, available on their [toolbox page](https://erdconcepts.com/dbtoolbox.html).
 
- - Registry:
+## Prerequisite: SQLite ODBC Driver
 
-```
+Windows ships with the SQLite3 C-API library but lacks the high-level drivers required for ADO/ODBC connections. To interface with ERD Concepts, you must install a driver. The [SQLite ODBC Driver](http://ch-werner.de/sqliteodbc) by Christian Werner is the standard open-source solution.
+
+**Relevant Installation Artifacts:**
+
+* **File System:**
+    * `%SystemRoot%\System32\sqlite3odbc.dll` (64-bit)
+    * `%SystemRoot%\SysWOW64\sqlite3odbc.dll` (32-bit)
+
+
+* **Registry Configuration:**
+
+```registry
 Windows Registry Editor Version 5.00
 
+; --- Driver Registration ---
 [HKEY_LOCAL_MACHINE\SOFTWARE\ODBC\ODBCINST.INI\SQLite3 ODBC Driver]
 "Driver"="C:\\Windows\\system32\\sqlite3odbc.dll"
 "Setup"="C:\\Windows\\system32\\sqlite3odbc.dll"
@@ -30,8 +35,7 @@ Windows Registry Editor Version 5.00
 "Driver"="C:\\Windows\\system32\\sqlite3odbc.dll"
 "Setup"="C:\\Windows\\system32\\sqlite3odbc.dll"
 
-; ------------------------------------------------------------------
-
+; --- Data Source Configuration ---
 [HKEY_LOCAL_MACHINE\SOFTWARE\ODBC\ODBC.INI\ODBC Data Sources]
 "SQLite3 Datasource"="SQLite3 ODBC Driver"
 
@@ -45,120 +49,123 @@ Windows Registry Editor Version 5.00
 [HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\ODBC\ODBC.INI\SQLite3 Datasource]
 "Driver"="C:\\Windows\\system32\\sqlite3odbc.dll"
 "Database"=""
-```
-
-## Portable Installation
-
-ERD Concepts installers refuse to install without administrative privileges, even though such privileges are only necessary when installing in privileged locations, such as the standard `%ProgramFiles%`.  In fact, `ERD Concepts` software can be installed and used in a pseudo-portable fashion. While ERD installers do not provide an obvious standard means to perform portable installation, they are created using [InnoSetup](https://jrsoftware.org/isinfo.php) and can be simply unpacked using [InnoExtract](https://constexpr.org/innoextract/).
-
-The contents of the unpacked installer (`erdconcepts804_x64_reg.exe`) includes two directories:
 
 ```
-|
-|-- app
-     |-- ERDConcepts8.exe
-     ~
-|
-|-- commonappdata
-        |-- ERD Concepts
-                |-- 8.0
-                     |-- Report
-                     |-- Schema
-                     |-- Template
-```
 
-The `app` directory can be renamed as `ERDConcepts`, and the contents of `commonappdata/ERD Concepts/8.0` can be placed in `ERDConcepts/COMMON_DATA`, yielding directory structure:
+Note that both `WOW6432Node` and non-`WOW6432Node` reference the same 64-bit library under `System32` and neither refers to the 32-bit under `SysWOW64`, which might be a driver's installer mistake. However, I believe that I could connect to SQLite databases from both 32-bit and 64-bit applications (primarily MS Office).
 
-```
+## Portable Installation Strategy
+
+The official installer requires administrative privileges solely to write to `%ProgramFiles%`. However, the software itself can be run in a pseudo-portable fashion by unpacking the installer and using directory junctions to handle AppData.
+
+### 1. Extraction
+
+The installer is built with [InnoSetup](https://jrsoftware.org/isinfo.php). Use [InnoExtract](https://constexpr.org/innoextract/) to unpack `erdconcepts804_x64_reg.exe`, yielding two folders: `app` and `commonappdata`.
+
+### 2. Directory Restructuring
+
+Rename `app` to `ERDConcepts`. Move the contents of `commonappdata/ERD Concepts/8.0` into a new subdirectory `ERDConcepts/COMMON_DATA`.
+
+**Target Structure:**
+
+```text
 ERDConcepts
-    |-- ERDConcepts8.exe
-    ~
-    |
-    |-- COMMON_DATA
-            |-- Report
-            |-- Schema
-            |-- Template
-```
-
-After the program is started, go to `Tools -> Options -> Folders` and strip curly braces from `{COMMON_DATA}`. This way the variable placeholder `{COMMON_DATA}` is turned into a plain directory named, which is correctly resolved relative to the executable. Note that the `folders` settings includes another location prefix `{USER_DATA}`, which can be changed, by analogy, to `USER_DATA`, placing user files under `ERDConcepts/USER_DATA`. Note, if permissions are properly managed, the subtree `ERDConcepts` should generally provide read-only access for the standard Windows `Users` group. The `ERDConcepts/USER_DATA` subtree should be additionally granted full access Windows `Users`.
-
-`ERD Concepts` stores settings under `%APPDATA%/ERD Concepts 8` and does not use registry. While this behavior cannot be altered via program settings, there is a fairly robust pattern for keeping settings inside the program directory as if it was portable.
-1) A new subdirectory, for example, `ERDConcepts/Settings` is created and granted full access for Windows `Users`. 
-2) The contents of `%APPDATA%/ERD Concepts 8` is moved to `ERDConcepts/Settings/APPDATA/ERD Concepts 8`
-3) An empty file flag `configdir` is created under `Settings` (this is optional and is not discussed further here; this flag indicates to a separate permissions resetting script that the subtree starting from the directory containing this flag should be granted full access to Windows `users`).
-4) A script `links.bat` is also placed under `Settings`:
+├── ERDConcepts8.exe
+│   ~
+├── COMMON_DATA  <-- Create this
+│   ├── Report
+│   ├── Schema
+│   └── Template
+└── USER_DATA  <-- Create this
 
 ```
+
+### 3. Application Configuration
+
+Launch the executable and navigate to `Tools -> Options -> Folders`.
+
+* Remove the curly braces from `{COMMON_DATA}`. This edit forces the application to resolve the path relative to the executable.
+* Change `{USER_DATA}` to `USER_DATA`.
+* *Note:* The `ERDConcepts` root should generally be Read-Only for standard users (Windows `Users`), while `ERDConcepts/USER_DATA` requires Full Write access.
+
+### 4. The AppData Junction Hack
+
+ERD Concepts hardcodes settings storage to `%APPDATA%/ERD Concepts 8`. To keep these settings "portable" (contained within the program folder), we can use a batch script to create directory junctions.
+
+1. Create a directory `ERDConcepts/Settings`.
+2. Move any existing contents from `%APPDATA%/ERD Concepts 8` to `ERDConcepts/Settings/APPDATA/ERD Concepts 8`.
+3. Create a script `links.bat` inside `ERDConcepts/Settings`:
+
+```batch
 @echo off
-
 setlocal EnableExtensions EnableDelayedExpansion
 
+:: Loop through directories in local APPDATA folder
 for /D %%D in ("%~dp0APPDATA\*") do (
     set "SRC=%%~D"
     set "DST=%APPDATA%\%%~nD"
+    
+    :: Remove existing directory in real AppData if it exists
     if exist "!DST!" (cmd /c rmdir "!DST!" /S /Q)
+    
+    :: Create Junction pointing real AppData to our local folder
     mklink /j "!DST!" "!SRC!"
 )
-
 endlocal
-```
-
-The final layout:
 
 ```
+
+**Final Layout** (only showing key directories and files):
+
+```text
 ERDConcepts
-    |-- ERDConcepts8.exe
-    ~
-    |
-    |-- USER_DATA
-            |
-            ~
-    |
-    |-- COMMON_DATA
-            |-- Report
-            |-- Schema
-            |-- Template
-    |
-    |-- Settings
-            |-- links.bat
-            |-- configdir
-            |-- APPDATA
-                   |
-                   ~
+├── ERDConcepts8.exe
+├── USER_DATA
+├── COMMON_DATA
+└── Settings
+    ├── links.bat
+    └── APPDATA
+        └── ERD Concepts 8
+
 ```
 
-When executed, this script for each subdirectory under "APPDATA" creates a directory junction under "%APPDATA%". If the program directory is moved (or copied to the computer for the first time), `links.bat` needs to be executed once to set or adjust associated directory junctions. Other than this extra one-time execution of `links.bat` and creation of associated directory junctions, the program will behave as if it was portable.
+*Usage:* When moving the tool to a new computer, run `links.bat` once. This script creates the necessary junctions, tricking the software into writing to your portable folder while it thinks it is writing to `%APPDATA%`.
 
 ## Database Analysis Workflow
 
-1) Start `ERD Concepts` and create a *New* file based on *SQLite 3* template.
-2) `Database -> Connect to Database -> New`
-3) Select *Connection name*, for example, "WordNet Database"
-4) Select *Database*: **SQLite 3.x**
-5) *Connection string*
-   If you can provide ADO connection string directly, that would be the quickest route, e.g.:
+### 1. Establish Connection
+
+1. Start ERD Concepts and create a **New** file using the **SQLite 3** template.
+2. Navigate to `Database -> Connect to Database -> New`.
+3. Set **Database** to **SQLite 3.x**.
+
+### 2. Configure Connection String
+
+The most efficient method is to provide the ADO connection string directly.
+
+**Template:**
+
+```text
+DRIVER=SQLite3 ODBC Driver;Timeout=1000;NoTXN=0;SyncPragma=NORMAL;StepAPI=1;FKSupport=1;NoCreat=1;Database=C:\Path\To\Your\Database.db;
 ```
-DRIVER=SQLite3 ODBC Driver;Timeout=1000;NoTXN=0;SyncPragma=NORMAL;StepAPI=1;FKSupport=1;NoCreat=0;Database=C:\Users\evgeny\Downloads\wn.db;
-```
 
-Assuming you have properly installed `SQLite3 ODBC Driver` referenced above, this connection string may be use as a template, with the only necessary change being correctly specifying database path instead of `C:\Users\evgeny\Downloads\wn.db`.
+> **Warning:** Ensure the `Database` path is correct. If the path is incorrect and the driver defaults are used, SQLite may silently create a new, empty database. The connection will succeed, but the reverse engineering wizard will find zero tables.
 
-Alternatively, connection string can be saved as a data source. Because a complete valid connection string must include SQLite database path either directly or provided via a saved data source file, a generic data source for an SQLite database can only be configured with an empty database and permission to create a new database. If such a data source is selected, a new blank database will be created when initiating a connection. To connect to an existing database file via a data source file, the actual path to the database must be saved in the database-specific data source. Such a data source can be created, if desired via
- - click `Configure`, select `Microsoft OLE DB Provider for ODBC Driver`;
- - go to `Connection` tab;
- - `1. Specify the source of data`;
- - select `Use data source name` if using previously created data source;
- - select `Use connection string` for a new database connection;
- - click `Build`
- - stay on the `File Data Source` tab and click `New`
- - select `SQLite ODBC Driver` (could be a different driver, if installed)
- - click `Next`, select name and location of the new data source file, then `Finish`;
- - at this point the connection string dialog should popup (at least if `SQLite ODBC Driver` is used) that can be used to select options for the connection string.
-   Note that `SQLite ODBC Driver` is not developed very actively, so some of the options included may be obsolete, while missing on newer options.
-- Finally, accept the constructed connection string.
-Click connect to establish connection using either directly provided or constructed connection string.
-Note, if database creation option is selected in the connection string, SQLite generally would silently create a new database, if it cannot connect to the specified database file. While the result will be a successful connection with no error, such a setup will useless if the goal is to analyze the structure of an existing database.
+**Alternative (Wizard Method):**
+If you prefer the GUI construction:
 
-Go to `Database -> Reverse Engineering... -> Next`. If the database connection was actually properly configured and matched the location of the database file, the Wizard should successfully extract database tables and show a list. An empty list would suggest a misconfigured connection string that resulted in a connection to a new empty database. On success, click `Start -> Accept`. It is possible to unselect tables before the final `Accept`, but table objects can also be removed from the chart after the chart is created.
+1. Click `Configure` -> `Microsoft OLE DB Provider for ODBC Driver` -> `Next`.
+2. Select `Use connection string` -> `Build`.
+3. In the **File Data Source** tab, click `New` -> `SQLite ODBC Driver`.
+4. Follow the prompts to save a `.dsn` file.
+5. When the driver configuration dialog appears, map it to your target database.
 
-Once the chart is created, move table object around to minimize relation intersections, consider if there are table objects that may not be necessary. It is a good idea to save a copy of this `*.ecm` file before deleting table objects, though the analysis process can be repeated from scratch, if necessary.
+### 3. Reverse Engineering
+
+1. Go to `Database -> Reverse Engineering... -> Next`.
+2. If the connection is valid, the Wizard will display a list of detected tables.
+3. Click `Start` -> `Accept`.
+
+### 4. Refinement
+
+Once the chart is generated, arrange the table objects to minimize crossing relationship lines. You can delete unnecessary tables from the view now, but it is recommended to save the raw `*.ecm` file before performing destructive edits.
