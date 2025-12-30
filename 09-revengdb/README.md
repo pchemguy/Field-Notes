@@ -49,9 +49,38 @@ Windows Registry Editor Version 5.00
 
 ## Portable Installation
 
-The installation files (such as the 64-bit designer installer `erdconcepts804_x64_reg.exe`) require administrative privileges for installations even though these privileges are only necessary when installing in privileged locations, such as the standard `%ProgramFiles%`.  In fact, `ERD Concepts` can be installed and used in a pseudo-portable fashion.
+ERD Concepts installers refuse to install without administrative privileges, even though such privileges are only necessary when installing in privileged locations, such as the standard `%ProgramFiles%`.  In fact, `ERD Concepts` software can be installed and used in a pseudo-portable fashion. While ERD installers do not provide an obvious standard means to perform portable installation, they are created using [InnoSetup](https://jrsoftware.org/isinfo.php) and can be simply unpacked using [InnoExtract](https://constexpr.org/innoextract/).
 
+The contents of the unpacked installer (`erdconcepts804_x64_reg.exe`) includes two directories:
 
+```
+|
+|-- app
+     |-- ERDConcepts8.exe
+     ~
+|
+|-- commonappdata
+        |-- ERD Concepts
+                |-- 8.0
+                     |-- Report
+                     |-- Schema
+                     |-- Template
+```
+
+The `app` directory can be renamed as `ERDConcepts`, and the contents of `commonappdata/ERD Concepts/8.0` can be placed in `ERDConcepts/COMMON_DATA`, yielding directory structure:
+
+```
+ERDConcepts
+    |-- ERDConcepts8.exe
+    ~
+    |
+    |-- COMMON_DATA
+            |-- Report
+            |-- Schema
+            |-- Template
+```
+
+After the program is started, go to `Tools -> Options -> Folders` and strip curly braces from `{COMMON_DATA}`. This way the variable placeholder `{COMMON_DATA}` is turned into a plain directory named, which is correctly resolved relative to the executable.
 ```
 DRIVER=SQLite3 ODBC Driver;Timeout=1000;NoTXN=0;SyncPragma=NORMAL;StepAPI=1;FKSupport=1;NoCreat=0;Database=C:\Users\evgeny\Downloads\wn.db;
 ```
