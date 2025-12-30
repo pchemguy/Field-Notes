@@ -82,7 +82,58 @@ ERDConcepts
 
 After the program is started, go to `Tools -> Options -> Folders` and strip curly braces from `{COMMON_DATA}`. This way the variable placeholder `{COMMON_DATA}` is turned into a plain directory named, which is correctly resolved relative to the executable. Note that the `folders` settings includes another location prefix `{USER_DATA}`, which can be changed, by analogy, to `USER_DATA`, placing user files under `ERDConcepts/USER_DATA`. Note, if permissions are properly managed, the subtree `ERDConcepts` should generally provide read-only access for the standard Windows `Users` group. The `ERDConcepts/USER_DATA` subtree should be additionally granted full access Windows `Users`.
 
-`ERD Concepts` does not use registry for storing program settings. Instead, `%APPDATA%\ERD Concepts 8` is used.
+`ERD Concepts` stores settings under `%APPDATA%/ERD Concepts 8` and does not use registry. While this behavior cannot be altered via program settings, there is a fairly robust pattern for keeping settings inside the program directory as if it was portable.
+1) A new subdirectory, for example, `ERDConcepts/Settings` is created and granted full access for Windows `Users`. 
+2) The contents of `%APPDATA%/ERD Concepts 8` is moved to `ERDConcepts/Settings/APPDATA/ERD Concepts 8`
+3) An empty file flag `configdir` is created under `Settings` (this is optional and is not discussed further here; this flag indicates to a separate permissions resetting script that the subtree starting from the directory containing this flag should be granted full access to Windows `users`).
+4) A script `links.bat` is also placed under `Settings`:
+
+```
+@echo off
+
+setlocal EnableExtensions EnableDelayedExpansion
+
+for /D %%D in ("%~dp0APPDATA\*") do (
+    set "SRC=%%~D"
+    set "DST=%APPDATA%\%%~nD"
+    if exist "!DST!" (cmd /c rmdir "!DST!" /S /Q)
+    mklink /j "!DST!" "!SRC!"
+)
+
+endlocal
+```
+
+The final layout:
+
+```
+ERDConcepts
+    |-- ERDConcepts8.exe
+    ~
+    |
+    |-- USER_DATA
+            |
+            ~
+    |
+    |-- COMMON_DATA
+            |-- Report
+            |-- Schema
+            |-- Template
+    |
+    |-- Settings
+            |-- links.bat
+            |-- configdir
+            |-- APPDATA
+                   |
+                   ~
+```
+
+When executed, this script for each subdirectory under "APPDATA" creates a directory junction under "%APPDATA%". If the program directory is moved (or copied to the computer for the first time), `links.bat` needs to be executed once to set or adjust associated directory junctions. Other than this extra one-time execution of `links.bat` and creation of associated directory junctions, the program will behave as if it was portable.
+
+## Database Analysis Workflow
+
+
+
+
 
 ```
 DRIVER=SQLite3 ODBC Driver;Timeout=1000;NoTXN=0;SyncPragma=NORMAL;StepAPI=1;FKSupport=1;NoCreat=0;Database=C:\Users\evgeny\Downloads\wn.db;
