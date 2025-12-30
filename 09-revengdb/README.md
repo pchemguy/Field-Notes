@@ -52,7 +52,7 @@ Windows Registry Editor Version 5.00
 
 ```
 
-Note that both `WOW6432Node` and non-`WOW6432Node` reference the same 64-bit library under `System32` and neither refers to the 32-bit under `SysWOW64`, which might be a driver's installer mistake. However, I believe that I could connect to SQLite databases from both 32-bit and 64-bit applications (primarily MS Office).
+Note that both `WOW6432Node` and non-`WOW6432Node` reference the same 64-bit library under `System32` and neither refers to the 32-bit under `SysWOW64`, which might be a driver installer's mistake. However, I believe that I could connect to SQLite databases from both 32-bit and 64-bit applications (primarily MS Office).
 
 ## Portable Installation Strategy
 
