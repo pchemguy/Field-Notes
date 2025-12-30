@@ -80,7 +80,10 @@ ERDConcepts
             |-- Template
 ```
 
-After the program is started, go to `Tools -> Options -> Folders` and strip curly braces from `{COMMON_DATA}`. This way the variable placeholder `{COMMON_DATA}` is turned into a plain directory named, which is correctly resolved relative to the executable.
+After the program is started, go to `Tools -> Options -> Folders` and strip curly braces from `{COMMON_DATA}`. This way the variable placeholder `{COMMON_DATA}` is turned into a plain directory named, which is correctly resolved relative to the executable. Note that the `folders` settings includes another location prefix `{USER_DATA}`, which can be changed, by analogy, to `USER_DATA`, placing user files under `ERDConcepts/USER_DATA`. Note, if permissions are properly managed, the subtree `ERDConcepts` should generally provide read-only access for the standard Windows `Users` group. The `ERDConcepts/USER_DATA` subtree should be additionally granted full access Windows `Users`.
+
+`ERD Concepts` does not use registry for storing program settings. Instead, `%APPDATA%\ERD Concepts 8` is used.
+
 ```
 DRIVER=SQLite3 ODBC Driver;Timeout=1000;NoTXN=0;SyncPragma=NORMAL;StepAPI=1;FKSupport=1;NoCreat=0;Database=C:\Users\evgeny\Downloads\wn.db;
 ```
