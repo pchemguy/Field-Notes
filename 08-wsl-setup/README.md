@@ -34,14 +34,27 @@ Crucially, the `install` and `import` commands require different source file for
 
 ### Scriptable (via --install/export/import)
 
+#### Default Install
+
+**Online:**
+
+```batch
+wsl --install Ubuntu-24.04 --name UbuntuLTS
+```
+
 **Offline**:
 - WSL Image Release from https://releases.ubuntu.com/noble/
 - File: https://releases.ubuntu.com/noble/ubuntu-24.04.3-wsl-amd64.wsl
 
-
 ```batch
-wsl --install --from-file ubuntu-24.04.3-wsl-amd64.wsl
+wsl --install --name UbuntuLTS --from-file ubuntu-24.04.3-wsl-amd64.wsl
 ```
+
+#### Move
+
+`wsl --export UbuntuLTS D:\backup\ubuntults.tar`
+`wsl --unregister UbuntuLTS`
+`wsl --import UbuntuLTS D:\WSL\UbuntuLTS D:\backup\ubuntults.tar`
 
 ### Direct (via --import)
 
@@ -117,10 +130,3 @@ While the OS image (`ext4.vhdx`) now resides on a dedicated NTFS partition, plac
 1. **System:** Keep the OS image small (on the NTFS partition).
 2. **Data:** Format a dedicated physical drive as ext4.
 3. **Mount:** Pass the raw physical drive directly to WSL using `wsl --mount`. This approach bypasses NTFS translation entirely for native Linux I/O performance.
-
-## Export/Import VM
-
-`wsl --export UbuntuLTS D:\backup\ubuntults.tar`
-`wsl --unregister UbuntuLTS`
-`wsl --import UbuntuLTS D:\WSL\UbuntuLTS D:\backup\ubuntults.tar`
-
