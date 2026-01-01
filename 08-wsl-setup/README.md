@@ -187,8 +187,21 @@ While the OS image (`ext4.vhdx`) now resides on a dedicated NTFS partition, plac
 2. **Data:** Format a dedicated physical drive as ext4. Pass the raw physical drive directly to WSL using `wsl --mount`. This approach bypasses NTFS translation entirely for native Linux I/O performance.
 3. **Portable:** Portable software installs may potentially go to a separate VHDX-EXT4. Extra penalty for reading VHDX from NTFS before hitting Ext4 for software (as opposed to data) should be inconsequential. For data, using a VHDX instead of a physical drive may or may not be problematic. If data goes into a VHDX, NEVER use the system VHDX for this purpose. ALWAYS have a physically separate DATA.VHDX image file.
 
-## Explorer Active VM FS in FarManager
+## Creating and Mounting Stand-alone VHDX-EXT4 Images
+
+My repeated attempts to create an ext4-formatted blank VHDX for use as an separate mountable drive failed. The testing was performed on a VM virtual machine running Windows IoT 11 LTSC. I attempted both mounting VHDX images directly, as well as attaching them as virtual drives via `diskpart` and subsequent mounting of emulated physical drives. What did work was taking VHDX system images created via `wsl --import` command. Such images could be successfully imported via both direct and indirect routes. The best working approach at present is to take a Linux distro with as small as possible root fs distribution, using the `--import` command, and using created system image for subsequent mounting to WSL virtual machine (all file system objects created can simply be removed).
+
+For my experiments, I have used Mini Root Filesystem (alpine-minirootfs-3.23.2-x86_64.tar.gz) [distribution](https://alpinelinux.org/downloads) of [Alpine Linux](https://alpinelinux.org). A [proof-of-concept cmd script](./WSL_Scripts/Stand-alone_PoC_Ext4_VHDX_Image/portable.bat) is added to the repo. The script also includes a PowerShell call and a few dynamically generated `diskpart` scripts. While `wsl` commands can be generally executed under both Windows shells, and `diskpart` commands have `PowerShell` equivalent, in practice, diskpart calls proved to be more robust even with the diskpart limitations.
+
+The script attaches a vhdx-ext4 image (a copy of system image created by importing Alpine Linux Mini Root Filesystem distribution), uses PowerShell to determine the mount point, uses diskpart 
+## Explorer Active VM File System Tree in FarManager
 
 ```
 net:\\WSL$
 ```
+
+## Resources
+
+https://github.com/microsoft/WSL
+https://wsl.dev
+https://github.com/microsoft/WSL/blob/master/distributions/DistributionInfo.json
