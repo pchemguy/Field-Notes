@@ -187,8 +187,8 @@ While the OS image (`ext4.vhdx`) now resides on a dedicated NTFS partition, plac
 2. **Data:** Format a dedicated physical drive as ext4. Pass the raw physical drive directly to WSL using `wsl --mount`. This approach bypasses NTFS translation entirely for native Linux I/O performance.
 3. **Portable:** Portable software installs may potentially go to a separate VHDX-EXT4. Extra penalty for reading VHDX from NTFS before hitting Ext4 for software (as opposed to data) should be inconsequential. For data, using a VHDX instead of a physical drive may or may not be problematic. If data goes into a VHDX, NEVER use the system VHDX for this purpose. ALWAYS have a physically separate DATA.VHDX image file.
 
-## Explorer Active VM FS
+## Explorer Active VM FS in FarManager
 
 ```
-cd \\WSL$
+net:\\WSL$
 ```
