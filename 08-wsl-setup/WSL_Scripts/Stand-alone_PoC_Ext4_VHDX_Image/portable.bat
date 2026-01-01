@@ -10,6 +10,7 @@ set "DP_SCRIPT=%TEMP%\attach_vhd.txt"
 (
     echo select vdisk file="%VHD_PATH%"
     echo attach vdisk
+    echo offline disk
 ) > "%DP_SCRIPT%"
 
 diskpart /s "%DP_SCRIPT%" >nul
@@ -29,19 +30,7 @@ if "%DISK_NUM%"=="" (
 
 echo [INFO] VHDX is attached as Disk %DISK_NUM%.
 
-:: --- STEP 3: SET DISK OFFLINE (REQUIRED FOR WSL) ---
-:: WSL cannot touch the disk if Windows is reading it. We must take it Offline.
-echo [INFO] Setting Disk %DISK_NUM% Offline...
-set "DP_OFFLINE=%TEMP%\offline_disk.txt"
-(
-    echo select disk %DISK_NUM%
-    echo offline disk
-) > "%DP_OFFLINE%"
-
-diskpart /s "%DP_OFFLINE%" >nul
-del "%DP_OFFLINE%"
-
-:: --- STEP 4: MOUNT TO WSL ---
+:: --- STEP 3: MOUNT TO WSL ---
 echo [INFO] Mounting \\.\PHYSICALDRIVE%DISK_NUM% to WSL...
 
 :: Note: We do NOT use '--vhd' here because we are pointing to a PhysicalDrive, not a file.

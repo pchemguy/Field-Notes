@@ -193,7 +193,18 @@ My repeated attempts to create an ext4-formatted blank VHDX for use as an separa
 
 For my experiments, I have used Mini Root Filesystem (alpine-minirootfs-3.23.2-x86_64.tar.gz) [distribution](https://alpinelinux.org/downloads) of [Alpine Linux](https://alpinelinux.org). A [proof-of-concept cmd script](./WSL_Scripts/Stand-alone_PoC_Ext4_VHDX_Image/portable.bat) is added to the repo. The script also includes a PowerShell call and a few dynamically generated `diskpart` scripts. While `wsl` commands can be generally executed under both Windows shells, and `diskpart` commands have `PowerShell` equivalent, in practice, diskpart calls proved to be more robust even with the diskpart limitations.
 
-The script attaches a vhdx-ext4 image (a copy of system image created by importing Alpine Linux Mini Root Filesystem distribution), uses PowerShell to determine the mount point, uses diskpart 
+The script attaches a vhdx-ext4 image (a copy of system image created by importing Alpine Linux Mini Root Filesystem distribution), uses PowerShell to determine the mount point, and, finally mounts a "physical" (in this case, a virtual disk, which might be an attached vhdx image or native virtual machine disk) to WSL. Note, an example of an equivalent command for mounting a VHDX-EXT4 directly (filesystem flag can often be automatically determined by WSL):
+
+```
+wsl --mount "G:\dev\WSL\UbuntuLTS\portable.ext4.vhdx" --vhd --type ext4 --name portable
+```
+
+> [!NOTE]
+> 
+> - A list of supported filesystem formats can be found inside the `/proc/filesystems` file within the WSL system image.
+> - When the `wsl --mount` command succeeds (both `--bare` and formatted), two entries appear under `/dev/disk/by-id/` (meaningless alphanumeric IDs).
+> - When the non-bare version of `wsl --mount` succeeds, a mount point is created under `/mnt/wsl/`. The name of this mount point uses either value of the `--name` argument or the full source name of the mount point object with all delimeters removed, such as `/mnt/wsl/PHYSICALDRIVE3` for a physical drive or `/mnt/wsl/GdevWSLUbuntuLTSdummyext4vhdx` for `G:\dev\WSL\UbuntuLTS\dummy.ext4.vhdx` image file.
+
 ## Explorer Active VM File System Tree in FarManager
 
 ```
