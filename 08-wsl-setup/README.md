@@ -203,7 +203,12 @@ wsl --mount "G:\dev\WSL\UbuntuLTS\portable.ext4.vhdx" --vhd --type ext4 --name p
 > 
 > - A list of supported filesystem formats can be found inside the `/proc/filesystems` file within the WSL system image.
 > - When the `wsl --mount` command succeeds (both `--bare` and formatted), two entries appear under `/dev/disk/by-id/` (meaningless alphanumeric IDs).
-> - When the non-bare version of `wsl --mount` succeeds, a mount point is created under `/mnt/wsl/`. The name of this mount point uses either value of the `--name` argument or the full source name of the mount point object with all delimeters removed, such as `/mnt/wsl/PHYSICALDRIVE3` for a physical drive or `/mnt/wsl/GdevWSLUbuntuLTSdummyext4vhdx` for `G:\dev\WSL\UbuntuLTS\dummy.ext4.vhdx` image file.
+> - When the non-bare version of `wsl --mount` succeeds, a mount point is created under `/mnt/wsl/`. The name of this mount point uses either value of the `--name` argument, if provided, or the full source name of the mount point object with all path separators removed, such as `/mnt/wsl/PHYSICALDRIVE3` for a physical drive or `/mnt/wsl/GdevWSLUbuntuLTSdummyext4vhdx` for `G:\dev\WSL\UbuntuLTS\dummy.ext4.vhdx` image file.
+> - For disks, relevant mount points can be obtained via:
+> 
+> ```batch
+> PowerShell -NoProfile -Command "GET-CimInstance -query 'SELECT * from Win32_DiskDrive'"
+> ```
 
 ## Explorer Active VM File System Tree in FarManager
 
