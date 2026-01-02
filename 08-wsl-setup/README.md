@@ -210,7 +210,15 @@ wsl --mount "G:\dev\WSL\UbuntuLTS\portable.ext4.vhdx" --vhd --type ext4 --name p
 > PowerShell -NoProfile -Command "GET-CimInstance -query 'SELECT * from Win32_DiskDrive'"
 > ```
 
-## Explorer Active VM File System Tree in FarManager
+## FarManager
+
+
+| Name  | URL                            |
+| ----- | ------------------------------ |
+| FAR2L | https://github.com/elfmz/far2l |
+| FAR2M | https://github.com/shmuz/far2m |
+
+### Explorer Active VM File System Tree
 
 ```
 net:\\WSL$
@@ -218,6 +226,7 @@ net:\\WSL$
 
 ## Resources
 
+https://learn.microsoft.com/en-us/windows/wsl
 https://github.com/microsoft/WSL
 https://wsl.dev
 https://github.com/microsoft/WSL/blob/master/distributions/DistributionInfo.json

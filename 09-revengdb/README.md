@@ -103,7 +103,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 :: Loop through directories in local APPDATA folder
 for /D %%D in ("%~dp0APPDATA\*") do (
     set "SRC=%%~D"
-    set "DST=%APPDATA%\%%~nD"
+    set "DST=%APPDATA%\%%~nxD"
     
     :: Remove existing directory in real AppData if it exists
     if exist "!DST!" (cmd /c rmdir "!DST!" /S /Q)
