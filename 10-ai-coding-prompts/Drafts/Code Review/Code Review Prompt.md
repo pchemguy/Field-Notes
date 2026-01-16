@@ -1,3 +1,54 @@
+https://chatgpt.com/c/6968e5f6-4b88-8326-8cbc-89f9e16330fb
+https://chatgpt.com/g/g-p-6958a3950c3081919bd2dfdd2f46e96c/c/696744d4-77a0-832f-a4a5-8bae79ebaa17
+
+# V1
+
+## User Prompt 1
+
+We shall now review each of the new modules, one at a time, as I remind you their the contents. You will
+- double check for edge cases, especially important / impactful / likely, 
+- verify and correct established language use patterns, best practices, etc.
+- make sure that docs are high quality and align well with the code,
+- propose and implement any sensible code improvements,
+- generate a companion comprehensive test suite.
+
+## AI Response 1
+
+Understood. We can do this module-by-module, and for each module I will:
+
+1. identify impactful edge cases (including Windows-path realities, concurrency, partial writes, etc.),
+2. tighten API semantics and docstrings to “expert-grade” norms,
+3. apply any sensible improvements directly (not just propose),
+4. provide a **comprehensive pytest suite** for that module.
+
+### How we will proceed (deterministic and low-friction)
+
+For each module you paste, I will return:
+
+* **Revised module code** (drop-in replacement)
+* **`tests/test_<module>.py`** (and fixtures in `conftest.py` only if truly shared)
+* **Notes** (brief) describing the key fixes and the edge cases covered
+
+### Proposed review order (recommended)
+
+Start from the lowest-level primitives upward so tests can be reused and dependencies are stable:
+
+1. `io/atomic.py`
+2. `io/json_io.py`
+3. `io/hash_io.py`
+4. `io/image_io.py`
+5. `io/__init__.py`
+6. then move to `run/…` (layout/manifest/artifact_log/manager)
+7. then `engine/…` (artifacts/context/pipeline/factory)
+
+### What I need from you now
+
+Paste the **first module** exactly as it currently exists (e.g., `gridpet/src/gridpet/io/atomic.py`).
+
+As soon as you paste it, I will do the full review + improvements + test suite for that module in the same response.
+
+# V2
+
 ## Code Review Instructions (Module-by-Module, Drop-in Rewrites + Tests)
 
 ### Objective
