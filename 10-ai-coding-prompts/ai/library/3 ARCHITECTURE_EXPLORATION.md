@@ -6,7 +6,8 @@
 
 ## Purpose
 
-This prompt explores possible system architectures that could satisfy the automation candidates and constraints identified in `AUTOMATION_CANDIDATE_DECOMPOSITION.md`.
+This prompt explores possible system architectures that could satisfy the automation
+candidates and constraints identified in `AUTOMATION_CANDIDATE_DECOMPOSITION.md`.
 
 This stage intentionally does not select a solution.
 
@@ -32,13 +33,14 @@ If these conditions are not met, STOP and request what is missing.
 
 ## Instructions to the AI
 
-You are exploring architecture classes, not implementations.
+You are exploring **architecture classes**, not implementations.
 
 You must:
 
 * reason at the system and subsystem level
 * respect all constraints and boundaries from prior artifacts
 * compare alternatives fairly and explicitly
+* make **implicit architectural commitments explicit**
 
 You must not:
 
@@ -75,7 +77,7 @@ Include:
 * scope of automation
 * human-in-the-loop boundaries
 * non-negotiable constraints
-* risk drivers
+* dominant risk drivers
 
 Do not restate observational details unless they affect architecture.
 
@@ -89,117 +91,155 @@ Clarify:
 
 * what is inside the system
 * what remains external (humans, existing tools, environments)
-* what the system is explicitly not responsible for
+* what the system is explicitly *not* responsible for
 
-This defines the architectural "box".
+This defines the architectural “box.”
 
 ---
 
 ## 3. Architecture Axes (Mandatory)
 
-Before proposing architecture candidates, explicitly enumerate the primary axes along which viable architectures may differ. These axes define the solution space dimensions and must be considered even if some options are later rejected. At minimum, consider whether each of the following axes is relevant to this problem. If an axis is irrelevant, state why.
+Before proposing architecture candidates, explicitly enumerate the **primary axes**
+along which viable architectures may differ.
 
-Typical axes include (non-exhaustive):
+These axes define the **solution space dimensions** and must be considered even if
+some options are later rejected.
 
-### Execution Environment
+If an axis is irrelevant, explicitly state why.
 
-* Operating system(s): e.g., Windows, Linux, macOS, mobile OS
+### 3.1 Execution Environment
+
+* Operating system(s): Windows, Linux, macOS, mobile OS
 * Hardware class: desktop, laptop, smartphone, server
-* Resource assumptions: CPU/GPU availability, memory, storage
+* Resource assumptions: CPU/GPU, memory, storage
 
-### Deployment Model
+### 3.2 Compute Topology
+
+* On-device compute
+* Remote compute (server)
+* Desktop-local compute
+* Hybrid (split compute)
+
+### 3.3 Workflow Timing
+
+* Real-time / uninterrupted
+* Near-real-time (capture → immediate processing)
+* Asynchronous / batch
+
+### 3.4 Deployment Model
 
 * Local-only
 * Client–server
-* Hybrid (local capture, remote processing, local review)
+* Hybrid
 
-### Device Responsibility Split
+### 3.5 Device Responsibility Split
 
-* Single-device end-to-end workflow
-* Multi-device workflow (e.g., capture on one device, processing on another)
-* Synchronous vs asynchronous handoff between devices
+* Single-device end-to-end
+* Multi-device (capture vs processing)
+* Automatic vs manual handoff
 
-### Interaction Model
+### 3.6 Interaction Model
 
-* Fully offline / batch
-* Interactive / real-time
-* Semi-interactive (human-in-the-loop checkpoints)
+* Fully offline
+* Interactive
+* Semi-interactive (human checkpoints)
 
-### Application Form
+### 3.7 Application Form
 
 * Library / SDK
-* CLI tool
-* Desktop GUI application
-* Mobile application
-* Web-based application (browser client)
+* CLI
+* Desktop GUI
+* Mobile app
+* Web app
 * Thin client vs thick client
 
-### User Interface Technology
+### 3.8 UI Technology
 
-* Native UI
-* Browser-based UI
-* Headless (no UI)
+* Native
+* Browser-based
+* Headless
 
-### Trust and Verification Model
+### 3.9 Trust and Verification Model
 
-* Fully automated results
+* Fully automated
 * Automated with mandatory human validation
-* Assistive tooling with manual decision authority
+* Assistive tooling
 
-### Data Lifecycle
+### 3.10 Data Lifecycle
 
-* Ephemeral processing
-* Persistent storage with audit trail
+* Ephemeral
+* Persistent with audit trail
 * Export-only vs managed dataset
 
-Do not select options yet.
+Do **not** select options yet.
 This section exists to prevent implicit commitments.
 
 ---
 
-## 4. Architecture Candidate Overview
+## 4. Architecture Candidate Coverage Check (Mandatory)
 
-Identify 2-5 distinct architecture classes that could plausibly satisfy the
+Before listing candidates, ensure that the candidate set **collectively covers**
+the major combinations implied by §§3.2 and 3.3.
+
+At minimum, address whether candidates exist for:
+
+* on-device compute
+* remote/server-side compute
+* desktop-local compute (if relevant)
+* real-time or uninterrupted workflows
+* capture-then-process workflows
+
+If any combination is missing, explicitly state:
+
+* whether it is intentionally excluded
+* why it is out of scope or infeasible
+
+Failure to justify exclusions is an error.
+
+---
+
+## 5. Architecture Candidate Overview
+
+Identify **2–5 distinct architecture classes** that could plausibly satisfy the
 problem definition.
 
-Architecture classes should differ along fundamental axes, such as:
-
-* deployment model (local, client-server, hybrid)
-* degree of automation (assistive vs supervisory vs autonomous)
-* coupling to existing workflows
-* responsibility split between components
+Architecture candidates must differ along **fundamental axes**, not just UI or
+packaging.
 
 For each candidate, provide:
 
-* short descriptive name
-* one-paragraph summary
+* **Formal descriptor**:
+  `(workflow timing + compute topology + deployment model)`
+* **Short descriptive name**
+* **One-paragraph summary**
+
+Avoid names that obscure topology (e.g., “desktop assistant” without clarifying
+whether compute is local or remote).
 
 Do not rank yet.
 
 ---
 
-## 5. Architecture Candidates (Detailed)
+## 6. Architecture Candidates (Detailed)
 
 For each architecture candidate, provide the following subsections.
 
-### 5.X. Architecture {Name}
+### 6.X Architecture {Name}
 
 #### a) Core Components
 
-List major components and their responsibilities.
+List major components and responsibilities.
 
 #### b) Conceptual Data Flow
 
 Describe how information flows between components and humans.
-
-Use prose or bullet points, not diagrams or APIs.
 
 #### c) Human-in-the-Loop Placement
 
 Explain:
 
 * where human input is required
-* where human validation occurs
+* where validation occurs
 * what decisions remain manual
 
 #### d) Strengths
@@ -212,88 +252,77 @@ Structural limitations or tradeoffs.
 
 #### f) Axis Positioning
 
-Explicitly position this architecture along the axes identified in §3.
+Explicitly position this architecture along the axes in §3.
 
 For each relevant axis:
 
-* state where this architecture sits
-* explain why this positioning is natural or necessary
-* note which alternatives this choice excludes
-
-If an axis is intentionally deferred or left flexible, state how and why.
-
-This section must make implicit assumptions explicit.
+* state the chosen position
+* justify it
+* note excluded alternatives
 
 #### g) Risk Alignment
 
-How this architecture interacts with previously identified risks:
+Explain how this architecture:
 
-* which risks it mitigates
-* which risks it exacerbates
+* mitigates key risks
+* exacerbates key risks
 
 ---
 
-## 6. Cross-Architecture Comparison
+## 7. Cross-Architecture Comparison
 
-Compare candidates across key dimensions:
+Compare candidates across:
 
-* alignment with constraints
+* constraint alignment
 * flexibility vs rigidity
-* scalability of workflow
-* transparency and auditability
+* workflow scalability
+* auditability and traceability
 * tolerance for variability
 * user trust and adoption risk
 
-This section should make tradeoffs explicit.
+Make tradeoffs explicit.
 
 ---
 
-## 7. Coupled Axes and Lock-In Risks
+## 8. Coupled Axes and Lock-In Risks
 
-Identify axes that appear **coupled** in the proposed architecture candidates.
+Identify axes that appear **coupled**.
 
 For each coupling:
 
-* describe which axes are linked
-* explain whether the coupling is inherent or incidental
-* assess whether it introduces early lock-in or loss of optionality
+* describe the linkage
+* state whether it is inherent or incidental
+* assess lock-in risk
 
-Highlight any architecture candidates that:
-
-* prematurely fix multiple axes
-* reduce future flexibility without clear justification
-
-This section is critical for long-lived or evolving systems.
+Highlight candidates that prematurely fix multiple axes.
 
 ---
 
-## 8. Open Questions and Assumptions
+## 9. Open Questions and Assumptions
 
-List assumptions that architecture selection would force at this stage.
+List assumptions architecture selection would force.
 
-For each assumption:
+For each:
 
-* describe what is being assumed
-* identify what evidence would be needed to validate it
-
-These assumptions should drive the next stage.
+* describe the assumption
+* identify evidence needed to validate it
 
 ---
 
-## 9. Architecture Decision Readiness
+## 10. Architecture Decision Readiness
 
-Assess readiness to move to architecture selection.
+Assess readiness to select an architecture.
 
 Answer:
 
 * Are there clear leading candidates?
-* What information is still missing?
-* Would choosing now force premature commitments?
+* What information is missing?
+* Would selection now force premature commitments?
 
 Explicitly state whether:
 
-* architecture selection is appropriate now, or
-* further investigation is required first
+* selection is appropriate now, or
+* further investigation is required.
 
 ---
 
@@ -305,10 +334,7 @@ Do not:
 
 * choose an architecture
 * propose implementation details
-* design APIs or pipelines
 * suggest technologies or tools
-
-This document defines the architecture option space, not the decision.
 
 ---
 
@@ -316,12 +342,12 @@ This document defines the architecture option space, not the decision.
 
 This artifact is meant to:
 
-* inform a later architecture decision record
-* guide feasibility validation planning
+* inform architecture decision records
+* guide feasibility validation
 * prevent accidental lock-in
-* justify architectural choices retrospectively
+* justify decisions retrospectively
 
-It should be frozen once architecture selection begins.
+Freeze once architecture selection begins.
 
 ---
 
