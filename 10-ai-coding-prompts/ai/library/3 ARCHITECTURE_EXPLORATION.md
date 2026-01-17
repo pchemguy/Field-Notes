@@ -6,11 +6,9 @@
 
 ## Purpose
 
-This prompt explores **possible system architectures** that could satisfy the
-automation candidates and constraints identified in
-`AUTOMATION_CANDIDATE_DECOMPOSITION.md`.
+This prompt explores possible system architectures that could satisfy the automation candidates and constraints identified in `AUTOMATION_CANDIDATE_DECOMPOSITION.md`.
 
-This stage **intentionally does not select a solution**.
+This stage intentionally does not select a solution.
 
 Its goals are to:
 
@@ -19,7 +17,7 @@ Its goals are to:
 * surface tradeoffs and risks early
 * preserve optionality before commitment
 
-This is the **first solution-shaping step**, but it remains *pre-decisional*.
+This is the first solution-shaping step, but it remains pre-decisional.
 
 ---
 
@@ -34,7 +32,7 @@ If these conditions are not met, STOP and request what is missing.
 
 ## Instructions to the AI
 
-You are exploring **architecture classes**, not implementations.
+You are exploring architecture classes, not implementations.
 
 You must:
 
@@ -42,7 +40,7 @@ You must:
 * respect all constraints and boundaries from prior artifacts
 * compare alternatives fairly and explicitly
 
-You must **not**:
+You must not:
 
 * commit to a single architecture
 * propose specific algorithms, models, or frameworks
@@ -64,13 +62,13 @@ All reasoning must trace back to these documents.
 
 ## Required Output Structure
 
-Produce the following sections **in order**.
+Produce the following sections in order.
 
 ---
 
 ## 1. Problem Restatement (Architecture-Relevant)
 
-Restate the problem **only in terms relevant to architecture**.
+Restate the problem only in terms relevant to architecture.
 
 Include:
 
@@ -85,26 +83,88 @@ Do not restate observational details unless they affect architecture.
 
 ## 2. System Boundary Definition
 
-Define the **conceptual boundaries** of the system.
+Define the conceptual boundaries of the system.
 
 Clarify:
 
 * what is inside the system
 * what remains external (humans, existing tools, environments)
-* what the system is explicitly *not* responsible for
+* what the system is explicitly not responsible for
 
-This defines the architectural “box.”
+This defines the architectural "box".
 
 ---
 
-## 3. Architecture Candidate Overview
+## 3. Architecture Axes (Mandatory)
 
-Identify **2–5 distinct architecture classes** that could plausibly satisfy the
+Before proposing architecture candidates, explicitly enumerate the primary axes along which viable architectures may differ. These axes define the solution space dimensions and must be considered even if some options are later rejected. At minimum, consider whether each of the following axes is relevant to this problem. If an axis is irrelevant, state why.
+
+Typical axes include (non-exhaustive):
+
+### Execution Environment
+
+* Operating system(s): e.g., Windows, Linux, macOS, mobile OS
+* Hardware class: desktop, laptop, smartphone, server
+* Resource assumptions: CPU/GPU availability, memory, storage
+
+### Deployment Model
+
+* Local-only
+* Clientâ€“server
+* Hybrid (local capture, remote processing, local review)
+
+### Device Responsibility Split
+
+* Single-device end-to-end workflow
+* Multi-device workflow (e.g., capture on one device, processing on another)
+* Synchronous vs asynchronous handoff between devices
+
+### Interaction Model
+
+* Fully offline / batch
+* Interactive / real-time
+* Semi-interactive (human-in-the-loop checkpoints)
+
+### Application Form
+
+* Library / SDK
+* CLI tool
+* Desktop GUI application
+* Mobile application
+* Web-based application (browser client)
+* Thin client vs thick client
+
+### User Interface Technology
+
+* Native UI
+* Browser-based UI
+* Headless (no UI)
+
+### Trust and Verification Model
+
+* Fully automated results
+* Automated with mandatory human validation
+* Assistive tooling with manual decision authority
+
+### Data Lifecycle
+
+* Ephemeral processing
+* Persistent storage with audit trail
+* Export-only vs managed dataset
+
+Do not select options yet.
+This section exists to prevent implicit commitments.
+
+---
+
+## 4. Architecture Candidate Overview
+
+Identify 2-5 distinct architecture classes that could plausibly satisfy the
 problem definition.
 
-Architecture classes should differ along **fundamental axes**, such as:
+Architecture classes should differ along fundamental axes, such as:
 
-* deployment model (local, client–server, hybrid)
+* deployment model (local, client-server, hybrid)
 * degree of automation (assistive vs supervisory vs autonomous)
 * coupling to existing workflows
 * responsibility split between components
@@ -118,11 +178,11 @@ Do not rank yet.
 
 ---
 
-## 4. Architecture Candidates (Detailed)
+## 5. Architecture Candidates (Detailed)
 
-For **each architecture candidate**, provide the following subsections.
+For each architecture candidate, provide the following subsections.
 
-### 4.X. Architecture <Name>
+### 5.X. Architecture {Name}
 
 #### a) Core Components
 
@@ -150,7 +210,21 @@ What this architecture does well *relative to the problem*.
 
 Structural limitations or tradeoffs.
 
-#### f) Risk Alignment
+#### f) Axis Positioning
+
+Explicitly position this architecture along the axes identified in Â§3.
+
+For each relevant axis:
+
+* state where this architecture sits
+* explain why this positioning is natural or necessary
+* note which alternatives this choice excludes
+
+If an axis is intentionally deferred or left flexible, state how and why.
+
+This section must make implicit assumptions explicit.
+
+#### g) Risk Alignment
 
 How this architecture interacts with previously identified risks:
 
@@ -159,7 +233,7 @@ How this architecture interacts with previously identified risks:
 
 ---
 
-## 5. Cross-Architecture Comparison
+## 6. Cross-Architecture Comparison
 
 Compare candidates across key dimensions:
 
@@ -174,9 +248,28 @@ This section should make tradeoffs explicit.
 
 ---
 
-## 6. Open Questions and Assumptions
+## 7. Coupled Axes and Lock-In Risks
 
-List assumptions that **architecture selection would force** at this stage.
+Identify axes that appear **coupled** in the proposed architecture candidates.
+
+For each coupling:
+
+* describe which axes are linked
+* explain whether the coupling is inherent or incidental
+* assess whether it introduces early lock-in or loss of optionality
+
+Highlight any architecture candidates that:
+
+* prematurely fix multiple axes
+* reduce future flexibility without clear justification
+
+This section is critical for long-lived or evolving systems.
+
+---
+
+## 8. Open Questions and Assumptions
+
+List assumptions that architecture selection would force at this stage.
 
 For each assumption:
 
@@ -187,7 +280,7 @@ These assumptions should drive the next stage.
 
 ---
 
-## 7. Architecture Decision Readiness
+## 9. Architecture Decision Readiness
 
 Assess readiness to move to architecture selection.
 
@@ -208,14 +301,14 @@ Explicitly state whether:
 
 Stop after completing the above sections.
 
-Do **not**:
+Do not:
 
 * choose an architecture
 * propose implementation details
 * design APIs or pipelines
 * suggest technologies or tools
 
-This document defines the **architecture option space**, not the decision.
+This document defines the architecture option space, not the decision.
 
 ---
 
