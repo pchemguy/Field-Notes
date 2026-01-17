@@ -2,30 +2,32 @@
 
 ## Observed Workflow -> Problem Formalization Prompt
 
-### Purpose
+---
 
-This prompt is used to convert an **observed real-world practice** into a **solution-agnostic, engineering-ready problem statement**.
+## Purpose
 
-It is intended for **early-stage problem discovery**, *before* feasibility analysis, architecture design, or technology selection.
-
-This prompt deliberately suppresses solution thinking in order to reduce premature convergence and hidden assumptions.
+This prompt converts an observed real-world human practice into a solution-agnostic, engineering-ready problem statement. It is intended for early-stage problem discovery, *before* feasibility analysis, architecture design, or technology selection. A core objective is to surface unknown-unknowns, overlooked constraints, and hidden decision criteria early, while changes are still cheap. This prompt deliberately suppresses solution thinking in order to reduce premature convergence and hidden assumptions.
 
 ---
 
 ## Instructions to the AI
 
-You are analyzing an **observed human workflow** to determine whether automation or tooling is appropriate.
-
-Your task is to **formalize the problem only**.
+You are analyzing an observed human workflow to determine whether automation or tooling might be appropriate. Your responsibility is not only to summarize, but to interrogate the observation in order to reduce ambiguity and premature assumptions.
 
 ### Hard Rules
 
-* Do **not** propose solutions, algorithms, architectures, or tools.
-* Do **not** discuss ML vs non-ML, CV techniques, UI frameworks, or implementation feasibility.
-* Do **not** evaluate cost, schedule, or staffing.
-* Do **not** optimize or redesign the workflow.
+You must not:
 
-Focus strictly on **what exists**, **why it exists**, and **what constraints it operates under**.
+* propose solutions, algorithms, architectures, or tools
+* discuss ML vs non-ML, CV techniques, or implementation feasibility
+* recommend next steps beyond problem formalization
+* optimize or redesign the workflow
+
+You must:
+
+* identify missing information that materially affects understanding
+* ask clarifying questions where observation alone is insufficient
+* keep all outputs solution-agnostic
 
 ---
 
@@ -41,73 +43,101 @@ Describe the workflow exactly as it is performed today.
 
 Include:
 
-* Step-by-step actions taken by the human
-* Inputs used at each step
-* Intermediate artifacts created (notes, measurements, photos, annotations)
-* Final outputs
-* Points where judgment, estimation, or subjective decisions are applied
+* step-by-step actions taken by the human
+* inputs used at each step
+* intermediate artifacts created (photos, notes, measurements, annotations)
+* final outputs
+* points where judgment, approximation, or discretion is applied
 
-Do **not** interpret intent or propose improvements.
+If any step is unclear from the observation, note the uncertainty explicitly.
 
 ---
 
-### 2. Implicit Goals
+### 2. Clarifying Questions (Mandatory)
 
-Infer what the human operator is actually optimizing for.
+Before drawing conclusions, identify critical unknowns.
+
+List targeted, high-leverage questions whose answers would materially affect:
+
+* interpretation of the workflow
+* identification of constraints
+* definition of success or failure
+
+Guidelines:
+
+* Ask only questions that matter for understanding the problem.
+* Prefer questions that expose hidden constraints, not preferences.
+* Group questions by theme where possible.
+
+Examples of acceptable categories:
+
+* workflow variability
+* measurement tolerance
+* error handling
+* frequency and scale
+* trust and verification
+
+Do not ask about solutions or tools.
+
+---
+
+### 3. Implicit Goals (Hypotheses)
+
+Based on the observation and acknowledging unanswered questions, infer what the human operator is likely optimizing for.
 
 Consider:
 
-* Accuracy vs speed
-* Convenience vs rigor
-* Reproducibility vs flexibility
-* Personal judgment vs standardization
+* accuracy vs speed
+* convenience vs rigor
+* reproducibility vs flexibility
+* expert judgment vs standardization
 
-State these as **hypotheses**, not facts.
+State these explicitly as hypotheses, not facts.
 
 ---
 
-### 3. Pain Points and Friction
+### 4. Pain Points and Friction
 
-Identify where the workflow experiences friction.
+Identify where the workflow experiences friction or risk.
 
 Include:
 
-* Time-consuming steps
-* Error-prone or inconsistent steps
-* Steps that require repeated attention or rework
-* Aspects that do not scale with workload or sample count
+* time-consuming steps
+* error-prone or inconsistent steps
+* steps sensitive to operator skill or judgment
+* aspects that scale poorly with workload or sample count
 
-Avoid proposing fixes.
+Do not propose remedies.
 
 ---
 
-### 4. Constraints (Non-Negotiable)
+### 5. Constraints (Non-Negotiable)
 
 List constraints that any future solution must respect.
 
 Consider:
 
-* Environmental constraints (lighting, devices, physical setup)
-* Human constraints (training level, habits, tolerance for change)
-* Scientific or regulatory constraints (traceability, auditability, reproducibility)
-* Organizational constraints (workflow integration, record-keeping)
+* environmental constraints (lighting, devices, physical setup)
+* human constraints (training level, habits, tolerance for change)
+* scientific or regulatory constraints (traceability, auditability, reproducibility)
+* organizational constraints (workflow integration, documentation requirements)
 
-Assume these constraints are **real unless explicitly contradicted**.
+Treat constraints as binding unless explicitly stated otherwise.
 
 ---
 
-### 5. Success Definition (Solution-Agnostic)
+### 6. Success Definition (Solution-Agnostic)
 
-Define what would make an automation or tool **useful** versus **unacceptable**, without describing how it would be achieved.
+Define what would make automation or tooling useful versus unacceptable, without describing how it would be achieved.
 
 Include:
 
-* Minimum acceptable outcomes
-* Failure conditions
-* What aspects of the manual workflow must be preserved
-* What losses (if any) would be unacceptable
+* minimum acceptable outcomes
+* failure conditions
+* what aspects of the manual workflow must be preserved
+* what losses (accuracy, trust, explainability) would be unacceptable
 
-Frame success in terms of **observable behavior and outcomes**, not internal mechanisms.
+Frame success in terms of observable outcomes and guarantees, not mechanisms.
 
 ---
 
@@ -117,19 +147,21 @@ Stop after completing the above sections.
 
 Do **not**:
 
-* Suggest next steps
-* Transition into feasibility or design
-* Recommend technologies or approaches
+* answer the clarifying questions yourself
+* suggest solutions or feasibility conclusions
+* transition into architecture or design
+
+This artifact must remain **problem-only**.
 
 ---
 
 ## Intended Use
 
-This artifact is meant to be:
+This document is meant to be:
 
-* Frozen and referenced during later stages
-* Used as an input to feasibility analysis
-* Used to detect scope drift and solution bias
-* Reused across different domains where a manual practice is observed
+* frozen and referenced during later stages
+* used as an input to feasibility and architecture prompts
+* used to detect scope drift and premature solution bias
+* reusable across domains where a manual practice is observed
 
 ---
