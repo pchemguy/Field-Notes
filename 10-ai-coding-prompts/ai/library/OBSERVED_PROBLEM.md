@@ -100,7 +100,7 @@ Do not ask about solutions, tools, or implementations.
 
 ## 4. Implicit Goals (Hypotheses)
 
-Based on **Sections 1-2** and explicitly acknowledging unanswered questions, infer what the human operator may be optimizing for.
+Based on §§1-2 and explicitly acknowledging unanswered questions, infer what the human operator may be optimizing for.
 
 Consider:
 
@@ -162,7 +162,7 @@ Frame success strictly in terms of observable outcomes and guarantees.
 
 Stop after completing the above sections.
 
-Do **not**:
+Do not:
 
 * answer the clarifying questions
 * suggest solutions or feasibility conclusions
