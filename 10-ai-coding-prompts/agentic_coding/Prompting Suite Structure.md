@@ -28,12 +28,12 @@ The structure must:
 
 ---
 
-## 2. Top-Level Directory: `ai/`
+## 2. Top-Level Directory: `agentic_coding/`
 
 Place everything under a single, unambiguous namespace:
 
 ```
-ai/
+agentic_coding/
 ├── README.md
 ├── AGENTS.md
 ├── prime/
@@ -47,12 +47,12 @@ This keeps AI-related artifacts **explicit and contained**, not scattered across
 
 ---
 
-## 3. `ai/prime/` — Foundational Cognitive Layer
+## 3. `agentic_coding/prime/` — Foundational Cognitive Layer
 
 This directory must be **small, stable, and boring**.
 
 ```
-ai/prime/
+agentic_coding/prime/
 ├── COGNITIVE_PRIME.md
 └── CHANGELOG.md
 ```
@@ -73,12 +73,12 @@ Think of this as the **constitution**.
 
 ---
 
-## 4. `ai/overlays/` — Task-Type Modulators (Most Important)
+## 4. `agentic_coding/overlays/` — Task-Type Modulators (Most Important)
 
 This is where **behavior is shaped**.
 
 ```
-ai/overlays/
+agentic_coding/overlays/
 ├── README.md
 ├── exploratory/
 │   ├── ARCHITECTURE.md
@@ -120,12 +120,12 @@ Each overlay file should answer:
 
 ---
 
-## 5. `ai/packets/` — Task Instances (Ephemeral, Concrete)
+## 5. `agentic_coding/packets/` — Task Instances (Ephemeral, Concrete)
 
 This is where **agentic execution actually happens**.
 
 ```
-ai/packets/
+agentic_coding/packets/
 ├── README.md
 ├── active/
 │   ├── 2026-01-refactor-logging.md
@@ -157,12 +157,12 @@ This mirrors how you already think in *runs*, *stages*, and *artifacts*.
 
 ---
 
-## 6. `ai/adapters/` — Backend-Specific Wrappers (Optional but Powerful)
+## 6. `agentic_coding/adapters/` — Backend-Specific Wrappers (Optional but Powerful)
 
 Adapters translate **generic prompts** into **tool-specific execution contexts**.
 
 ```
-ai/adapters/
+agentic_coding/adapters/
 ├── README.md
 ├── codex/
 │   ├── EXECUTOR_PREFIX.md
@@ -188,12 +188,12 @@ This prevents you from contaminating overlays with backend trivia.
 
 ---
 
-## 7. `ai/AGENTS.mdd` — Entry Point for Agents
+## 7. `agentic_coding/AGENTS.md` — Entry Point for Agents
 
 This file ties everything together.
 
 ```
-ai/AGENTS.md
+agentic_coding/AGENTS.md
 ```
 
 Recommended contents:
@@ -217,7 +217,7 @@ This is the **bootloader** for Codex-style agents.
 
 ---
 
-## 8. `ai/README.md` — Human Orientation
+## 8. `agentic_coding/README.md` — Human Orientation
 
 Explain briefly:
 
@@ -230,10 +230,10 @@ Keep it short. Engineers should understand it in under 2 minutes.
 
 ---
 
-## 9. `ai/archive/` — Prompt Fossils (Optional but Wise)
+## 9. `agentic_coding/archive/` — Prompt Fossils (Optional but Wise)
 
 ```
-ai/archive/
+agentic_coding/archive/
 ├── old_primes/
 ├── deprecated_overlays/
 └── experiments/
