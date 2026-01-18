@@ -12,7 +12,7 @@
 
 ## Precoding
 
-### Observed Workflow -> Problem Formalization Prompt
+### Problem Formalization Prompt
 
 This prompt converts an observed real-world human practice into a solution-agnostic, engineering-ready problem statement. It is intended for early-stage problem discovery, before feasibility analysis, architecture design, or technology selection. A core objective is to surface unknown-unknowns, overlooked constraints, and hidden decision criteria early, while changes are still cheap. This prompt deliberately suppresses solution thinking in order to reduce premature convergence and hidden assumptions.
 
@@ -30,7 +30,7 @@ You must not:
 * design user interfaces
 * estimate cost, effort, or timelines
 
-### Problem Formalization -> Automation Boundary
+### Automation Boundary
 
 This prompt consumes a completed `OBSERVED_PROBLEM.md` artifact and performs a structured decomposition of the observed workflow into automation candidates.
 
@@ -59,7 +59,7 @@ You must not:
 * design detailed data structures or APIs
 * estimate implementation effort or timelines
 
-### Automation Boundary -> Architecture Space Exploration
+### Architecture Space Exploration
 
 This prompt explores possible system architectures that could satisfy the automation
 candidates and constraints identified in `AUTOMATION_CANDIDATE_DECOMPOSITION.md`.
@@ -96,7 +96,7 @@ This decision is **pre-implementation** and informs the next phase of detailed d
     * leave key trade-offs unaddressed
     * change or introduce new architecture candidates at this stage
 
-### Feasibility Validation for Selected Architecture
+### Feasibility Validation for Selected Architecture (High-Level)
 
 This document outlines the **feasibility validation plan** for the selected architecture from `ARCHITECTURE_DECISION.md`.
 

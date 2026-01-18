@@ -1,4 +1,4 @@
-# AUTOMATION_CANDIDATE_DECOMPOSITION.md
+# 2 AUTOMATION_CANDIDATE_DECOMPOSITION.md
 
 ## Problem Formalization -> Automation Feasibility Boundary
 

@@ -1,6 +1,6 @@
-# OBSERVED_PROBLEM.md
+# 1 OBSERVED_PROBLEM.md
 
-## Observed Workflow -> Problem Formalization Prompt
+## Observed Workflow -> Problem Formalization
 
 ---
 
