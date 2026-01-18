@@ -31,6 +31,7 @@ Each topic is contained within its own folder. Inside each folder, you will find
 - [Resumable git clone for large code base and slow/unreliable connection](./07-resumable-git-clone/README.md)
 - [Setting up WSL for AI Development](./08-wsl-setup/README.md)
 - [Reverse Engineering SQLite3 Databases with ERD Concepts](./09-revengdb/README.md)
+- [Greenfield Development - from Concept / Idea to MVP](./10-ai-coding-prompts/README.md) - exploration of a prompting system and framework for AI-assisted (interactive and agentic) greenfield coding problem development.
 
 ## Acknowledgments
 
