@@ -1,4 +1,4 @@
-## From Observed Problem to Implemented PoC / MVP 
+# From Observed Problem to Implemented PoC / MVP 
 
 ### Conceptual stages
 
@@ -10,116 +10,73 @@
 * agent execution
 
 
-## Precoding
 
-### Problem Formalization Prompt
+---
 
-This prompt converts an observed real-world human practice into a solution-agnostic, engineering-ready problem statement. It is intended for early-stage problem discovery, before feasibility analysis, architecture design, or technology selection. A core objective is to surface unknown-unknowns, overlooked constraints, and hidden decision criteria early, while changes are still cheap. This prompt deliberately suppresses solution thinking in order to reduce premature convergence and hidden assumptions.
+## **Precoding Phase:**
 
-Your task is to:
+This is the planning and validation phase before any actual coding starts. It is all about defining the problem and ensuring you have a feasible solution space. This phase ensures that the groundwork is solid before moving into implementation. Here's the precise order:
 
-* decompose the workflow into logical sub-tasks
-* reason about automation suitability, not implementation
-* surface risks, variability, and dependency chains
-* remain agnostic to specific algorithms, tools, or technologies
+1. **Problem Formalization**
+    * **Goal**: Convert the observed real-world practice into a precise, formal problem statement.
+    * **What you do**: Ensure the human activity is well understood, define goals, implicit constraints, and make sure you know the problem well enough to begin automation planning.
+2. **Automation Boundary**
+    * **Goal**: Define what parts of the workflow are candidates for automation and which parts should remain human-in-the-loop or unchanged.
+    * **What you do**: Decide which parts can be automated, considering both feasibility and the value of automating each part. Explicitly leave out what doesn’t need to be automated.
+3. **Architecture Space / System Design Exploration**
+    * **Goal**: Explore various system architectures that could satisfy the automation goals and constraints.
+    * **What you do**: Investigate high-level system designs, considering trade-offs in deployment models, technologies, interaction models, and computing topology. Do not decide on one solution yet - just explore possibilities.
+4. **Architecture Selection and Justification**
+    * **Goal**: **Choose** the best architecture from the exploration phase based on detailed justification.
+    * **What you do**: From the exploration phase, pick one architecture and justify it explicitly, comparing it against the others.
+5. **Feasibility Validation for Selected Architecture**
+    * **Goal**: Validate critical assumptions and ensure the chosen architecture is feasible before proceeding to full development.
+    * **What you do**: Run tests, gather evidence, and validate that the selected architecture works under real-world conditions and constraints. Confirm assumptions like device capabilities, network speeds, data security, etc.
+6. **Minimal Viable Product (MVP) Definition**
+    * **Goal**: Define the core MVP that delivers value with the minimal features required to validate the concept.
+    * **What you do**: Break down what the first version of the system must do, define the user stories, and prioritize core features that directly solve the problem. Keep the scope focused.
 
-You must not:
+---
 
-* propose architectures, pipelines, or algorithms
-* discuss ML vs non-ML, CV methods, or frameworks
-* design user interfaces
-* estimate cost, effort, or timelines
+## **Coding / Implementation Phase:**
 
-### Automation Boundary
+Once the **precoding** phase has been completed and all the **key decisions** are locked down, you move into **coding**.
 
-This prompt consumes a completed `OBSERVED_PROBLEM.md` artifact and performs a structured decomposition of the observed workflow into automation candidates.
+### 7. **Implementation**
 
-This stage sits between problem formalization and solution design.
+* **Goal**: Develop the system based on the architecture and MVP definition.
+* **Output**: Full codebase, libraries, and apps.
+* **What you do**: Write the code, integrate components, and make sure the system meets the **MVP**’s functional goals. This phase also includes detailed **unit testing**, **integration testing**, and **debugging**.
 
-Its purpose is to:
+**Key milestones** during this phase:
 
-* identify what could be automated vs what should remain human
-* expose feasibility risks without committing to solutions
-* prevent premature end-to-end automation assumptions
-* establish clear boundaries for later architectural work
+* **Prototyping** (if necessary): Sometimes, rapid prototypes are needed to test certain assumptions before full implementation begins.
+* **Feature Development**: Build out the features as defined in the MVP.
+* **User Testing**: Ensure the core workflows are solid by gathering real-world feedback on the MVP and iterating based on results.
 
-This is the first stage where feasibility reasoning is allowed, but solution selection is still prohibited.
+---
 
-You must:
+## **Final Phase:**
 
-* reason at the system and subsystem level
-* respect all constraints and boundaries from prior artifacts
-* compare alternatives fairly and explicitly
-* make **implicit architectural commitments explicit**
+After the MVP is implemented, it goes through:
 
-You must not:
+* **User Validation**
+* **Post-MVP Iterations**
 
-* commit to a single architecture
-* propose specific algorithms, models, or frameworks
-* design detailed data structures or APIs
-* estimate implementation effort or timelines
+---
 
-### Architecture Space Exploration
+### **Why this Phase Division Works:**
 
-This prompt explores possible system architectures that could satisfy the automation
-candidates and constraints identified in `AUTOMATION_CANDIDATE_DECOMPOSITION.md`.
+* **Precoding**: You are ensuring that **decisions are made based on solid problem understanding**, technical feasibility, and a well-defined scope before committing resources to coding. This significantly reduces the risk of building something that doesn't solve the problem effectively.
+* **Coding/Implementation**: Once you have a fully formed architecture and a focused MVP, the implementation phase becomes much clearer and easier to execute, reducing ambiguity and wasted effort.
 
-This stage intentionally does not select a solution.
+---
 
-Its goals are to:
+### **In Summary**:
 
-* shape the solution space
-* compare fundamentally different architectural approaches
-* surface tradeoffs and risks early
-* preserve optionality before commitment
+Your process is structured and organized in two distinct phases:
 
-This is the first solution-shaping step, but it remains pre-decisional.
+1. **Precoding** (planning, validating assumptions, and defining architecture)
+2. **Coding/Implementation** (developing the actual product based on well-formed architecture and MVP)
 
-### Architecture Selection and Justification
-
-This document captures the final **architecture decision** for the automation system, based on the exploration conducted in `ARCHITECTURE_EXPLORATION.md`.
-
-The goal is to:
-
-* **select** one architecture candidate
-* **justify** this selection relative to other candidates
-* **explicitly document trade-offs**, assumptions, and reasons for commitment
-
-This decision is **pre-implementation** and informs the next phase of detailed design, feasibility validation, and prototyping.
-
-* You must **explicitly** justify your decision.
-* For each candidate, you must document:
-    * why it was **rejected** or **deferred**
-    * why the selected architecture **outperforms** others relative to key criteria
-* You **must not**:
-    * select an architecture without justification
-    * leave key trade-offs unaddressed
-    * change or introduce new architecture candidates at this stage
-
-### Feasibility Validation for Selected Architecture (High-Level)
-
-This document outlines the **feasibility validation plan** for the selected architecture from `ARCHITECTURE_DECISION.md`.
-
-Its goal is to:
-
-* validate critical **assumptions**
-* confirm that the selected architecture is technically and operationally feasible
-* identify **showstopper risks** early
-* ensure that further development is based on **solid, validated foundations**
-
-This is a **pre-implementation** validation step and must be completed before any prototyping or full-scale implementation begins.
-
-You are designing a **feasibility validation plan** for the selected architecture.
-
-You must:
-
-* reason about **core assumptions**, **risks**, and **uncertainties**
-* design small, quick experiments to validate critical aspects of the architecture
-* identify the **most important technical and operational uncertainties**
-* propose methods to **validate or invalidate assumptions** before full implementation
-
-You must not:
-
-* design full-scale implementation
-* define tool-specific solutions
-* propose full prototyping or UI design
+This ensures a **methodical, risk-mitigated approach** to software development. You’re building a foundation that minimizes uncertainty and maximizes the chance of building something that actually meets the real-world needs.
