@@ -1,0 +1,1 @@
+I have noticed how a biologist takes smartphone photos of mouse spleen on top of millimeter graph paper and manually determines area of the organ from the photo. I figured an application can be created to perform photo analysis automatically.
