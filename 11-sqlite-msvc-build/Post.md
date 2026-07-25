@@ -57,8 +57,6 @@ int sqlite3ExtraAutoExtInit(sqlite3 *db){
 }
 ```
 
-The source transformations are intended to be idempotent.
-
 ## Build sequence
 
 The resulting build sequence is:
