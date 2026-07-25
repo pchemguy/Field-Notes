@@ -22,9 +22,7 @@ The build can therefore define:
 
 and provide `sqlite3ExtraAutoExtInit()` through an extra source file.
 
-A related discussion of `EXTRA_SRC` is here:
-
-https://sqlite.org/forum/info/903f721f3e7c0d25
+See also a related discussion of `EXTRA_SRC` is [here](https://sqlite.org/forum/info/903f721f3e7c0d25).
 
 ## Source preparation
 
