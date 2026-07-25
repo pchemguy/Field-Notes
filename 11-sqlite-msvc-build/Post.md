@@ -1,10 +1,8 @@
 # Integrating ordinary `ext/misc` loadable extensions into the amalgamation as auto-extensions
 
-I have revisited an old custom SQLite build process that embeds selected ordinary loadable extensions from `ext/misc` directly into the amalgamation and registers them as auto-extensions.
+I have revisited an old custom SQLite build process that embeds selected ordinary loadable extensions from `ext/misc` directly into the amalgamation and registers them as auto-extensions. This pipeline (primarily implemented for MSVC, but also MinGW/MSYS2) relied on patching extension sources, `main.c`, `Makefile.msc`, and `mksqlite3c.tcl`.
 
-My primary target is the native Windows/MSVC build, although the same general approach has also worked with MinGW/MSYS2.
-
-My earlier implementation patched extension sources, `main.c`, `Makefile.msc`, and `mksqlite3c.tcl`. With the current build machinery, the core and build-file patches no longer appear necessary:
+With the current SQLite build machinery, the core and build-file patches no longer appear necessary:
 
 1. `Makefile.msc` accepts additional sources through `EXTRA_SRC`.
 2. `mksqlite3c.tcl` incorporates those sources into the amalgamation.
