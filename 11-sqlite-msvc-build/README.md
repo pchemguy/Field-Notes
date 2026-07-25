@@ -1,5 +1,26 @@
 # Integrating Ordinary Loadable Extensions into the Amalgamation as Auto-Extensions
 
+## Summary
+
+This note documents a Windows/MSVC build pipeline for integrating selected ordinary SQLite loadable extensions from `ext/misc` directly into the SQLite amalgamation and registering them as auto-extensions.
+
+The approach uses existing SQLite build facilities rather than patching `main.c`, `Makefile.msc`, or `mksqlite3c.tcl`:
+
+- `EXTRA_SRC` supplies additional sources to the amalgamation workflow;  
+- `SQLITE_EXTRA_AUTOEXT` adds a generated aggregate initializer to `sqlite3BuiltinExtensions`;
+- module-specific `SQLITE_ENABLE_*` definitions control which prepared extensions are registered.
+
+Two TCL utilities prepare the selected extension sources:
+
+- `patch_sqlite_misc_autoext.tcl` converts loadable-extension entry points into core-callable initializers, preserves non-core loadable-extension wrappers, avoids symbol collisions with shell-integrated copies, and generates the aggregate `sqlite3ExtraAutoExtInit()` dispatcher.
+- `bundle_extra_src.tcl` recursively expands local header and C-source dependencies so each extra source is self-contained when appended to the amalgamation.
+
+The accompanying MSVC batch script demonstrates the complete workflow: obtaining SQLite and optional dependencies, building ZLIB and ICU, preparing the selected `ext/misc` modules, passing them through `EXTRA_SRC`, building SQLite from a separate build directory, and collecting the resulting executables, libraries, and runtime DLLs.
+
+The scripts currently serve as an experimental build pipeline rather than a claim of an officially supported extension-integration interface. The note is intended both as implementation documentation and as a basis for technical review of the use of `SQLITE_EXTRA_AUTOEXT`, the source transformations, and the interaction between modules compiled into both `sqlite3.c` and `shell.c`.
+
+---
+
 A few years ago, I experimented with a customized SQLite build process for integrating selected ordinary loadable extensions from `ext/misc` directly into the amalgamation and registering them as auto-extensions.
 
 My primary target is the native Windows/MSVC build, although I have also used the same general approach with MinGW/MSYS2.
