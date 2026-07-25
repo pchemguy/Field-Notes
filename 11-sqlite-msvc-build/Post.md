@@ -34,7 +34,7 @@ Ordinary `ext/misc` modules are generally written as loadable extensions. They i
 
 They may also contain local header or C-source dependencies, and some are compiled into `shell.c` as well as into the SQLite core.
 
-I use two Tcl scripts to prepare selected modules.
+I use two TCL scripts to prepare selected modules. The key script is `patch_sqlite_misc_autoext.tcl`.
 
 ### `patch_sqlite_misc_autoext.tcl`
 
@@ -67,30 +67,15 @@ int sqlite3ExtraAutoExtInit(sqlite3 *db){
 
 The source transformations are intended to be idempotent.
 
-### `bundle_extra_src.tcl`
-
-Because extra sources are appended to the amalgamation as source bodies, modules with local dependencies must be made self-contained.
-
-This script:
-
-* scans the complete reachable local include graph before changing anything;
-* rejects absolute paths, directory escapes, and include cycles;
-* expands dependencies before their includers;
-* replaces `sqlite3.h` and `sqlite3ext.h` includes with no-op comments;
-* inserts amalgamator-style section markers around expanded files;
-* preserves newline conventions;
-* replaces changed files atomically.
-
 ## Build sequence
 
 The resulting build sequence is:
 
 1. Run `patch_sqlite_misc_autoext.tcl` on the selected `ext/misc` sources.
-2. Run `bundle_extra_src.tcl` to inline their local dependencies.
-3. Add the prepared sources and generated `misc_ext_init.c` to `EXTRA_SRC`.
-4. Define the corresponding `SQLITE_ENABLE_*` macros.
-5. Define `SQLITE_EXTRA_AUTOEXT=sqlite3ExtraAutoExtInit`.
-6. Invoke the normal `Makefile.msc` build.
+2. Define the corresponding `SQLITE_ENABLE_*` macros.
+3. Define `SQLITE_EXTRA_AUTOEXT=sqlite3ExtraAutoExtInit`.
+4. Add the prepared sources and generated `misc_ext_init.c` to `EXTRA_SRC`.
+5. Invoke the normal `Makefile.msc` build.
 
 Conceptually:
 
@@ -103,13 +88,10 @@ set OPT_XTRA=%OPT_XTRA% ^
     -DSQLITE_ENABLE_SERIES
 
 tclsh patch_sqlite_misc_autoext.tcl %MISC_EXT%
-tclsh bundle_extra_src.tcl %MISC_EXT%
 
-nmake /f Makefile.msc ^
-    "TOP=%DISTRODIR%" ^
-    "EXTRA_SRC=%EXTRA_SRC%"
+nmake /f Makefile.msc "TOP=%DISTRODIR%" "EXTRA_SRC=%EXTRA_SRC%"
 ```
 
 I have also included a complete MSVC batch pipeline that downloads and builds SQLite, optionally builds ZLIB and ICU, prepares the selected modules, builds from a separate directory, and collects the resulting binaries.
 
-The full explanation and all three scripts are available [here](https://github.com/pchemguy/Field-Notes/blob/main/11-sqlite-msvc-build/README.md).
+The full explanation and all scripts are available [here](https://github.com/pchemguy/Field-Notes/blob/main/11-sqlite-msvc-build/README.md).
