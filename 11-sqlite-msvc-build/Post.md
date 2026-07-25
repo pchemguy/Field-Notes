@@ -22,7 +22,7 @@ The build can therefore define:
 
 and provide `sqlite3ExtraAutoExtInit()` through an extra source file.
 
-See also a related discussion of `EXTRA_SRC` is [here](https://sqlite.org/forum/info/903f721f3e7c0d25).
+See also a related [discussion](https://sqlite.org/forum/info/903f721f3e7c0d25) of `EXTRA_SRC`.
 
 ## Source preparation
 
@@ -86,4 +86,4 @@ nmake /f Makefile.msc "TOP=%DISTRODIR%" "EXTRA_SRC=%EXTRA_SRC%"
 
 I have also included a complete MSVC batch pipeline that downloads and builds SQLite, optionally builds ZLIB and ICU, prepares the selected modules, builds from a separate directory, and collects the resulting binaries.
 
-The full explanation and all scripts are available [here](https://github.com/pchemguy/Field-Notes/blob/main/11-sqlite-msvc-build/README.md).
+The full explanation and all scripts are available from [repository](https://github.com/pchemguy/Field-Notes/blob/main/11-sqlite-msvc-build/README.md).
