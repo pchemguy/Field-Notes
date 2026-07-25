@@ -30,11 +30,7 @@ https://sqlite.org/forum/info/903f721f3e7c0d25
 
 ## Source preparation
 
-Ordinary `ext/misc` modules are generally written as loadable extensions. They include `sqlite3ext.h`, use `SQLITE_EXTENSION_INIT1/2`, and export entry points such as `sqlite3_csv_init()`.
-
-They may also contain local header or C-source dependencies, and some are compiled into `shell.c` as well as into the SQLite core.
-
-I use two TCL scripts to prepare selected modules. The key script is `patch_sqlite_misc_autoext.tcl`.
+Ordinary `ext/misc` modules are generally written as loadable extensions. They include `sqlite3ext.h`, use `SQLITE_EXTENSION_INIT1/2`, and export entry points such as `sqlite3_csv_init()`. I use two TCL scripts to prepare selected modules. The key script is `patch_sqlite_misc_autoext.tcl`.
 
 ### `patch_sqlite_misc_autoext.tcl`
 
