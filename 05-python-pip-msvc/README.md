@@ -1,3 +1,6 @@
+---
+url: https://chatgpt.com/c/68ed5ca2-ee7c-8330-a5d1-0d4b81ee3aa0
+---
 <!--
 https://chatgpt.com/c/68ed5ca2-ee7c-8330-a5d1-0d4b81ee3aa0
 -->
@@ -146,3 +149,28 @@ After applying the patch:
 
 Interestingly, even though some packages (like `psutil`) produce no trace referencing `msvc.py`, this same patch still resolves their build failures—indicating that the same internal detection bug is responsible.
 
+I'd make it a bit more precise and less colloquial while explaining _why_ the clash matters:
+
+---
+
+## **MSVC Linker Name Clash**
+
+Another issue I encountered when setting up Conda environments for native Windows builds involves a name collision between the MSVC and MSYS linkers.
+
+The Conda `git` package bundles a minimal MSYS2 environment and places its executables under:
+
+```text
+{PYTHONHOME}\Library\usr\bin
+```
+
+This directory contains an MSYS utility named `link.exe`, which is unrelated to the Microsoft linker. Because the directory is added to `PATH` when the Conda environment is activated, it can take precedence over the MSVC `link.exe` when both the Conda and MSVC environments are active in the same shell.
+
+As a result, build systems expecting the Microsoft linker may instead invoke the MSYS utility, leading to confusing build failures.
+
+For my own environments, the simplest solution has been to rename the MSYS executable:
+
+```text
+link.exe → link_.exe
+```
+
+(or remove it entirely if it is not needed). In my experience, this has had no adverse effects and allows the MSVC linker to be resolved correctly via `PATH`.
