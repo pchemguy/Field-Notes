@@ -153,7 +153,7 @@ I'd make it a bit more precise and less colloquial while explaining _why_ the cl
 
 ---
 
-## **MSVC Linker Name Clash**
+## **MSVC Linker and MSYS Name Collision**
 
 Another issue I encountered when setting up Conda environments for native Windows builds involves a name collision between the MSVC and MSYS linkers.
 
