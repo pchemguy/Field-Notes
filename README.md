@@ -21,18 +21,19 @@ Each topic is contained within its own folder. Inside each folder, you will find
 
 ## Table of Contents
 
-- [Resuming Large File Downloads with Dynamic Links](./01-improving-large-file-downloads/README.md) - A scripted `wget`/`aria2` solution for robustly downloading large files.
+- [Resuming Large File Downloads with Dynamic Links](./01-improving-large-file-downloads/README.md) - A scripted `wget`/`aria2` solution for robustly downloading large files
 - Storage Considerations for a New PC (A Two-Part Series)
-    - [Part 1: Structuring Internal Storage for Robust Migration and Failure Recovery](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md)
-    - [Part 2: Building a Bootable USB Drive](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/BootableUSBDrive.md)
-- [Bootstrapping Python Environments on Windows (via Micromamba)](https://github.com/pchemguy/Field-Notes/blob/main/03-python-env-windows/README.md)
-- [Scripted Downloads of Latest GitHub Binary Releases on Windows](https://github.com/pchemguy/Field-Notes/blob/main/04-github-release-download/README.md)
+    - [Part 1: Structuring Internal Storage for Robust Migration and Failure Recovery](./02-storage-new-pc/README.md)
+    - [Part 2: Building a Bootable USB Drive](./02-storage-new-pc/BootableUSBDrive.md)
+- [Bootstrapping Python Environments on Windows (via Micromamba)](./03-python-env-windows/README.md)
+- [Scripted Downloads of Latest GitHub Binary Releases on Windows](./04-github-release-download/README.md)
 - [Python pip Fails to Detect MSVC Build Tools on Windows](./05-python-pip-msvc/README.md)
 - [Resumable git clone for large code base and slow/unreliable connection](./07-resumable-git-clone/README.md)
 - [Setting up WSL for AI Development](./08-wsl-setup/README.md)
 - [Reverse Engineering SQLite3 Databases with ERD Concepts](./09-revengdb/README.md)
-- [Greenfield Development - from Concept / Idea to MVP](./10-ai-coding-prompts/README.md) - exploration of a prompting system and framework for AI-assisted (interactive and agentic) greenfield coding problem development.
+- [Greenfield Development - from Concept / Idea to MVP](./10-ai-coding-prompts/README.md) - exploration of a prompting system and framework for AI-assisted (interactive and agentic) greenfield coding problem development
 - [Integrating Loadable Extensions into SQLite Amalgamation using MSVC Toolchain](11-sqlite-msvc-build/README.md)
+- [Direct C API Testing with Pytest and CFFI](https://github.com/pchemguy/CFFI_Pytest_C_Testing) (standalone note)
 
 ## Acknowledgments
 
