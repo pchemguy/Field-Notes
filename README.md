@@ -34,6 +34,7 @@ Each topic is contained within its own folder. Inside each folder, you will find
 - [Greenfield Development - from Concept / Idea to MVP](./10-ai-coding-prompts/README.md) - exploration of a prompting system and framework for AI-assisted (interactive and agentic) greenfield coding problem development
 - [Integrating Loadable Extensions into SQLite Amalgamation using MSVC Toolchain](11-sqlite-msvc-build/README.md)
 - [Direct C API Testing with Pytest and CFFI](https://github.com/pchemguy/CFFI_Pytest_C_Testing) (standalone note)
+- [SQLite C Extension Template](https://github.com/pchemguy/SQLiteExtensionTemplate) - establishes a template for a C SQLite extension with [integrated building](11-sqlite-msvc-build/README.md) and [CFFI-based testing](https://github.com/pchemguy/CFFI_Pytest_C_Testing) (standalone note)
 
 ## Acknowledgments
 
