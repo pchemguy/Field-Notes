@@ -35,6 +35,7 @@ Each topic is contained within its own folder. Inside each folder, you will find
 - [Integrating Loadable Extensions into SQLite Amalgamation using MSVC Toolchain](11-sqlite-msvc-build/README.md)
 - [Direct C API Testing with Pytest and CFFI](https://github.com/pchemguy/CFFI_Pytest_C_Testing) (standalone note)
 - [SQLite C Extension Template](https://github.com/pchemguy/SQLiteExtensionTemplate) - establishes a template for a C SQLite extension with [integrated building](11-sqlite-msvc-build/README.md) and [CFFI-based testing](https://github.com/pchemguy/CFFI_Pytest_C_Testing) (standalone note)
+- [IPC Scheme XML Parsing Notes](12-ipc-scheme-xml-parsing/README.md)
 
 ## Acknowledgments
 
