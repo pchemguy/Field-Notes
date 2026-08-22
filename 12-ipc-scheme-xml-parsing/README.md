@@ -263,6 +263,30 @@ One `kind="i"` subtree can contain a branching hierarchy of `indexEntry` element
 
 The outer JSON array is retained even when a path or reference list contains one item.
 
+The compact `refs` representation can be expanded into a uniform relational form when individual references need to be joined or filtered. The following query is the intended basis for a view that may be added to the parser later:
+
+```sql
+SELECT
+    symbol,
+    endSymbol,
+    terms,
+    CASE substr(r.value, 1, 1)
+        WHEN '[' THEN
+            r.value ->> '[0]'
+        ELSE
+            r.value
+    END AS ref,
+    CASE substr(r.value, 1, 1)
+        WHEN '[' THEN
+            r.value ->> '[1]'
+        ELSE
+            NULL
+    END AS endRef
+FROM index_terms, json_each(refs) AS r;
+```
+
+`json_each(refs)` emits one row per source reference. A scalar `sref` value becomes `ref` with `endRef` set to SQL `NULL`; a two-item `mref` array becomes its `ref` and `endRef` bounds. These names deliberately retain the source attributes used by `<sref>` and `<mref>`. The original `index_terms` row is therefore repeated once for each reference while its `symbol`, `endSymbol`, and `terms` values remain available for context. A future view can also expose `r.key` as a zero-based reference index if source order must be addressable explicitly. This query is documented for later use only; the current parser does not create the view.
+
 ### 6.4 `notes`
 
 ```sql
