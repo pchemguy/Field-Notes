@@ -261,9 +261,9 @@ For example:
 ["B62D0006000000", ["B23K0001000000", "B23K0031000000"]]
 ```
 
-The stored value is one target list directly; it does not use `{sref: ...}` or `{mref: ...}` objects and is not wrapped in another list. A reference-free index heading stores SQL `NULL` in `refs`.
+The stored value is one target list directly; it does not use `{sref: ...}` or `{mref: ...}` objects. A reference-free index heading stores SQL `NULL` in `refs`.
 
-Recognized indexing boilerplate is removed from `title_parts`. The result contains plain subject strings without `{ref[N]}` pointers:
+Recognized indexing boilerplate is removed from `title_parts`. The result contains plain subject strings:
 
 ```text
 Indexing scheme associated with group <sref .../>, relating to the type of sport.
@@ -309,6 +309,30 @@ exclusion_list = [["B62D0006020000", "B62D0006100000"]]
 ```
 
 Exclusion references are not retained in `gheadings_index.refs`. Both columns of `gheading_index_exclusions` are nonempty JSON arrays; their scalar/range elements use the same compact `sref`/`mref` convention. The exclusion relation deliberately stores target lists rather than a foreign key because auxiliary guidance rows do not yet have manufactured identities.
+
+The compact target list in `gheadings_index.refs` can be expanded into a uniform relational form when individual target references need to be joined or filtered. The following query is the intended basis for a view that may be added to the parser later:
+
+```sql
+SELECT
+    title_parts,
+    symbol,
+    endSymbol,
+    CASE substr(r.value, 1, 1)
+        WHEN '[' THEN
+            r.value ->> '[0]'
+        ELSE
+            r.value
+    END AS ref,
+    CASE substr(r.value, 1, 1)
+        WHEN '[' THEN
+            r.value ->> '[1]'
+        ELSE
+            NULL
+    END AS endRef
+FROM gheadings_index, json_each(refs) AS r;
+```
+
+`json_each(refs)` emits one row per target reference. A scalar `sref` value becomes `ref` with `endRef` set to SQL `NULL`; a two-item `mref` array becomes its `ref` and `endRef` bounds. The original guidance row is repeated once for each target reference while its `title_parts`, `symbol`, and `endSymbol` values remain available for context. Rows whose `refs` value is SQL `NULL` produce no rows in this expansion. Exclusion references are intentionally absent because they belong to `gheading_index_exclusions`. A future view can also expose `r.key` as a zero-based target-reference index if source order must be addressable explicitly. This query is documented for later use only; the current parser does not create the view.
 
 ### 6.3 `index_terms`
 
