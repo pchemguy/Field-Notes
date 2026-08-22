@@ -1,5 +1,7 @@
 ---
-url: https://chatgpt.com/c/6a897e26-5a40-83eb-afa1-32a9bf36b31c
+urls:
+ - https://chatgpt.com/c/6a897e26-5a40-83eb-afa1-32a9bf36b31c
+ - https://chatgpt.com/c/6a89c8a7-00b4-83eb-b9ac-f5f8385d6208
 ---
 # IPC Scheme XML Parsing Notes
 
@@ -64,7 +66,7 @@ Treating all `ipcEntry` elements as nodes in one tree would therefore conflate t
 | `kind` | Interpreted function | Internal structure                                  | Scope model                                                                                              |
 | :----: | -------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 |  `i`   | Subclass index       | Hierarchical `indexEntry` tree ending in references | Anchored by the entry's `symbol`/`endSymbol`; not part of the classification hierarchy                   |
-|  `g`   | Guidance heading     | Title parts, sometimes with references              | Applies to a run of core places or classified aspects; routing requires same-symbol target resolution    |
+|  `g`   | Guidance heading     | Title parts, sometimes with embedded references     | Applies to a run of core places or classified aspects; routing requires same-symbol target resolution    |
 |  `n`   | Semi-structured note | A `textBody` containing one or more note structures | Applies to the symbol or symbol range stated on the note entry                                           |
 |  `t`   | Subsection title     | Title parts                                         | Applies to a symbol range and provides presentation-level grouping above or across classification places |
 
@@ -109,8 +111,10 @@ The same attribute name has two different roles.
 
 For a structural record, `symbol` identifies the node encoded by that element. For an `ignt` record, it describes attachment or scope. It should not be treated as a primary key for the auxiliary record and it does not make that record a second copy of the same structural node.
 
-`endSymbol`, where present, completes the scope range. The pair `(symbol, endSymbol)` describes applicability; it is not necessarily a unique
-record identifier. Multiple auxiliary records may legitimately be anchored to the same structural symbol or range.
+`endSymbol`, where present, completes the scope range. The pair
+`(symbol, endSymbol)` describes applicability; it is not necessarily a unique
+record identifier. Multiple auxiliary records may legitimately be anchored to
+the same structural symbol or range.
 
 This distinction also explains why a special record's immediate XML parent is not stored merely to infer its IPC scope. For these records, scope is stated by `symbol` and `endSymbol`; XML placement is primarily a source-organization fact.
 
@@ -136,7 +140,11 @@ The source also contains explicit reference elements:
 - `<mref ref="..." endRef="...">` identifies a symbol range.
 
 These are references by definition and are distinct from the overloaded `ipcEntry/@symbol` issue. Their relational representation depends on context:
-guidance and subclass-index references are normalized, whereas reference markup inside notes and place titles is currently preserved.
+
+- references in core guidance headings remain embedded as XML markup;
+- references in index guidance headings are parsed into compact JSON target lists, while exclusion lists are separated into their own table;
+- subclass-index references are normalized into compact JSON arrays;
+- reference markup inside notes and place titles is currently preserved.
 
 ## 5. XML-model-aware parsing strategy
 
@@ -185,6 +193,8 @@ The parser should fail visibly when an observed structural invariant changes. At
 
 - nested `ipcEntry` elements inside any `ignt` record;
 - unresolved or ambiguously resolved guidance symbols;
+- unrecognized `gheadings_index` boilerplate beginning with `Indexing scheme`;
+- malformed guidance target or exclusion reference lists;
 - `kind="i"` subtrees without `indexEntry` descendants;
 - terminal index entries without references;
 - missing required `ref` or `endRef` attributes;
@@ -197,15 +207,16 @@ The parser should fail visibly when an observed structural invariant changes. At
 
 The relational model deliberately uses separate tables for source structures with different identity, hierarchy, and content semantics.
 
-| Table                | Columns                                     | One row represents                                        |
-| -------------------- | ------------------------------------------- | --------------------------------------------------------- |
-| `subsections`        | `title_parts, symbol, endSymbol`            | One `kind="t"` auxiliary record                           |
-| `gheadings_core`     | `title_parts, symbol, endSymbol, refs`      | One `kind="g"` heading applying to core places            |
-| `gheadings_index`    | `title_parts, symbol, endSymbol, refs`      | One `kind="g"` heading applying to classified aspects     |
-| `index_terms`        | `symbol, endSymbol, terms, refs`            | One root-to-terminal path through a `kind="i"` index tree |
-| `notes`              | `symbol, endSymbol, note_xml`               | One `kind="n"` auxiliary record                           |
-| `classified_aspects` | `kind, symbol, parent_symbol, terms`        | One structural non-`ignt`, `entryType="I"` node           |
-| `places`             | `kind, symbol, parent_symbol, terms, notes` | One structural non-`ignt`, `entryType="K"` node           |
+| Table                         | Columns                                      | One row represents                                                     |
+| ----------------------------- | -------------------------------------------- | ---------------------------------------------------------------------- |
+| `subsections`                 | `title_parts, symbol, endSymbol`             | One `kind="t"` auxiliary record                                        |
+| `gheadings_core`              | `title_parts, symbol, endSymbol`             | One `kind="g"` heading applying to core places                         |
+| `gheadings_index`             | `title_parts, symbol, endSymbol, refs`       | One nonempty normalized `kind="g"` heading applying to classified aspects |
+| `gheading_index_exclusions`   | `target_list, exclusion_list`                | One target/exclusion relationship parsed from index-guidance boilerplate |
+| `index_terms`                 | `symbol, endSymbol, terms, refs`             | One root-to-terminal path through a `kind="i"` index tree              |
+| `notes`                       | `symbol, endSymbol, note_xml`                | One `kind="n"` auxiliary record                                        |
+| `classified_aspects`          | `kind, symbol, parent_symbol, terms`         | One structural non-`ignt`, `entryType="I"` node                        |
+| `places`                      | `kind, symbol, parent_symbol, terms, notes`  | One structural non-`ignt`, `entryType="K"` node                        |
 
 JSON values are stored in SQLite `TEXT` columns and constrained to the expected JSON container type. A one-item collection remains an array. Absence of an optional structured value is SQL `NULL`, not serialized JSON `null`.
 
@@ -220,35 +231,84 @@ subsections(title_parts, symbol, endSymbol)
 
 Subsections are presentation-level range labels, not hierarchy nodes. Their symbols are therefore not converted into parent links or primary keys.
 
-### 6.2 `gheadings_core` and `gheadings_index`
+### 6.2 Guidance headings
 
 ```sql
-gheadings_core(title_parts, symbol, endSymbol, refs)
+gheadings_core(title_parts, symbol, endSymbol)
 gheadings_index(title_parts, symbol, endSymbol, refs)
+gheading_index_exclusions(target_list, exclusion_list)
 ```
 
-The tables are structurally identical. Separation records the resolved target domain without retaining a redundant `group_type` column.
+The same-symbol resolution described in Section 4.1 routes each source heading before its content is transformed. The two target domains then follow deliberately different workflows.
 
-References in a title part are replaced by zero-based `{ref[N]}` placeholders. The corresponding `refs` JSON array preserves source order:
+#### Core guidance
+
+`gheadings_core.title_parts` is a JSON array containing the owned title-part content in source order. Inline `<sref>` and `<mref>` elements remain embedded as XML; their attributes are neither parsed nor validated as reference values. The outer `<text>` wrapper is omitted. There is no `refs` column.
+
+This preservation rule avoids imposing the narrowly formulaic index-guidance grammar on ordinary core headings.
+
+#### Index guidance
+
+`gheadings_index` is partially normalized. Source references are first parsed into temporary ordered lists and associated with their grammatical role. Stored `refs` contains only the heading's target list, using the same compact representation as `index_terms`:
+
+- `sref` becomes its `ref` string;
+- `mref` becomes `[ref, endRef]`;
+- the containing list remains a JSON array even when it has one item.
+
+For example:
 
 ```json
-{"sref": "A01B0001000000"}
-{"mref": ["A01B0003000000", "A01B0007000000"]}
+["B62D0006000000", ["B23K0001000000", "B23K0031000000"]]
 ```
 
-A grammatical list may be stored as a nested array referenced by one placeholder. `refs` is SQL `NULL` when the title contains no parsed references.
+The stored value is one target list directly; it does not use `{sref: ...}` or `{mref: ...}` objects and is not wrapped in another list. A reference-free index heading stores SQL `NULL` in `refs`.
 
-Index guidance headings also receive conservative boilerplate normalization:
+Recognized indexing boilerplate is removed from `title_parts`. The result contains plain subject strings without `{ref[N]}` pointers:
 
 ```text
-Indexing scheme associated with group {ref[0]}, relating to CAD techniques.
-→ CAD techniques - {ref[0]}
+Indexing scheme associated with group <sref .../>, relating to the type of sport.
+→ Type of sport
 
-Indexing scheme associated with group {ref[0]}.
-→ {ref[0]}
+Indexing scheme relating to circuit arrangements for AC distribution networks.
+→ Circuit arrangements for AC distribution networks
 ```
 
-The normalization removes a leading `The`, removes one final period, and changes only the first cased character to uppercase so acronyms such as `CAD`, `AC`, and `CHP` are preserved. An unknown title beginning with `Indexing scheme` is an error rather than a candidate for approximate rewriting.
+Normalization is conservative and deterministic:
+
+- optional commas, singular/plural `group` wording, and the observed optional conjunctions are accepted only in defined positions;
+- a leading case-insensitive `The` is removed from an extracted subject;
+- only the first cased character is uppercased, preserving acronyms such as `CAD`, `AC`, and `CHP`;
+- one final period is removed;
+- non-boilerplate headings remain unchanged;
+- text beginning with `Indexing scheme` but matching no recognized rule is an error.
+
+A pure association contains no subject after filtering. It therefore produces an empty `title_parts` array temporarily, and the entire `gheadings_index` row is then dropped. Reference parsing and validation occur before this filtering step, so malformed source references are not hidden by the dropped row.
+
+#### Exclusions
+
+The supported exclusion form is parsed as three independent components: the main target list, an exclusion list, and the remaining subject. In outline, it consists of a main association followed by a comma, case-insensitive `with the exception of`, one or more punctuation-free words, an exclusion reference list, and the `relating to` subject clause. The matcher tolerates the defined singular/plural and optional comma/conjunction variants but remains anchored to the complete heading.
+
+For example, this source:
+
+```xml
+<text>Indexing scheme associated with group <sref ref="B62D0006000000" />, with the exception of groups <mref endRef="B62D0006100000" ref="B62D0006020000" />, relating to driving conditions sensed and responded to.</text>
+```
+
+produces the guidance row:
+
+```json
+title_parts = ["Driving conditions sensed and responded to"]
+refs = ["B62D0006000000"]
+```
+
+and the separate exclusion row:
+
+```json
+target_list = ["B62D0006000000"]
+exclusion_list = [["B62D0006020000", "B62D0006100000"]]
+```
+
+Exclusion references are not retained in `gheadings_index.refs`. Both columns of `gheading_index_exclusions` are nonempty JSON arrays; their scalar/range elements use the same compact `sref`/`mref` convention. The exclusion relation deliberately stores target lists rather than a foreign key because auxiliary guidance rows do not yet have manufactured identities.
 
 ### 6.3 `index_terms`
 
@@ -356,8 +416,8 @@ unparsed. `notes` is SQL `NULL` when no `entryReference` occurs.
 
 Post-processing is intentionally asymmetric because different source structures have been understood to different degrees.
 
-1. **Normalize only where the source grammar is narrow and deterministic.** Guidance references and index-terminal references have explicit element types and required attributes, so they can be represented as JSON safely.
-2. **Preserve source markup where semantics remain uncertain.** Notes and place `entryReference` content remain XML-bearing strings instead of being split into speculative relational fields.
+1. **Normalize only where the source grammar is narrow and deterministic.** Index-guidance target and exclusion lists, together with index-terminal references, have sufficiently explicit structure to be represented as compact JSON safely.
+2. **Preserve source markup where semantics remain uncertain.** Core-guidance references, notes, and place `entryReference` content remain XML-bearing strings instead of being split into speculative relational fields.
 3. **Separate hierarchy from labels.** Parent links store structural ancestry; title arrays store only node-local labels rather than denormalized paths.
 4. **Retain positional information.** JSON arrays and `terms_N` keys preserve source order and association with a particular title part.
 5. **Use SQL `NULL` for absence.** JSON arrays and objects represent present collections, including deliberately empty collections; SQL `NULL` means the
@@ -372,6 +432,7 @@ A single `ipc_entries` table would obscure several incompatible notions:
 - classification hierarchy versus internal index hierarchy;
 - core classification versus classified-aspect domains;
 - normalized references versus preserved XML fragments;
+- index-guidance targets versus exclusions from those targets;
 - node-local titles versus path-expanded index terms.
 
 The multi-table model makes these distinctions explicit. It also avoids manufacturing universal synthetic identifiers for auxiliary records whose
@@ -385,6 +446,7 @@ The split is therefore semantic normalization, not merely a convenience for the 
 - `entryType="D"` is deliberately not modelled here.
 - Source `edition` values and global source-order fields are not retained in the current relational model.
 - Notes remain semi-structured XML and require a separate structural survey before further normalization.
+- Index-guidance exclusion parsing currently recognizes the observed anchored boilerplate form; new formulations beginning with `Indexing scheme` intentionally fail until reviewed and added explicitly.
 - References preserved inside place terms, place notes, and note XML are not yet exposed as relational edges.
 - The meaning of absent `endSymbol` should be documented from authoritative IPC specifications or validated systematically before an inferred range rule is encoded.
 - Candidate keys, uniqueness constraints, and foreign-key constraints should be enabled only after full-scheme audits confirm the relevant invariants.

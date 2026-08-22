@@ -31,8 +31,9 @@ Owned tables and column contracts
 The script owns and may rebuild these tables:
 
 * ``subsections(title_parts, symbol, endSymbol)``;
-* ``gheadings_core(title_parts, symbol, endSymbol, refs)``;
+* ``gheadings_core(title_parts, symbol, endSymbol)``;
 * ``gheadings_index(title_parts, symbol, endSymbol, refs)``;
+* ``gheading_index_exclusions(target_list, exclusion_list)``;
 * ``index_terms(symbol, endSymbol, terms, refs)``;
 * ``notes(symbol, endSymbol, note_xml)``;
 * ``classified_aspects(kind, symbol, parent_symbol, terms)``; and
@@ -52,22 +53,34 @@ Guidance headings
 -----------------
 A guidance heading is routed by the ``entryType`` of the non-special
 ``ipcEntry`` having the same symbol: ``K`` goes to ``gheadings_core`` and ``I``
-to ``gheadings_index``. The routing type is not stored. Both tables have the
-same schema.
+to ``gheadings_index``. The routing type is not stored. Core and indexing
+guidance deliberately use different reference representations.
 
-References inside a guidance ``titlePart`` are replaced with zero-based
-``{ref[N]}`` pointers. ``refs`` stores the pointed-to definitions in source
-order and is SQL ``NULL`` when no references occur. ``sref`` becomes
-``{"sref": ref}``; ``mref`` becomes ``{"mref": [ref, endRef]}``. A grammatical
-comma/``and`` list is stored as one nested array and represented by one pointer.
+``gheadings_core`` does not parse references and has no ``refs`` column. Its
+``title_parts`` strings retain inline ``sref`` and ``mref`` XML markup inside
+the source ``text`` elements. ``gheadings_index`` uses temporary zero-based
+``{ref[N]}`` pointers only while parsing. Stored titles contain only the cleaned
+subject and no pointers. Its optional ``refs`` value is one target JSON list in
+source order: ``sref`` becomes a symbol string and ``mref`` becomes
+``[ref, endRef]``. Thus the former ``{"sref": ref}`` and
+``{"mref": [ref, endRef]}`` object wrappers are not stored.
+
+An indexing title may include a clause beginning with ``, with the exception
+of``. The clause must then contain one or more punctuation-free words followed
+by one reference-list pointer. Its reference list is removed from
+``gheadings_index.refs`` and written with the main target list to
+``gheading_index_exclusions(target_list, exclusion_list)``. Both columns use
+the same flat-list convention as ``gheadings_index.refs``.
 
 Indexing guidance headings also receive strict boilerplate cleanup. Recognized
-associations become ``Subject - {ref[N]}``, pure associations become
-``{ref[N]}``, and exclusions become
-``{ref[N]}; exclude: {ref[M]} - Subject``. A leading ``the`` and one terminal
-period are removed from the extracted subject, whose first cased character is
-uppercased without lowercasing acronyms. An unrecognized title beginning with
-``Indexing scheme`` is rejected rather than partially rewritten.
+association and exclusion forms retain only their subject. Pure associations
+have no meaningful subject and are omitted from the stored ``title_parts``
+array. If filtering leaves the complete array empty, the
+``gheadings_index`` row is not stored. A leading ``the`` and one terminal
+period are removed from an extracted subject, whose first cased character is
+uppercased without lowercasing acronyms. Reference-free headings retain SQL
+``NULL`` in ``refs``. An unrecognized title beginning with ``Indexing scheme``
+is rejected rather than partially rewritten.
 
 Index terms
 -----------
@@ -137,8 +150,6 @@ Runtime requirements
 The implementation uses only the Python standard library and requires SQLite
 JSON scalar functions such as ``json_valid`` and ``json_type``. This revision
 was exercised with Python 3.12.13 and SQLite 3.53.1.
-
-https://chatgpt.com/c/6a867504-2564-83eb-a26a-52f11f60ea06
 """
 
 from __future__ import annotations
@@ -161,10 +172,14 @@ REFERENCE_LIST_SEPARATOR = re.compile(
     re.IGNORECASE,
 )
 REFERENCE_POINTER_PATTERN = r"\{ref\[\d+\]\}"
+REFERENCE_POINTER_INDEX_PATTERN = re.compile(r"\{ref\[(\d+)\]\}")
+EXCLUSION_DESCRIPTOR_WORD_PATTERN = r"[^\W\d_]+"
 INDEX_EXCEPTION_PATTERN = re.compile(
     rf"^Indexing scheme\s*,?\s*associated with groups?\s+"
-    rf"(?P<scope>{REFERENCE_POINTER_PATTERN})\s*,?\s*"
-    rf"with the exception of groups?\s+"
+    rf"(?P<scope>{REFERENCE_POINTER_PATTERN})\s*,\s*"
+    rf"with the exception of\s+"
+    rf"(?P<exclusion_descriptor>{EXCLUSION_DESCRIPTOR_WORD_PATTERN}"
+    rf"(?:\s+{EXCLUSION_DESCRIPTOR_WORD_PATTERN})*)\s+"
     rf"(?P<excluded>{REFERENCE_POINTER_PATTERN})\s*,?\s*"
     rf"(?:and\s+)?relating to\s+(?P<subject>.+)$",
     re.IGNORECASE,
@@ -205,7 +220,7 @@ CLASSIFIED_RELATING_TITLE_PATTERN = re.compile(
 
 
 class SrefDefinition(TypedDict):
-    """Represent one guidance-heading ``sref`` in serialized JSON.
+    """Represent one temporary guidance-heading ``sref`` definition.
 
     Attributes:
         sref: Required IPC symbol copied from the XML element's ``ref``
@@ -216,7 +231,7 @@ class SrefDefinition(TypedDict):
 
 
 class MrefDefinition(TypedDict):
-    """Represent one guidance-heading ``mref`` range in serialized JSON.
+    """Represent one temporary guidance-heading ``mref`` definition.
 
     Attributes:
         mref: Two-item list containing ``ref`` and ``endRef`` in that order.
@@ -236,12 +251,18 @@ GuidanceHeadingRow = tuple[
     str | None,
     str | None,
 ]
-StoredGuidanceHeadingRow = tuple[
+CoreGuidanceHeadingRow = tuple[
+    str,
+    str | None,
+    str | None,
+]
+IndexGuidanceHeadingRow = tuple[
     str,
     str | None,
     str | None,
     str | None,
 ]
+GuidanceExclusionRow = tuple[str, str]
 IndexReference = str | list[str]
 IndexTermRow = tuple[str | None, str | None, str, str]
 NoteRow = tuple[str | None, str | None, str]
@@ -288,8 +309,29 @@ def normalized_subject(subject: str) -> str:
     return result
 
 
-def clean_index_title_part(title_part: str) -> str:
-    """Remove recognized IPC indexing boilerplate from one title part.
+def reference_pointer_index(pointer: str) -> int:
+    """Extract the zero-based integer from one complete reference pointer.
+
+    Args:
+        pointer: String expected to have the exact form ``{ref[N]}``.
+
+    Returns:
+        Nonnegative pointer index ``N``.
+
+    Raises:
+        ValueError: If ``pointer`` does not have the required complete form.
+    """
+
+    match = REFERENCE_POINTER_INDEX_PATTERN.fullmatch(pointer)
+    if match is None:
+        raise ValueError(f"invalid guidance reference pointer: {pointer!r}")
+    return int(match.group(1))
+
+
+def parse_index_title_part(
+    title_part: str,
+) -> tuple[str | None, int | None, int | None]:
+    """Parse one index-guidance title into subject and reference roles.
 
     Non-boilerplate values are returned exactly as supplied. A title beginning
     with ``Indexing scheme`` must match one supported complete formulation;
@@ -297,17 +339,20 @@ def clean_index_title_part(title_part: str) -> str:
     misinterpreted by a partial match.
 
     Args:
-        title_part: Rendered title part, including any ``{ref[N]}`` pointers.
+        title_part: Rendered title part containing temporary ``{ref[N]}``
+            pointers where source reference lists occurred.
 
     Returns:
-        The cleaned title part or the original non-boilerplate value.
+        Tuple of cleaned subject (or ``None`` for a pure association), target
+        pointer index, and exclusion pointer index. Reference-free forms use
+        ``None`` for both indexes.
 
     Raises:
         ValueError: If indexing boilerplate has an unknown formulation.
     """
 
     if not title_part.casefold().startswith("indexing scheme"):
-        return title_part
+        return title_part, None, None
 
     candidate = " ".join(title_part.split())
     if candidate.endswith("."):
@@ -315,32 +360,51 @@ def clean_index_title_part(title_part: str) -> str:
 
     match = INDEX_EXCEPTION_PATTERN.fullmatch(candidate)
     if match:
-        subject = normalized_subject(match.group("subject"))
         return (
-            f'{match.group("scope")}; exclude: {match.group("excluded")} - '
-            f"{subject}"
+            normalized_subject(match.group("subject")),
+            reference_pointer_index(match.group("scope")),
+            reference_pointer_index(match.group("excluded")),
         )
 
     match = INDEX_ASSOCIATED_SUBJECT_PATTERN.fullmatch(candidate)
     if match:
         return (
-            f'{normalized_subject(match.group("subject"))} - '
-            f'{match.group("scope")}'
+            normalized_subject(match.group("subject")),
+            reference_pointer_index(match.group("scope")),
+            None,
         )
 
     match = INDEX_PURE_ASSOCIATION_PATTERN.fullmatch(candidate)
     if match:
-        return match.group("scope")
+        return None, reference_pointer_index(match.group("scope")), None
 
     match = INDEX_ASSOCIATED_WITHOUT_REFERENCE_PATTERN.fullmatch(candidate)
     if match:
-        return normalized_subject(match.group("subject"))
+        return normalized_subject(match.group("subject")), None, None
 
     match = INDEX_RELATED_SUBJECT_PATTERN.fullmatch(candidate)
     if match:
-        return normalized_subject(match.group("subject"))
+        return normalized_subject(match.group("subject")), None, None
 
     raise ValueError(f"unsupported indexing title boilerplate: {title_part!r}")
+
+
+def clean_index_title_part(title_part: str) -> str | None:
+    """Return only the pointer-free subject parsed from one title part.
+
+    Args:
+        title_part: Rendered title part containing any temporary pointers.
+
+    Returns:
+        Cleaned subject, unchanged non-boilerplate content, or ``None`` when a
+        pure association has no meaningful title beyond its target list.
+
+    Raises:
+        ValueError: If indexing boilerplate has an unknown formulation.
+    """
+
+    cleaned, _, _ = parse_index_title_part(title_part)
+    return cleaned
 
 
 def clean_index_title_parts(title_parts_json: str) -> str:
@@ -362,10 +426,147 @@ def clean_index_title_parts(title_parts_json: str) -> str:
         isinstance(part, str) for part in title_parts
     ):
         raise ValueError("index guidance title_parts must be an array of strings")
-    cleaned_title_parts = [clean_index_title_part(part) for part in title_parts]
+    cleaned_title_parts = [
+        cleaned
+        for part in title_parts
+        if (cleaned := clean_index_title_part(part)) is not None
+    ]
     if cleaned_title_parts == title_parts:
         return title_parts_json
     return json.dumps(cleaned_title_parts, ensure_ascii=False)
+
+
+def flatten_guidance_reference_entry(entry: object) -> list[IndexReference]:
+    """Remove temporary object wrappers from one guidance reference list.
+
+    Args:
+        entry: Parsed JSON value produced for one temporary ``{ref[N]}``
+            pointer. It must be one reference-definition object or a
+            grammatical list of such objects.
+
+    Returns:
+        Flat list in source order where ``sref`` is a string and ``mref`` is a
+        two-string ``[ref, endRef]`` range.
+
+    Raises:
+        ValueError: If the temporary entry has an unexpected JSON shape.
+    """
+
+    definitions = [entry] if isinstance(entry, dict) else entry
+    if not isinstance(definitions, list) or not definitions:
+        raise ValueError("guidance reference entry must be a nonempty list")
+
+    flattened: list[IndexReference] = []
+    for definition in definitions:
+        if not isinstance(definition, dict) or len(definition) != 1:
+            raise ValueError("guidance reference definition must be one object")
+        if "sref" in definition:
+            ref = definition["sref"]
+            if not isinstance(ref, str) or not ref:
+                raise ValueError("guidance sref definition must contain a symbol")
+            flattened.append(ref)
+            continue
+        if "mref" in definition:
+            ref_range = definition["mref"]
+            if (
+                not isinstance(ref_range, list)
+                or len(ref_range) != 2
+                or not all(isinstance(value, str) and value for value in ref_range)
+            ):
+                raise ValueError(
+                    "guidance mref definition must contain ref and endRef"
+                )
+            flattened.append(ref_range)
+            continue
+        raise ValueError("unsupported guidance reference definition")
+    return flattened
+
+
+def normalize_index_guidance(
+    title_parts_json: str,
+    refs_json: str | None,
+) -> tuple[str, str | None, GuidanceExclusionRow | None]:
+    """Normalize one indexing heading's titles and reference-list roles.
+
+    Temporary object-encoded reference entries are selected by pointers in the
+    recognized title boilerplate. The main pointer becomes the heading's sole
+    flat target list. An optional exclusion pointer becomes a separate row and
+    is not retained in ``gheadings_index.refs``.
+
+    Args:
+        title_parts_json: JSON array of rendered title strings containing
+            temporary reference pointers.
+        refs_json: Temporary object-encoded reference-entry array, or ``None``
+            for a reference-free heading.
+
+    Returns:
+        Pointer-free title-parts JSON, normalized target-list JSON or ``None``,
+        and an optional ``(target_list, exclusion_list)`` row.
+
+    Raises:
+        ValueError: If JSON shapes, pointer roles, pointer indexes, or reference
+            definitions are inconsistent.
+    """
+
+    title_parts = json.loads(title_parts_json)
+    if not isinstance(title_parts, list) or not all(
+        isinstance(part, str) for part in title_parts
+    ):
+        raise ValueError("index guidance title_parts must be an array of strings")
+
+    cleaned_parts: list[str] = []
+    target_indexes: set[int] = set()
+    exclusion_indexes: set[int] = set()
+    all_pointer_indexes: set[int] = set()
+    for part in title_parts:
+        all_pointer_indexes.update(
+            int(value) for value in REFERENCE_POINTER_INDEX_PATTERN.findall(part)
+        )
+        cleaned, target_index, exclusion_index = parse_index_title_part(part)
+        if cleaned is not None:
+            cleaned_parts.append(cleaned)
+        if target_index is not None:
+            target_indexes.add(target_index)
+        if exclusion_index is not None:
+            exclusion_indexes.add(exclusion_index)
+
+    normalized_titles = json.dumps(cleaned_parts, ensure_ascii=False)
+    classified_indexes = target_indexes | exclusion_indexes
+    if all_pointer_indexes != classified_indexes:
+        raise ValueError(
+            "index guidance contains a reference pointer without a recognized role"
+        )
+
+    if refs_json is None:
+        if classified_indexes:
+            raise ValueError("index guidance pointers have no refs array")
+        return normalized_titles, None, None
+
+    raw_entries = json.loads(refs_json)
+    if not isinstance(raw_entries, list) or not raw_entries:
+        raise ValueError("index guidance refs must be a nonempty array")
+    if len(target_indexes) != 1:
+        raise ValueError("index guidance must identify exactly one target list")
+    if len(exclusion_indexes) > 1:
+        raise ValueError("index guidance must identify at most one exclusion list")
+
+    used_indexes = target_indexes | exclusion_indexes
+    expected_indexes = set(range(len(raw_entries)))
+    if used_indexes != expected_indexes:
+        raise ValueError(
+            "index guidance refs contain an unclassified or missing list"
+        )
+
+    target_index = next(iter(target_indexes))
+    target_list = flatten_guidance_reference_entry(raw_entries[target_index])
+    target_json = json.dumps(target_list, ensure_ascii=False)
+
+    if not exclusion_indexes:
+        return normalized_titles, target_json, None
+    exclusion_index = next(iter(exclusion_indexes))
+    exclusion_list = flatten_guidance_reference_entry(raw_entries[exclusion_index])
+    exclusion_json = json.dumps(exclusion_list, ensure_ascii=False)
+    return normalized_titles, target_json, (target_json, exclusion_json)
 
 
 def local_name(name: str) -> str:
@@ -397,10 +598,11 @@ def element_text(element: ET.Element) -> str:
 
 
 def reference_definition(element: ET.Element) -> ReferenceDefinition:
-    """Convert an ``sref`` or ``mref`` element to its JSON-ready definition.
+    """Convert a reference element to its temporary pointer definition.
 
     ``sref`` maps to ``{"sref": ref}``; ``mref`` maps distinctly to
-    ``{"mref": [ref, endRef]}``.
+    ``{"mref": [ref, endRef]}``. These objects support temporary pointer-role
+    parsing and are flattened before indexing guidance is stored.
 
     Args:
         element: ``sref`` or ``mref`` element to convert.
@@ -613,6 +815,55 @@ def own_plain_title_parts(entry: ET.Element) -> list[str]:
     return title_parts
 
 
+def own_embedded_reference_title_parts(entry: ET.Element) -> list[str]:
+    """Collect core-guidance title text while preserving inline XML tags.
+
+    Only the contents of owned ``text`` elements contribute to each title-part
+    string. The ``text`` wrapper itself is omitted, while child markup such as
+    ``sref`` and ``mref`` is serialized unchanged instead of being converted
+    into pointers or separate reference definitions.
+
+    Args:
+        entry: K-routed guidance ``ipcEntry`` whose title parts are required.
+
+    Returns:
+        One markup-preserving string per owned ``titlePart`` in source order.
+
+    Notes:
+        Nested ``ipcEntry`` elements are ownership boundaries. Multiple
+        ``text`` elements within one title part are joined with one space.
+    """
+
+    title_parts: list[str] = []
+
+    def visit(element: ET.Element) -> None:
+        """Collect core title parts without entering nested IPC entries.
+
+        Args:
+            element: Current traversal element.
+
+        Returns:
+            ``None``.
+        """
+
+        for child in element:
+            child_name = local_name(child.tag)
+            if child_name == "ipcEntry":
+                continue
+            if child_name == "titlePart":
+                text_values = [
+                    inner_xml(text_element)
+                    for text_element in child.iter()
+                    if local_name(text_element.tag) == "text"
+                ]
+                title_parts.append(" ".join(text_values))
+            else:
+                visit(child)
+
+    visit(entry)
+    return title_parts
+
+
 def collect_group_types(root: ET.Element) -> dict[str, str | None]:
     """Map symbols to entry types of corresponding non-``ignt`` entries.
 
@@ -682,8 +933,9 @@ def extract_entries(
     Args:
         root: Mutable residual IPC tree.
         kind: Exact ``kind`` attribute to extract.
-        parse_references: Whether to render references into a separate
-            guidance-heading ``refs`` value.
+        parse_references: Whether to apply guidance-heading routing behavior.
+            K-routed rows preserve inline markup; other rows render references
+            into a separate ``refs`` value for subsequent index routing.
         group_types: Optional symbol-to-entryType routing map. It is consulted
             only when ``parse_references`` is true.
 
@@ -692,7 +944,8 @@ def extract_entries(
         guidance-heading rows including the temporary routing value.
 
     Raises:
-        ValueError: If guidance reference parsing encounters malformed data.
+        ValueError: If indexing-guidance reference parsing encounters malformed
+            data.
 
     Notes:
         Rows are fully constructed before any matching element is removed. The
@@ -708,19 +961,29 @@ def extract_entries(
     rows: list[HeadingRow] = []
     for entry in entries:
         if parse_references:
-            title_parts, references = own_title_content(entry)
             symbol = entry.get("symbol")
+            group_type = (
+                group_types.get(symbol)
+                if group_types is not None and symbol
+                else None
+            )
+            if group_type == "K":
+                title_parts = own_embedded_reference_title_parts(entry)
+                serialized_references = None
+            else:
+                title_parts, references = own_title_content(entry)
+                serialized_references = (
+                    json.dumps(references, ensure_ascii=False)
+                    if references
+                    else None
+                )
             rows.append(
                 (
                     json.dumps(title_parts, ensure_ascii=False),
                     symbol,
                     entry.get("endSymbol"),
-                    (
-                        group_types.get(symbol)
-                        if group_types is not None and symbol
-                        else None
-                    ),
-                    json.dumps(references, ensure_ascii=False) if references else None,
+                    group_type,
+                    serialized_references,
                 )
             )
         else:
@@ -1450,49 +1713,67 @@ def table_exists(connection: sqlite3.Connection, table_name: str) -> bool:
 
 def route_guidance_headings(
     rows: list[HeadingRow],
-) -> tuple[list[StoredGuidanceHeadingRow], list[StoredGuidanceHeadingRow]]:
+) -> tuple[
+    list[CoreGuidanceHeadingRow],
+    list[IndexGuidanceHeadingRow],
+    list[GuidanceExclusionRow],
+]:
     """Route extracted guidance headings by resolved non-``ignt`` entry type.
 
-    The routing value is intentionally omitted from the stored row. Index rows
-    receive deterministic title boilerplate cleanup during routing. A missing
-    or unsupported type is rejected so a heading cannot silently disappear or
-    be written to the wrong table.
+    The routing value is intentionally omitted from stored rows. Core rows also
+    omit the temporary, always-null ``refs`` field. Index rows receive
+    pointer-free title cleanup and one normalized target list, then rows whose
+    complete cleaned title array is empty are discarded. Optional exclusion
+    lists become separate rows. A missing or unsupported type is rejected so a
+    heading cannot silently disappear or be written to the wrong table.
 
     Args:
         rows: Extracted five-field guidance rows whose fourth field is the
             temporary resolved ``entryType`` routing value.
 
     Returns:
-        Core (``K``) rows followed by index (``I``) rows.
+        Three-field core (``K``) rows, nonempty-title four-field index (``I``)
+        rows, and two-field target/exclusion rows.
 
     Raises:
         ValueError: If a guidance heading has no corresponding ``I``/``K`` type.
     """
 
-    core_rows: list[StoredGuidanceHeadingRow] = []
-    index_rows: list[StoredGuidanceHeadingRow] = []
+    core_rows: list[CoreGuidanceHeadingRow] = []
+    index_rows: list[IndexGuidanceHeadingRow] = []
+    exclusion_rows: list[GuidanceExclusionRow] = []
     for row in rows:
         if len(row) != 5:
             raise ValueError("guidance heading row has an invalid shape")
         title_parts, symbol, end_symbol, group_type, refs = row
         if group_type == "K":
-            core_rows.append((title_parts, symbol, end_symbol, refs))
-        elif group_type == "I":
-            index_rows.append(
-                (
-                    clean_index_title_parts(title_parts),
-                    symbol,
-                    end_symbol,
-                    refs,
+            if refs is not None:
+                raise ValueError(
+                    "core guidance heading unexpectedly contains parsed refs"
                 )
+            core_rows.append((title_parts, symbol, end_symbol))
+        elif group_type == "I":
+            normalized_titles, normalized_refs, exclusion_row = (
+                normalize_index_guidance(title_parts, refs)
             )
+            if json.loads(normalized_titles):
+                index_rows.append(
+                    (
+                        normalized_titles,
+                        symbol,
+                        end_symbol,
+                        normalized_refs,
+                    )
+                )
+            if exclusion_row is not None:
+                exclusion_rows.append(exclusion_row)
         else:
             display_type = "missing" if group_type is None else repr(group_type)
             raise ValueError(
                 f"guidance heading {symbol or '<missing symbol>'} has "
                 f"unsupported group type {display_type}; expected 'I' or 'K'"
             )
-    return core_rows, index_rows
+    return core_rows, index_rows, exclusion_rows
 
 
 def create_owned_table(
@@ -1523,6 +1804,7 @@ def create_owned_table(
         "subsections",
         "gheadings_core",
         "gheadings_index",
+        "gheading_index_exclusions",
         "index_terms",
         "notes",
         "classified_aspects",
@@ -1539,6 +1821,37 @@ def create_owned_table(
                            json_type(title_parts) = 'array'),
                 symbol      TEXT,
                 endSymbol   TEXT
+            )
+            """
+        )
+        return
+
+    if table_name == "gheadings_core":
+        connection.execute(
+            """
+            CREATE TABLE gheadings_core (
+                title_parts TEXT NOT NULL
+                    CHECK (json_valid(title_parts) AND
+                           json_type(title_parts) = 'array'),
+                symbol      TEXT,
+                endSymbol   TEXT
+            )
+            """
+        )
+        return
+
+    if table_name == "gheading_index_exclusions":
+        connection.execute(
+            """
+            CREATE TABLE gheading_index_exclusions (
+                target_list    TEXT NOT NULL
+                    CHECK (json_valid(target_list) AND
+                           json_type(target_list) = 'array' AND
+                           json_array_length(target_list) > 0),
+                exclusion_list TEXT NOT NULL
+                    CHECK (json_valid(exclusion_list) AND
+                           json_type(exclusion_list) = 'array' AND
+                           json_array_length(exclusion_list) > 0)
             )
             """
         )
@@ -1611,7 +1924,7 @@ def create_owned_table(
 
     connection.execute(
         """
-        CREATE TABLE {table_name} (
+        CREATE TABLE gheadings_index (
             title_parts TEXT NOT NULL
                 CHECK (json_valid(title_parts) AND json_type(title_parts) = 'array'),
             symbol      TEXT,
@@ -1622,7 +1935,7 @@ def create_owned_table(
                         json_type(refs) = 'array' AND
                         json_array_length(refs) > 0))
         )
-        """.format(table_name=table_name)
+        """
     )
 
 
@@ -1669,7 +1982,9 @@ def import_scheme(
         group_types = collect_group_types(root)
         subsection_rows = extract_entries(root, "t", False)
         guidance_rows = extract_entries(root, "g", True, group_types)
-        core_rows, index_rows = route_guidance_headings(guidance_rows)
+        core_rows, index_rows, exclusion_rows = route_guidance_headings(
+            guidance_rows
+        )
         index_term_rows = extract_index_terms(root)
         note_rows = extract_notes(root)
         classified_aspect_rows = extract_classified_aspects(root)
@@ -1678,6 +1993,7 @@ def import_scheme(
             "subsections": subsection_rows,
             "gheadings_core": core_rows,
             "gheadings_index": index_rows,
+            "gheading_index_exclusions": exclusion_rows,
             "index_terms": index_term_rows,
             "notes": note_rows,
             "classified_aspects": classified_aspect_rows,
@@ -1701,6 +2017,24 @@ def import_scheme(
                         """
                         INSERT INTO subsections (title_parts, symbol, endSymbol)
                         VALUES (?, ?, ?)
+                        """,
+                        rows,
+                    )
+                elif table_name == "gheadings_core":
+                    connection.executemany(
+                        """
+                        INSERT INTO gheadings_core
+                            (title_parts, symbol, endSymbol)
+                        VALUES (?, ?, ?)
+                        """,
+                        rows,
+                    )
+                elif table_name == "gheading_index_exclusions":
+                    connection.executemany(
+                        """
+                        INSERT INTO gheading_index_exclusions
+                            (target_list, exclusion_list)
+                        VALUES (?, ?)
                         """,
                         rows,
                     )
@@ -1741,8 +2075,8 @@ def import_scheme(
                     )
                 else:
                     connection.executemany(
-                        f"""
-                        INSERT INTO {table_name}
+                        """
+                        INSERT INTO gheadings_index
                             (title_parts, symbol, endSymbol, refs)
                         VALUES (?, ?, ?, ?)
                         """,
