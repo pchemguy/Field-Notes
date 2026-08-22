@@ -1,3 +1,6 @@
+---
+url: https://chatgpt.com/c/6a897e26-5a40-83eb-afa1-32a9bf36b31c
+---
 # IPC Scheme XML Parsing Notes
 
 ## 1. Scope
