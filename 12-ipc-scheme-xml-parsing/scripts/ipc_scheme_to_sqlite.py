@@ -37,7 +37,7 @@ The script owns and may rebuild these tables:
 * ``index_terms(symbol, endSymbol, terms, refs)``;
 * ``notes(symbol, endSymbol, note_xml)``;
 * ``classified_aspects(kind, symbol, parent_symbol, terms)``; and
-* ``places(kind, symbol, parent_symbol, terms, notes)``.
+* ``places(kind, symbol, parent_symbol, titlePart, refs)``.
 
 JSON columns are stored as UTF-8-capable SQLite ``TEXT`` and constrained with
 SQLite JSON functions. Arrays remain arrays even when they contain one item.
@@ -109,17 +109,19 @@ removed from recognized boilerplate.
 Places
 ------
 Remaining ``entryType="K"`` nodes are stored as
-``places(kind, symbol, parent_symbol, terms, notes)``. ``parent_symbol`` is the
-nearest enclosing K node's symbol. ``terms`` has one positional string per
-owned ``titlePart`` and is built only from its ``text`` elements. Inline XML,
-including ``sref`` and ``mref``, remains markup rather than becoming reference
-values. A title part without text retains an empty-string slot so ``terms_N``
-indexes do not shift.
+``places(kind, symbol, parent_symbol, titlePart, refs)``. One row is
+emitted per owned ``titlePart``; ``kind``, ``symbol``, and the nearest enclosing
+K node's ``parent_symbol`` repeat across a place's rows. ``titlePart`` is the
+scalar content built only from that source title part's ``text`` elements.
+Inline XML, including ``sref`` and ``mref``, remains markup rather than becoming
+reference values. A source title part without text retains an empty-string
+value.
 
 Each owned ``entryReference`` contributes one inner-XML string containing its
-prose, separators, and unchanged inline tags. For every affected title part,
-``notes`` maps its zero-based ``terms_N`` key to a flat JSON array of those
-strings. ``notes`` is SQL ``NULL`` when no entry reference occurs.
+prose, separators, and unchanged inline tags. ``refs`` is the
+corresponding flat JSON array of strings and is SQL ``NULL`` when the source
+title part has no entry reference. There is no JSON object or positional
+``terms_N`` key.
 
 Database lifecycle and safety
 -----------------------------
@@ -267,7 +269,7 @@ IndexReference = str | list[str]
 IndexTermRow = tuple[str | None, str | None, str, str]
 NoteRow = tuple[str | None, str | None, str]
 ClassifiedAspectRow = tuple[str | None, str | None, str | None, str | None]
-PlaceNotes = dict[str, list[str]]
+PlaceTitlePartRecord = tuple[str, list[str] | None]
 PlaceRow = tuple[
     str | None,
     str | None,
@@ -1549,25 +1551,25 @@ def inner_xml(element: ET.Element) -> str:
     return "".join(parts).strip()
 
 
-def place_title_parts(entry: ET.Element) -> tuple[list[str], PlaceNotes]:
-    """Collect one K node's title text and unparsed entry references.
+def place_title_parts(entry: ET.Element) -> list[PlaceTitlePartRecord]:
+    """Collect normalized titlePart/refs pairs for one K node.
 
-    One term slot is retained for every owned ``titlePart`` so ``terms_N``
-    keys always address the corresponding array element. Only ``text``
-    elements contribute to the term string; multiple text values are joined
-    with one space. Inline XML within ``text``, including ``sref`` and ``mref``,
-    remains markup and is not converted to reference values. A title part
-    without text occupies an empty string slot rather than shifting indexes.
+    Every owned ``titlePart`` produces one pair. Only ``text`` elements
+    contribute to its scalar ``titlePart`` value; multiple text values are
+    joined with one space. Inline XML within ``text``, including ``sref`` and
+    ``mref``, remains markup and is not converted to reference values. A title
+    part without text produces an empty-string value.
 
     Each owned ``entryReference`` becomes one inner-XML string in XML order.
-    Its prose, separators, and ``sref``/``mref`` tags remain intact. All such
-    strings for a title part form one flat JSON array.
+    Its prose, separators, and ``sref``/``mref`` tags remain intact. The strings
+    form that row's flat ``refs`` array; a title part without entry
+    references uses ``None``.
 
     Args:
         entry: ``entryType="K"`` entry whose owned title parts are required.
 
     Returns:
-        Term strings and a possibly empty ``terms_N`` notes mapping.
+        Ordered ``(title_part_text, reference_strings_or_none)`` pairs.
     """
 
     title_parts: list[ET.Element] = []
@@ -1592,9 +1594,8 @@ def place_title_parts(entry: ET.Element) -> tuple[list[str], PlaceNotes]:
                 find_title_parts(child)
 
     find_title_parts(entry)
-    terms: list[str] = []
-    notes: PlaceNotes = {}
-    for title_part_index, title_part in enumerate(title_parts):
+    result: list[PlaceTitlePartRecord] = []
+    for title_part in title_parts:
         text_values: list[str] = []
         for element in title_part.iter():
             if local_name(element.tag) != "text":
@@ -1602,7 +1603,7 @@ def place_title_parts(entry: ET.Element) -> tuple[list[str], PlaceNotes]:
             value = inner_xml(element)
             if value:
                 text_values.append(value)
-        terms.append(" ".join(text_values))
+        title_part_text = " ".join(text_values)
 
         entry_references: list[str] = []
         for reference_container in title_part.iter():
@@ -1610,25 +1611,26 @@ def place_title_parts(entry: ET.Element) -> tuple[list[str], PlaceNotes]:
                 continue
             entry_references.append(inner_xml(reference_container))
 
-        if entry_references:
-            notes[f"terms_{title_part_index}"] = entry_references
+        result.append((title_part_text, entry_references or None))
 
-    return terms, notes
+    return result
 
 
 def extract_places(root: ET.Element) -> list[PlaceRow]:
     """Extract the remaining ``entryType="K"`` hierarchy into place rows.
 
-    Rows follow XML source order. ``parent_symbol`` is taken from the nearest
-    enclosing K entry, even when non-entry wrapper elements occur between the
-    two nodes. Outermost processed K subtrees are removed after every row has
+    One row is produced per owned title part in XML source order.
+    ``parent_symbol`` is taken from the nearest enclosing K entry, even when
+    non-entry wrapper elements occur between the two nodes. A title part's
+    ``refs`` is serialized as a JSON array of strings or stored as SQL
+    ``NULL``. Outermost processed K subtrees are removed after every row has
     been built.
 
     Args:
         root: Mutable residual IPC tree after classified-aspect extraction.
 
     Returns:
-        Place rows in deterministic XML source order.
+        Normalized place/title-part rows in deterministic XML source order.
     """
 
     parents = {child: parent for parent in root.iter() for child in parent}
@@ -1654,20 +1656,25 @@ def extract_places(root: ET.Element) -> list[PlaceRow]:
             local_name(element.tag) == "ipcEntry"
             and element.get("entryType") == "K"
         ):
-            terms, notes = place_title_parts(element)
-            rows.append(
-                (
-                    element.get("kind"),
-                    element.get("symbol"),
-                    (
-                        parent_k_entry.get("symbol")
-                        if parent_k_entry is not None
-                        else None
-                    ),
-                    json.dumps(terms, ensure_ascii=False),
-                    json.dumps(notes, ensure_ascii=False) if notes else None,
-                )
+            parent_symbol = (
+                parent_k_entry.get("symbol")
+                if parent_k_entry is not None
+                else None
             )
+            for title_part_text, reference_strings in place_title_parts(element):
+                rows.append(
+                    (
+                        element.get("kind"),
+                        element.get("symbol"),
+                        parent_symbol,
+                        title_part_text,
+                        (
+                            json.dumps(reference_strings, ensure_ascii=False)
+                            if reference_strings is not None
+                            else None
+                        ),
+                    )
+                )
             entries.append(element)
             current_parent = element
 
@@ -1910,13 +1917,11 @@ def create_owned_table(
                 kind          TEXT,
                 symbol        TEXT,
                 parent_symbol TEXT,
-                terms         TEXT NOT NULL
-                    CHECK (json_valid(terms) AND
-                           json_type(terms) = 'array'),
-                notes         TEXT
-                    CHECK (notes IS NULL OR
-                           (json_valid(notes) AND
-                            json_type(notes) = 'object'))
+                titlePart     TEXT NOT NULL,
+                refs          TEXT
+                    CHECK (refs IS NULL OR
+                           (json_valid(refs) AND
+                            json_type(refs) = 'array'))
             )
             """
         )
@@ -2068,7 +2073,7 @@ def import_scheme(
                     connection.executemany(
                         """
                         INSERT INTO places
-                            (kind, symbol, parent_symbol, terms, notes)
+                            (kind, symbol, parent_symbol, titlePart, refs)
                         VALUES (?, ?, ?, ?, ?)
                         """,
                         rows,
