@@ -145,7 +145,8 @@ These are references by definition and are distinct from the overloaded `ipcEntr
 - references in core guidance headings remain embedded as XML markup;
 - references in index guidance headings are parsed into compact JSON target lists, while exclusion lists are separated into their own table;
 - subclass-index references are normalized into compact JSON arrays;
-- reference markup inside notes and place titles is currently preserved.
+- reference markup inside notes remains preserved;
+- references attached to place title parts are initially preserved as XML-bearing strings in `places.refs`, then recognized reference functions are extracted into `places_references`; unmatched strings remain in `places.refs` unchanged.
 
 ## 5. XML-model-aware parsing strategy
 
@@ -160,6 +161,7 @@ flowchart TD
     E --> F["Extract n: note XML"]
     F --> G["Extract entryType I: classified aspects"]
     G --> H["Residual entryType K: places"]
+    H --> I["Extract recognized place-reference functions"]
 ```
 
 Guidance target resolution must occur while the complete tree is still available. Extraction then proceeds in this order:
@@ -169,7 +171,8 @@ Guidance target resolution must occur while the complete tree is still available
 3. `kind="i"` — subclass index paths;
 4. `kind="n"` — notes retained as XML;
 5. remaining `entryType="I"` — classified-aspect hierarchy;
-6. remaining `entryType="K"` — core classification-place hierarchy.
+6. remaining `entryType="K"` — core classification-place hierarchy;
+7. database-backed post-processing of `places.refs` into `places_references`, in the fixed order `precedence` → `scope_list` → `scope_example` → `scope`.
 
 This order is not merely an implementation convenience. It corresponds to the source model:
 
@@ -177,6 +180,7 @@ This order is not merely an implementation convenience. It corresponds to the so
 - removing them prevents presentation and annotation records from contaminating structural parentage;
 - classified aspects are then separated from core classification places;
 - after the earlier removals, the residual tree has a much narrower and more auditable interpretation.
+- place creation remains a source-faithful operation; only after all place rows exist does a separate stage parse recognized `entryReference` grammars and remove the successfully processed array items from `places.refs`.
 
 ### 5.1 Ownership boundaries
 
@@ -202,22 +206,26 @@ The parser should fail visibly when an observed structural invariant changes. At
 - malformed or multiply owned note bodies;
 - residual `ipcEntry` records that are neither modelled `I` nor `K` entries;
 - duplicate structural symbols within a relational hierarchy;
-- parent symbols that do not resolve within the same hierarchy.
+- parent symbols that do not resolve within the same hierarchy;
+- malformed JSON in `places.refs` or non-string array elements;
+- reference fragments that superficially match a supported function but contain malformed `sref`/`mref` XML or invalid range attributes;
+- preservation-mode states in which only one of the coupled `places` and `places_references` tables exists.
 
 ## 6. Relational model
 
 The relational model deliberately uses separate tables for source structures with different identity, hierarchy, and content semantics.
 
-| Table                         | Columns                                      | One row represents                                                     |
-| ----------------------------- | -------------------------------------------- | ---------------------------------------------------------------------- |
-| `subsections`                 | `title_parts, symbol, endSymbol`             | One `kind="t"` auxiliary record                                        |
-| `gheadings_core`              | `title_parts, symbol, endSymbol`             | One `kind="g"` heading applying to core places                         |
-| `gheadings_index`             | `title_parts, symbol, endSymbol, refs`       | One nonempty normalized `kind="g"` heading applying to classified aspects |
-| `gheading_index_exclusions`   | `target_list, exclusion_list`                | One target/exclusion relationship parsed from index-guidance boilerplate |
-| `index_terms`                 | `symbol, endSymbol, terms, refs`             | One root-to-terminal path through a `kind="i"` index tree              |
-| `notes`                       | `symbol, endSymbol, note_xml`                | One `kind="n"` auxiliary record                                        |
-| `classified_aspects`          | `kind, symbol, parent_symbol, terms`         | One structural non-`ignt`, `entryType="I"` node                        |
-| `places`                      | `kind, symbol, parent_symbol, terms, notes`  | One structural non-`ignt`, `entryType="K"` node                        |
+| Table                       | Columns                                                                             | One row represents                                                              |
+| --------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `subsections`               | `title_parts, symbol, endSymbol`                                                    | One `kind="t"` auxiliary record                                                 |
+| `gheadings_core`            | `title_parts, symbol, endSymbol`                                                    | One `kind="g"` heading applying to core places                                  |
+| `gheadings_index`           | `title_parts, symbol, endSymbol, refs`                                              | One nonempty normalized `kind="g"` heading applying to classified aspects      |
+| `gheading_index_exclusions` | `target_list, exclusion_list`                                                       | One target/exclusion relationship parsed from index-guidance boilerplate        |
+| `index_terms`               | `symbol, endSymbol, terms, refs`                                                    | One root-to-terminal path through a `kind="i"` index tree                       |
+| `notes`                     | `symbol, endSymbol, note_xml`                                                       | One `kind="n"` auxiliary record                                                 |
+| `classified_aspects`        | `kind, symbol, parent_symbol, terms`                                                | One structural non-`ignt`, `entryType="I"` node                                 |
+| `places`                    | `kind, symbol, parent_symbol, titlePart, refs`                                      | One owned title part of a structural non-`ignt`, `entryType="K"` place          |
+| `places_references`         | `id, symbol, titlePart, higher_priority_refs, exclusion_scope, function`            | One extracted reference relation, or one expanded clause of a scope-list source |
 
 JSON values are stored in SQLite `TEXT` columns and constrained to the expected JSON container type. A one-item collection remains an array. Absence of an optional structured value is SQL `NULL`, not serialized JSON `null`.
 
@@ -412,42 +420,165 @@ Titles matching formulaic `Indexing scheme associated with <word>` wording are t
 ### 6.6 `places`
 
 ```sql
-places(kind, symbol, parent_symbol, terms, notes)
+places(kind, symbol, parent_symbol, titlePart, refs)
 ```
+
+`places` is normalized with respect to owned title parts and their attached `entryReference` elements. One structural place can therefore produce several rows:
 
 - `kind`: hierarchy level;
 - `symbol`: logical identifier of the core classification place;
-- `parent_symbol`: nearest enclosing `entryType="K"` place's symbol;
-- `terms`: positional JSON array with one string per owned `titlePart`;
-- `notes`: optional JSON object containing `entryReference` content associated with individual title-part positions.
+- `parent_symbol`: nearest enclosing structural `entryType="K"` place's symbol;
+- `titlePart`: scalar content of one owned `<titlePart>`, with inline XML inside its `<text>` preserved;
+- `refs`: JSON array containing that same title part's owned `<entryReference>` strings in source order, or SQL `NULL` when none remain.
 
-Only `<text>` content contributes to each term. Inline `<sref>` and `<mref>` markup inside `<text>` is retained as XML rather than converted to symbol values. An empty string preserves a title-part slot when needed, preventing later `terms_N` keys from shifting.
+Hierarchy fields repeat across the rows belonging to the same place. This repetition is deliberate: the row is the association between one place and one title part, not a manufactured title-part entity with a synthetic key.
 
-For each title part containing `entryReference` elements, `notes` uses a zero-based positional key:
+At creation time, `refs` is either SQL `NULL` or a flat JSON array such as:
 
 ```json
-{
-  "terms_0": [
-    "combined with apparatus performing additional operations while mowing <mref endRef=\"A01D0041000000\" ref=\"A01D0037000000\" />, <sref ref=\"A01D0043000000\" />",
-    "convertible to apparatus for purposes other than mowing <sref ref=\"A01D0042000000\" />"
-  ]
-}
+[
+  "combined with apparatus performing additional operations while mowing <mref endRef=\"A01D0041000000\" ref=\"A01D0037000000\" />, <sref ref=\"A01D0043000000\" />",
+  "convertible to apparatus for purposes other than mowing <sref ref=\"A01D0042000000\" />"
+]
 ```
 
-Each `terms_N` value is a flat array of strings, one string per `entryReference`. The prose, punctuation, and nested reference markup remain
-unparsed. `notes` is SQL `NULL` when no `entryReference` occurs.
+The subsequent reference-extraction stage examines each array item independently. A successfully parsed item is moved to `places_references`; unmatched items retain their relative order and byte-level content in `places.refs`. When every item has been consumed, `refs` becomes SQL `NULL`, never an empty JSON array.
+
+### 6.7 `places_references`
+
+```sql
+places_references(
+    id,
+    symbol,
+    titlePart,
+    higher_priority_refs,
+    exclusion_scope,
+    function
+)
+```
+
+This table contains the recognized semi-structured relations extracted from `places.refs` after `places` has been populated.
+
+- `id`: generated row identifier;
+- `symbol`, `titlePart`: copied from the source `places` row;
+- `higher_priority_refs`: nonempty JSON array of normalized targets, using a string for `sref` and `[ref, endRef]` for `mref`;
+- `exclusion_scope`: normalized textual clause qualifying the relation, or SQL `NULL` when absent;
+- `function`: extraction grammar and relation role: `precedence`, `scope_list`, `scope_example`, or `scope`.
+
+The column name `higher_priority_refs` originates with the first implemented `precedence` workflow. For the three scope functions it contains target references, not higher-priority places; consumers must therefore interpret it together with `function`.
+
+| `function` value | Source form | Rows emitted | Treatment of source text |
+| ---------------- | ----------- | ------------ | ------------------------ |
+| `precedence` | Reference list followed by `take(s) precedence` | One | Retain qualifying prefix/suffix as `exclusion_scope` |
+| `scope_list` | Several textual clauses, each ending in references, with the complete item ending in a reference | One per clause | Reconstruct common/shared text for each expanded clause |
+| `scope_example` | Independently valid base scope followed by `, e.g. ...` | One | Retain the base and discard the complete example suffix |
+| `scope` | Optional reference-free prefix followed by one terminal reference list | One | Retain the complete flattened prefix |
+
+#### `precedence`
+
+The precedence pass recognizes one contiguous `sref`/`mref` list followed by case-insensitive `take precedence` or `takes precedence`. It supports comma separators, `and`, `or`, Oxford-comma forms, and variable XML/ordinary whitespace. References are parsed as XML, so recognition does not depend on SQLite's optional `REGEXP` extension, source attribute order, or a fixed amount of whitespace.
+
+Text before or after the reference-list-plus-verb core becomes `exclusion_scope`. For a prefix containing a comma, text after its last comma is treated as a collective descriptor for the target list and discarded; the text preceding that comma is retained. A comma-free prefix is retained in full. A suffix following `take(s) precedence` is retained. If both sides occur, they are joined in source order with `; `. Absence is stored as SQL `NULL`.
+
+For example:
+
+```text
+if applicable to other machine tools, <mref endRef="B23Q0017000000" ref="B23Q0015000000" /> take precedence
+```
+
+becomes conceptually:
+
+```json
+higher_priority_refs = [["B23Q0015000000", "B23Q0017000000"]]
+exclusion_scope = "if applicable to other machine tools"
+function = "precedence"
+```
+
+#### `scope_list`
+
+This pass expands a terminal multi-clause reference list into one row per clause. The complete source item must end in an `sref`/`mref` list. Each emitted row receives the reconstructed clause text in `exclusion_scope`, the clause's ordered reference list in `higher_priority_refs`, and `function = "scope_list"`.
+
+The parser distinguishes common text that applies to every clause, shared clause prefixes, distinctive clause text, and the reference group terminating that clause. Operationally, it identifies each terminal reference group, derives shared wording from the longest leading token sequence of later clauses that also occurs in the first clause, and prepends the first clause's preceding common text to later clauses. Same-clause multi-reference groups remain one JSON list rather than becoming separate semantic clauses. General non-reference inline markup is flattened to its logical text. Comma and `and`/`or` clause separators are supported. Items with text after the final reference are ineligible.
+
+For example:
+
+```text
+of electrodes <sref ref="H01M0004000000" />, of non-active parts <sref ref="H01M0050000000" />
+```
+
+produces two `scope_list` rows whose `(exclusion_scope, higher_priority_refs)` values are conceptually:
+
+```json
+["of electrodes", ["H01M0004000000"]]
+["of non-active parts", ["H01M0050000000"]]
+```
+
+This pass runs before the example and ordinary scope passes so a genuine multi-clause list containing `e.g.` remains a `scope_list` rather than losing its example clause.
+
+#### `scope_example`
+
+This pass handles a base scope relation followed by a disposable example suffix:
+
+```text
+electrotherapy <sref ref="A61N" />, e.g. applying alternating or intermittent electric currents for producing anaesthesia <sref ref="A61N0001340000" />
+```
+
+The retained portion must itself consist of a reference-free textual prefix followed by one terminal `sref`/`mref` list. The base list may contain several references, and general non-reference inline markup is flattened. The complete case-insensitive `, e.g. ...` suffix—including all example text and references—is discarded. The result stores `"electrotherapy"` as `exclusion_scope`, `["A61N"]` as `higher_priority_refs`, and `function = "scope_example"`.
+
+Because `scope_list` runs first, `e.g.` text that participates in a true list expansion is not processed by this pass.
+
+#### `scope`
+
+The final pass recognizes an optional textual prefix followed by exactly one terminal contiguous `sref`/`mref` list. No earlier direct or nested `sref`/`mref` may occur in the prefix, and no text or markup may follow the terminal list. Non-reference inline markup is allowed in the prefix and flattened to logical text; for example, `<u>see</u>` becomes `see`.
+
+The complete normalized prefix is stored without the precedence pass's collective-term filtering. A reference-only item therefore has `exclusion_scope = NULL`. Rows use `function = "scope"`.
+
+The compact target array can be expanded consistently across all four functions:
+
+```sql
+SELECT
+    pr.id,
+    pr.symbol,
+    pr.titlePart,
+    pr.exclusion_scope,
+    pr.function,
+    r.key AS ref_index,
+    CASE r.type
+        WHEN 'array' THEN r.value ->> '$[0]'
+        ELSE CAST(r.value AS TEXT)
+    END AS ref,
+    CASE r.type
+        WHEN 'array' THEN r.value ->> '$[1]'
+        ELSE NULL
+    END AS endRef
+FROM places_references AS pr,
+     json_each(pr.higher_priority_refs) AS r;
+```
+
+`ref_index` preserves source order within each stored target list. For scope rows, `ref`/`endRef` are targets; only `function = 'precedence'` asserts the higher-priority relationship implied by the physical column name.
 
 ## 7. Post-processing principles
 
 Post-processing is intentionally asymmetric because different source structures have been understood to different degrees.
 
 1. **Normalize only where the source grammar is narrow and deterministic.** Index-guidance target and exclusion lists, together with index-terminal references, have sufficiently explicit structure to be represented as compact JSON safely.
-2. **Preserve source markup where semantics remain uncertain.** Core-guidance references, notes, and place `entryReference` content remain XML-bearing strings instead of being split into speculative relational fields.
-3. **Separate hierarchy from labels.** Parent links store structural ancestry; title arrays store only node-local labels rather than denormalized paths.
-4. **Retain positional information.** JSON arrays and `terms_N` keys preserve source order and association with a particular title part.
-5. **Use SQL `NULL` for absence.** JSON arrays and objects represent present collections, including deliberately empty collections; SQL `NULL` means the
-   optional value is absent.
-6. **Reject unknown boilerplate variants.** A strict failure is safer than a plausible-looking but semantically wrong transformation.
+2. **Create places before interpreting their references.** XML-to-`places` extraction remains independent of the later reference grammars. Reference parsing is a database-backed derivation over already-created `places` rows.
+3. **Move only successfully recognized items.** Each `places.refs` array item is processed independently. Recognized items move to `places_references`; every unmatched item stays in `places.refs` unchanged and in source order.
+4. **Use ordered, non-overlapping passes.** `precedence`, `scope_list`, `scope_example`, and `scope` run in that order. Each later pass sees only the residual items left by earlier, more specific grammars.
+5. **Parse reference markup structurally.** The post-processing stage uses wrapped XML rather than SQLite `REGEXP`, so XML whitespace and attribute order do not control correctness.
+6. **Preserve source markup where semantics remain uncertain.** Core-guidance references, notes, inline place-title markup, and unmatched place reference strings remain XML-bearing content rather than being split speculatively.
+7. **Separate hierarchy from labels.** Parent links store structural ancestry; title values store only node-local labels rather than denormalized paths.
+8. **Retain positional information.** Repeated place rows preserve title-part ownership, JSON arrays preserve reference order, and `ref_index` can expose that order relationally.
+9. **Use SQL `NULL` for absence.** JSON arrays represent present collections; SQL `NULL` means an optional value is absent. A consumed `places.refs` array becomes SQL `NULL`, not `[]`.
+10. **Reject or retain rather than guess.** Unrecognized index-guidance boilerplate is an error because it belongs to a closed normalization workflow. Unrecognized place-reference prose remains residual source content because that workflow is intentionally incremental.
+
+### 7.1 Database ownership, reruns, and preservation
+
+The importer owns the nine tables documented in Section 6. In its normal rebuild mode it drops and recreates owned tables inside one transaction, including obsolete owned schemas from prior revisions where applicable. Unrelated database objects are not part of that ownership boundary.
+
+The XML stages populate the source-derived tables first. The database-backed place-reference stage then inserts derived rows into `places_references` and updates only the corresponding `places.refs` values. These operations occur in the same transaction, so a failure does not leave a partially extracted reference set.
+
+Preservation mode treats `places` and `places_references` as a coupled pair. Both must already exist or both must be absent. Preserving only one side is rejected because it would either mutate a table declared preserved or retain derived rows that no longer correspond to the current residual `places.refs` values.
 
 ## 8. Why the model is split into multiple tables
 
@@ -459,6 +590,9 @@ A single `ipc_entries` table would obscure several incompatible notions:
 - normalized references versus preserved XML fragments;
 - index-guidance targets versus exclusions from those targets;
 - node-local titles versus path-expanded index terms.
+- source-faithful place reference strings versus extracted relation functions;
+- one place's structural identity versus its several title-part rows;
+- precedence targets versus scope targets that share a historical column name but differ by `function`.
 
 The multi-table model makes these distinctions explicit. It also avoids manufacturing universal synthetic identifiers for auxiliary records whose
 source symbols are scope anchors rather than record IDs.
@@ -472,12 +606,57 @@ The split is therefore semantic normalization, not merely a convenience for the 
 - Source `edition` values and global source-order fields are not retained in the current relational model.
 - Notes remain semi-structured XML and require a separate structural survey before further normalization.
 - Index-guidance exclusion parsing currently recognizes the observed anchored boilerplate form; new formulations beginning with `Indexing scheme` intentionally fail until reviewed and added explicitly.
-- References preserved inside place terms, place notes, and note XML are not yet exposed as relational edges.
+- `places_references.higher_priority_refs` is semantically exact for `function = 'precedence'` but is a legacy name for ordinary targets in the three scope functions. A future schema revision may rename it to a function-neutral term.
+- Place-reference extraction covers only the four documented grammars. Remaining `places.refs` values are deliberate residual data for later modelling, not necessarily parser failures.
+- The `scope_list` reconstruction rule is structural and deterministic but remains an interpretation of elliptical natural-language coordination; new clause patterns should be audited before broadening it.
+- `scope_example` intentionally discards the complete example suffix after retaining the independently valid base scope relation. It does not store example references elsewhere.
+- Reference markup inside note XML and unprocessed place-reference strings is not yet exposed as relational edges.
 - The meaning of absent `endSymbol` should be documented from authoritative IPC specifications or validated systematically before an inferred range rule is encoded.
 - Candidate keys, uniqueness constraints, and foreign-key constraints should be enabled only after full-scheme audits confirm the relevant invariants.
 - The relational model captures the imported edition, not cross-edition symbol continuity, renaming, creation, deletion, or transfer history.
 
-## 10. Included scripts
+## 10. Running and inspecting the importer
+
+The relational importer accepts an IPC scheme XML filename as its positional input. When the filename is omitted, it searches the current directory for a file matching `EN_ipc_scheme_YYYYMMDD.xml`. The output database uses the input stem with a `.db` extension and is created beside the source file.
+
+```shell
+python scripts/ipc_scheme_to_sqlite.py EN_ipc_scheme_20270101.xml
+```
+
+Use the script's `--help` output for the current preservation option and other CLI details. In default mode, rerunning the importer rebuilds its owned tables but leaves unrelated database objects alone. The work is transactional: a parsing, validation, or insertion failure rolls back the import rather than committing a mixture of old and new owned data.
+
+The importer does not require SQLite's optional `ext/misc/regexp` extension. SQLite JSON1 support is required for the JSON constraints, reference-array updates, and the inspection queries documented here.
+
+Useful first checks after import include:
+
+```sql
+-- Counts by extracted place-reference function.
+SELECT function, count(*) AS rows
+FROM places_references
+GROUP BY function
+ORDER BY function;
+
+-- Residual entryReference strings not handled by the current four grammars.
+SELECT
+    p.symbol,
+    p.titlePart,
+    r.key AS ref_index,
+    CAST(r.value AS TEXT) AS residual_ref
+FROM places AS p,
+     json_each(p.refs) AS r
+ORDER BY p.symbol, p.titlePart, r.key;
+
+-- Place symbols represented by more than one owned title part.
+SELECT symbol, count(*) AS title_parts
+FROM places
+GROUP BY symbol
+HAVING count(*) > 1
+ORDER BY symbol;
+```
+
+The second query is especially important during continued modelling: its result is the remaining semi-structured workload after all recognized items have been moved to `places_references`.
+
+## 11. Included scripts
 
 The [`scripts/`](scripts/) directory contains the current relational importer and supporting utilities used to inspect or isolate parts of the XML model. `ipc_scheme_to_sqlite.py` implements the relational model documented above; the other scripts are focused audit tools, extractors, format converters, or earlier modelling experiments.
 
@@ -491,11 +670,11 @@ The [`scripts/`](scripts/) directory contains the current relational importer an
 | [`ipc_entries_to_sqlite_grouped.py`](scripts/ipc_entries_to_sqlite_grouped.py) | Earlier relational prototype that separates `K`, `I`, and `ignt` entries and records selected immediate relationships. |
 | [`ipc_entry_stats.py`](scripts/ipc_entry_stats.py) | Reports `ipcEntry` counts by `kind`, by `entryType`, and by their combinations, as tables or JSON. |
 | [`ipc_scheme_core.py`](scripts/ipc_scheme_core.py) | Produces a beautified `_core.xml` copy after removing all `ignt` and `entryType="I"` subtrees. |
-| [`ipc_scheme_to_sqlite.py`](scripts/ipc_scheme_to_sqlite.py) | Implements the staged XML-aware conversion into the normalized SQLite tables documented in Section 6. |
+| [`ipc_scheme_to_sqlite.py`](scripts/ipc_scheme_to_sqlite.py) | Implements the staged XML-aware conversion and the subsequent ordered extraction of recognized place-reference functions into the normalized SQLite tables documented in Section 6. |
 | [`ipc_xml_to_treeline.py`](scripts/ipc_xml_to_treeline.py) | Projects every `ipcEntry` and its XML attributes into a TreeLine hierarchy for interactive exploration. |
 | [`list_xml_tags.py`](scripts/list_xml_tags.py) | Inventories XML tag counts, attribute names, and immediate parent-child tag pairs in SQLite. |
 
-## 11. Summary
+## 12. Summary
 
 The essential interpretation is:
 
@@ -506,4 +685,6 @@ ignt ipcEntry      → auxiliary record; symbol/endSymbol attributes describe at
 
 Parsing should therefore begin by resolving and removing the special record classes according to their own grammars. Only then should the remaining `I` and `K` entries be read as two structural hierarchies and projected into `classified_aspects` and `places`.
 
-This distinction is the foundation of the XML-aware parsing strategy and of the relational schema derived from it.
+After `places` is created, recognized `entryReference` functions are extracted incrementally from `places.refs` into `places_references` in specificity order. Successfully interpreted items leave the residual array; unknown forms remain available for later analysis.
+
+This separation between source decomposition, structural hierarchy construction, and incremental semi-structured reference extraction is the foundation of the relational model.
