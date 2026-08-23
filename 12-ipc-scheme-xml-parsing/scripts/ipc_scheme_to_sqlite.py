@@ -21,6 +21,7 @@ Stages run sequentially in source order and remove their processed
 4. ``kind="n"`` entries become declared, well-formed XML note fragments.
 5. remaining ``entryType="I"`` nodes become ``classified_aspects``.
 6. remaining ``entryType="K"`` nodes become the ``places`` hierarchy.
+7. precedence references are extracted from stored ``places.refs`` values.
 
 The whole-tree representation deliberately favors a clear extraction model
 over bounded memory use. Large future editions should be measured before this
@@ -36,8 +37,10 @@ The script owns and may rebuild these tables:
 * ``gheading_index_exclusions(target_list, exclusion_list)``;
 * ``index_terms(symbol, endSymbol, terms, refs)``;
 * ``notes(symbol, endSymbol, note_xml)``;
-* ``classified_aspects(kind, symbol, parent_symbol, terms)``; and
-* ``places(kind, symbol, parent_symbol, titlePart, refs)``.
+* ``classified_aspects(kind, symbol, parent_symbol, terms)``;
+* ``places(kind, symbol, parent_symbol, titlePart, refs)``; and
+* ``places_priority(id, symbol, titlePart, higher_priority_refs,
+  limiting_clause)``.
 
 JSON columns are stored as UTF-8-capable SQLite ``TEXT`` and constrained with
 SQLite JSON functions. Arrays remain arrays even when they contain one item.
@@ -123,6 +126,23 @@ corresponding flat JSON array of strings and is SQL ``NULL`` when the source
 title part has no entry reference. There is no JSON object or positional
 ``terms_N`` key.
 
+Place precedence
+----------------
+After ``places`` has been populated, each string in ``places.refs`` is parsed
+as an XML fragment. A fragment containing one contiguous ``sref``/``mref``
+list followed by ``take precedence`` or ``takes precedence`` becomes one
+``places_priority`` row. ``higher_priority_refs`` is a nonempty JSON array in
+source order: ``sref`` becomes its ``ref`` string and ``mref`` becomes
+``[ref, endRef]``. XML attribute order is immaterial.
+
+Text preceding or following the reference list and precedence phrase becomes
+``limiting_clause``. For prefix text, everything after its last comma is
+treated as a collective list descriptor and discarded. If both prefix and
+suffix clauses occur, their normalized text is joined in source order with
+``; ``. Clause-free rows use SQL ``NULL``. Every extracted source item is
+removed from its originating ``places.refs`` array; an emptied array becomes
+SQL ``NULL``. Unmatched array items remain unchanged and in source order.
+
 Database lifecycle and safety
 -----------------------------
 The output path is the XML path with its suffix replaced by ``.db``. Existing
@@ -130,13 +150,16 @@ database files are reused. By default, every owned table is dropped and rebuilt
 inside one transaction; unrelated tables are untouched. The obsolete owned
 table ``gheadings`` is also removed in default mode.
 
-With ``--preserve-existing-tables``, each existing owned table is independently
-left untouched and reported as skipped, while missing owned tables are created.
-All XML extraction still runs so later stages always see the same residual tree.
-XML parsing and row construction finish before ``BEGIN IMMEDIATE``. A parsing,
-validation, or SQLite failure therefore cannot partially replace owned tables;
-the database transaction is rolled back. Rerunning default mode is deterministic
-for a fixed input document and SQLite JSON implementation.
+With ``--preserve-existing-tables``, each existing base table is independently
+left untouched and reported as skipped, while missing base tables are created.
+Because priority extraction mutates ``places`` while populating its derived
+table, ``places`` and ``places_priority`` must either both exist or both be
+absent in preservation mode; a mixed state is rejected. All XML extraction
+still runs so later stages always see the same residual tree. XML parsing and
+row construction finish before ``BEGIN IMMEDIATE``. A parsing, validation, or
+SQLite failure therefore cannot partially replace owned tables; the database
+transaction is rolled back. Rerunning default mode is deterministic for a
+fixed input document and SQLite JSON implementation.
 
 Command line and exit status
 ----------------------------
@@ -219,6 +242,14 @@ CLASSIFIED_RELATING_TITLE_PATTERN = re.compile(
     r"\s*relating\s+to\s*(?P<subject>.*)$",
     re.IGNORECASE,
 )
+PRIORITY_SEPARATOR_PATTERN = re.compile(
+    r"^\s*(?:,\s*(?:(?:and|or)\s+)?|(?:and|or)\s+)\s*$",
+    re.IGNORECASE,
+)
+PRIORITY_TRAILER_PATTERN = re.compile(
+    r"^\s*takes?\s+precedence\b(?P<suffix>.*)$",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 class SrefDefinition(TypedDict):
@@ -277,6 +308,7 @@ PlaceRow = tuple[
     str,
     str | None,
 ]
+PlacePriorityRow = tuple[str | None, str, str, str | None]
 HeadingRow = SubsectionRow | GuidanceHeadingRow
 
 
@@ -1697,6 +1729,217 @@ def extract_places(root: ET.Element) -> list[PlaceRow]:
     return rows
 
 
+def normalize_priority_clause(text: str) -> str | None:
+    """Normalize optional limiting-clause text without changing its wording.
+
+    Args:
+        text: Decoded XML text occurring outside the precedence reference list.
+
+    Returns:
+        Whitespace-collapsed clause text, or ``None`` when no alphanumeric
+        content remains after trimming adjacent separator punctuation.
+    """
+
+    normalized = " ".join(text.split()).strip(" ,;:")
+    if not any(character.isalnum() for character in normalized):
+        return None
+    return normalized
+
+
+def normalize_priority_prefix(text: str) -> str | None:
+    """Normalize a prefix clause using the last-comma descriptor convention.
+
+    Args:
+        text: Text preceding the first ``sref`` or ``mref`` in a priority item.
+
+    Returns:
+        Normalized limiting clause, or ``None`` when the prefix is empty. If a
+        comma occurs, the comma and everything following it are discarded as a
+        collective descriptor for the subsequent reference list.
+    """
+
+    clause_text = text.rsplit(",", 1)[0] if "," in text else text
+    return normalize_priority_clause(clause_text)
+
+
+def priority_reference_value(element: ET.Element) -> IndexReference:
+    """Convert one empty ``sref`` or ``mref`` element to its JSON value.
+
+    Args:
+        element: Reference element from a wrapped ``places.refs`` item.
+
+    Returns:
+        The ``sref`` symbol string or ``[mref.ref, mref.endRef]`` list.
+
+    Raises:
+        ValueError: If the element type is unsupported, is not empty, or lacks
+            a required nonempty reference attribute.
+    """
+
+    if list(element) or (element.text and element.text.strip()):
+        raise ValueError("place priority reference element must be empty")
+
+    tag_name = local_name(element.tag)
+    ref = element.get("ref")
+    if not ref:
+        raise ValueError(f"place priority {tag_name} is missing ref")
+    if tag_name == "sref":
+        return ref
+    if tag_name == "mref":
+        end_ref = element.get("endRef")
+        if not end_ref:
+            raise ValueError("place priority mref is missing endRef")
+        return [ref, end_ref]
+    raise ValueError(f"unsupported place priority reference: {tag_name}")
+
+
+def parse_place_priority_item(
+    fragment: str,
+) -> tuple[list[IndexReference], str | None] | None:
+    """Parse one complete ``places.refs`` item as a precedence statement.
+
+    The XML parser makes reference attribute order irrelevant. A successful
+    match contains only a contiguous direct-child ``sref``/``mref`` list,
+    conventional comma/``and``/``or`` separators, and a final ``take
+    precedence`` or ``takes precedence`` phrase. Arbitrary text may precede
+    the list or follow that phrase and becomes limiting-clause text.
+
+    Args:
+        fragment: Inner-XML string from one element of ``places.refs``.
+
+    Returns:
+        ``(higher_priority_refs, limiting_clause)`` for a complete match, or
+        ``None`` when the fragment does not have the target structure.
+
+    Raises:
+        ValueError: If a structurally matched reference element omits a
+            required attribute or is not empty.
+    """
+
+    try:
+        wrapper = ET.fromstring(f"<xml>{fragment}</xml>")
+    except ET.ParseError:
+        return None
+
+    reference_elements = list(wrapper)
+    if not reference_elements:
+        return None
+    if any(
+        local_name(element.tag) not in {"sref", "mref"}
+        for element in reference_elements
+    ):
+        return None
+
+    for element in reference_elements[:-1]:
+        if PRIORITY_SEPARATOR_PATTERN.fullmatch(element.tail or "") is None:
+            return None
+
+    trailer_match = PRIORITY_TRAILER_PATTERN.fullmatch(
+        reference_elements[-1].tail or ""
+    )
+    if trailer_match is None:
+        return None
+
+    higher_priority_refs = [
+        priority_reference_value(element) for element in reference_elements
+    ]
+    prefix_clause = normalize_priority_prefix(wrapper.text or "")
+    suffix_clause = normalize_priority_clause(trailer_match.group("suffix"))
+    clauses = [
+        clause for clause in (prefix_clause, suffix_clause) if clause is not None
+    ]
+    limiting_clause = "; ".join(clauses) if clauses else None
+    return higher_priority_refs, limiting_clause
+
+
+def extract_places_priority(connection: sqlite3.Connection) -> int:
+    """Move precedence items from ``places.refs`` to ``places_priority``.
+
+    Args:
+        connection: Open SQLite connection containing both required tables and
+            participating in the caller's active transaction.
+
+    Returns:
+        Number of inserted ``places_priority`` rows and removed reference
+        items.
+
+    Raises:
+        ValueError: If a non-null ``places.refs`` value is not a JSON array of
+            strings or a matched reference lacks required attributes.
+        sqlite3.Error: If source selection, insertion, or place updates fail.
+
+    Notes:
+        One output row is written for each matching array item. Remaining
+        array items retain their original strings and order. The function does
+        not create tables, commit, or roll back.
+    """
+
+    priority_rows: list[PlacePriorityRow] = []
+    place_updates: list[tuple[str | None, int]] = []
+    source_rows = connection.execute(
+        """
+        SELECT rowid, symbol, titlePart, refs
+        FROM places
+        WHERE refs IS NOT NULL
+        ORDER BY rowid
+        """
+    ).fetchall()
+
+    for rowid, symbol, title_part, serialized_refs in source_rows:
+        refs = json.loads(serialized_refs)
+        if not isinstance(refs, list):
+            raise ValueError(f"places rowid {rowid} refs is not a JSON array")
+
+        remaining_refs: list[str] = []
+        matched = False
+        for item in refs:
+            if not isinstance(item, str):
+                raise ValueError(
+                    f"places rowid {rowid} refs contains a non-string item"
+                )
+            parsed = parse_place_priority_item(item)
+            if parsed is None:
+                remaining_refs.append(item)
+                continue
+
+            higher_priority_refs, limiting_clause = parsed
+            priority_rows.append(
+                (
+                    symbol,
+                    title_part,
+                    json.dumps(higher_priority_refs, ensure_ascii=False),
+                    limiting_clause,
+                )
+            )
+            matched = True
+
+        if matched:
+            place_updates.append(
+                (
+                    (
+                        json.dumps(remaining_refs, ensure_ascii=False)
+                        if remaining_refs
+                        else None
+                    ),
+                    rowid,
+                )
+            )
+
+    connection.executemany(
+        """
+        INSERT INTO places_priority
+            (symbol, titlePart, higher_priority_refs, limiting_clause)
+        VALUES (?, ?, ?, ?)
+        """,
+        priority_rows,
+    )
+    connection.executemany(
+        "UPDATE places SET refs = ? WHERE rowid = ?",
+        place_updates,
+    )
+    return len(priority_rows)
+
+
 def table_exists(connection: sqlite3.Connection, table_name: str) -> bool:
     """Test whether SQLite contains a table with an exact name.
 
@@ -1816,6 +2059,7 @@ def create_owned_table(
         "notes",
         "classified_aspects",
         "places",
+        "places_priority",
     }:
         raise ValueError(f"unsupported owned table: {table_name}")
 
@@ -1927,6 +2171,23 @@ def create_owned_table(
         )
         return
 
+    if table_name == "places_priority":
+        connection.execute(
+            """
+            CREATE TABLE places_priority (
+                id                   INTEGER PRIMARY KEY,
+                symbol               TEXT,
+                titlePart            TEXT NOT NULL,
+                higher_priority_refs TEXT NOT NULL
+                    CHECK (json_valid(higher_priority_refs) AND
+                           json_type(higher_priority_refs) = 'array' AND
+                           json_array_length(higher_priority_refs) > 0),
+                limiting_clause      TEXT
+            )
+            """
+        )
+        return
+
     connection.execute(
         """
         CREATE TABLE gheadings_index (
@@ -1951,15 +2212,17 @@ def import_scheme(
 ) -> dict[str, tuple[int, bool]]:
     """Parse one scheme and transactionally populate every owned table.
 
-    All extraction stages always run in order so each kind is removed from the
-    residual tree even when its existing table is preserved. All non-preserved
-    tables are rebuilt together in one transaction.
+    XML extraction stages always run in order so each kind is removed from the
+    residual tree even when its existing base table is preserved. Base-table
+    writes precede the database-backed place-priority extraction stage. All
+    non-preserved writes occur together in one transaction.
 
     Args:
         xml_path: IPC scheme XML file to parse as the source of truth.
         database_path: SQLite file to create or reuse.
-        preserve_existing_tables: When true, independently skip every owned
-            table that already exists; when false, rebuild all owned tables.
+        preserve_existing_tables: When true, independently skip existing base
+            tables and preserve the coupled ``places``/``places_priority``
+            pair; when false, rebuild all owned tables.
 
     Returns:
         In deterministic table order, a mapping from table name to
@@ -2088,6 +2351,26 @@ def import_scheme(
                         rows,
                     )
                 results[table_name] = (len(rows), False)
+
+            priority_exists = table_exists(connection, "places_priority")
+            places_skipped = results["places"][1]
+            if preserve_existing_tables:
+                if priority_exists != places_skipped:
+                    raise ValueError(
+                        "preservation mode requires places and places_priority "
+                        "to either both exist or both be absent"
+                    )
+                if priority_exists:
+                    results["places_priority"] = (0, True)
+                else:
+                    create_owned_table(connection, "places_priority")
+                    priority_count = extract_places_priority(connection)
+                    results["places_priority"] = (priority_count, False)
+            else:
+                connection.execute("DROP TABLE IF EXISTS places_priority")
+                create_owned_table(connection, "places_priority")
+                priority_count = extract_places_priority(connection)
+                results["places_priority"] = (priority_count, False)
         except Exception:
             connection.rollback()
             raise
@@ -2115,7 +2398,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Import IPC subsection, guidance-heading, index-term, note, "
-            "classified-aspect, and place data into SQLite."
+            "classified-aspect, place, and place-priority data into SQLite."
         ),
     )
     parser.add_argument(
