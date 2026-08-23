@@ -1,7 +1,8 @@
 ---
 urls:
- - https://chatgpt.com/c/6a897e26-5a40-83eb-afa1-32a9bf36b31c
- - https://chatgpt.com/c/6a89c8a7-00b4-83eb-b9ac-f5f8385d6208
+  - https://chatgpt.com/c/6a897e26-5a40-83eb-afa1-32a9bf36b31c
+  - https://chatgpt.com/c/6a89c8a7-00b4-83eb-b9ac-f5f8385d6208
+  - https://chatgpt.com/c/6a8b4197-6734-83eb-8f09-24967a39d3f8
 ---
 # IPC Scheme XML Parsing Notes
 
