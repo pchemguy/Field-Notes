@@ -21,8 +21,8 @@ Stages run sequentially in source order and remove their processed
 4. ``kind="n"`` entries become declared, well-formed XML note fragments.
 5. remaining ``entryType="I"`` nodes become ``classified_aspects``.
 6. remaining ``entryType="K"`` nodes become the ``places`` hierarchy.
-7. precedence and scope references are extracted from stored ``places.refs``
-   values.
+7. precedence, multi-clause scope-list, and terminal scope references are
+   extracted from stored ``places.refs`` values.
 
 The whole-tree representation deliberately favors a clear extraction model
 over bounded memory use. Large future editions should be measured before this
@@ -140,16 +140,26 @@ comma is treated as a collective list descriptor and discarded. If both
 prefix and suffix scopes occur, their normalized text is joined in source
 order with ``; ``.
 
-The scope pass then recognizes a remaining fragment consisting of an optional
-mixed-content prefix followed by one terminal contiguous ``sref``/``mref``
-list and no other embedded reference. Non-reference inline markup in the prefix
-is flattened to its logical text, so ``<u>see</u>`` contributes ``see``. The
-pass writes ``function`` as ``scope`` and the complete normalized prefix as
-``exclusion_scope``. No collective-term filtering or last-comma removal is
-applied.
+The scope-list pass recognizes a remaining fragment containing two or more
+textual clauses, each ending in a contiguous ``sref``/``mref`` list. The
+complete fragment must terminate with its final reference. One
+``places_references`` row is emitted per clause with ``function`` set to
+``scope_list``. A shared leading phrase such as ``for``, ``by``, ``on``, or
+``e.g.`` is inferred from the longest leading token sequence of the later
+clauses that also occurs in the first clause. Text before that occurrence in
+the first clause is the common prefix and is prepended to every later clause.
+If no such sequence exists, no common prefix is added.
 
-For both functions, ``higher_priority_refs`` is a nonempty JSON array in source
-order: ``sref`` becomes its ``ref`` string and ``mref`` becomes
+The final scope pass then recognizes a remaining fragment consisting of an
+optional mixed-content prefix followed by one terminal contiguous
+``sref``/``mref`` list and no other embedded reference. Non-reference inline
+markup in the prefix is flattened to its logical text, so ``<u>see</u>``
+contributes ``see``. The pass writes ``function`` as ``scope`` and the complete
+normalized prefix as ``exclusion_scope``. No collective-term filtering or
+last-comma removal is applied.
+
+For all three functions, ``higher_priority_refs`` is a nonempty JSON array in
+source order: ``sref`` becomes its ``ref`` string and ``mref`` becomes
 ``[ref, endRef]``. XML attribute order is immaterial. Scope-free rows use SQL
 ``NULL``. Every extracted source item is removed from its originating
 ``places.refs`` array; an emptied array becomes SQL ``NULL``. Unmatched array
@@ -313,9 +323,10 @@ IndexGuidanceHeadingRow = tuple[
 ]
 GuidanceExclusionRow = tuple[str, str]
 IndexReference = str | list[str]
+PlaceReferenceMatch = tuple[list[IndexReference], str | None]
 PlaceReferenceParser = Callable[
     [str],
-    tuple[list[IndexReference], str | None] | None,
+    list[PlaceReferenceMatch],
 ]
 IndexTermRow = tuple[str | None, str | None, str, str]
 NoteRow = tuple[str | None, str | None, str]
@@ -1815,7 +1826,7 @@ def place_reference_value(element: ET.Element) -> IndexReference:
 
 def parse_precedence_reference_item(
     fragment: str,
-) -> tuple[list[IndexReference], str | None] | None:
+) -> list[PlaceReferenceMatch]:
     """Parse one complete ``places.refs`` item as a precedence statement.
 
     The XML parser makes reference attribute order irrelevant. A successful
@@ -1828,8 +1839,9 @@ def parse_precedence_reference_item(
         fragment: Inner-XML string from one element of ``places.refs``.
 
     Returns:
-        ``(higher_priority_refs, exclusion_scope)`` for a complete match, or
-        ``None`` when the fragment does not have the target structure.
+        A one-item list containing ``(higher_priority_refs,
+        exclusion_scope)`` for a complete match, or an empty list when the
+        fragment does not have the target structure.
 
     Raises:
         ValueError: If a structurally matched reference element omits a
@@ -1839,29 +1851,29 @@ def parse_precedence_reference_item(
     try:
         wrapper = ET.fromstring(f"<xml>{fragment}</xml>")
     except ET.ParseError:
-        return None
+        return []
 
     reference_elements = list(wrapper)
     if not reference_elements:
-        return None
+        return []
     if any(
         local_name(element.tag) not in {"sref", "mref"}
         for element in reference_elements
     ):
-        return None
+        return []
 
     for element in reference_elements[:-1]:
         if (
             PLACE_REFERENCE_SEPARATOR_PATTERN.fullmatch(element.tail or "")
             is None
         ):
-            return None
+            return []
 
     trailer_match = PRIORITY_TRAILER_PATTERN.fullmatch(
         reference_elements[-1].tail or ""
     )
     if trailer_match is None:
-        return None
+        return []
 
     higher_priority_refs = [
         place_reference_value(element) for element in reference_elements
@@ -1872,12 +1884,167 @@ def parse_precedence_reference_item(
         clause for clause in (prefix_clause, suffix_clause) if clause is not None
     ]
     exclusion_scope = "; ".join(clauses) if clauses else None
-    return higher_priority_refs, exclusion_scope
+    return [(higher_priority_refs, exclusion_scope)]
+
+
+def shared_scope_list_prefix(clause_texts: list[str]) -> str | None:
+    """Infer the common prefix omitted from later scope-list clauses.
+
+    The candidate shared phrase is the longest leading token sequence common
+    to every clause after the first that also occurs at token boundaries in
+    the first clause. The last such occurrence is used, and the text before
+    it becomes the common prefix. Trying progressively shorter candidates
+    makes a two-clause value such as ``domestic devices for stoning`` / ``for
+    coring`` resolve to the shared phrase ``for`` rather than requiring the
+    complete second clause to recur.
+
+    Args:
+        clause_texts: Two or more normalized clause strings in source order.
+
+    Returns:
+        Normalized common prefix. An empty string means the shared phrase
+        begins the first clause, while ``None`` means no shared leading phrase
+        occurs in the first clause.
+
+    Raises:
+        ValueError: If fewer than two clauses are supplied.
+    """
+
+    if len(clause_texts) < 2:
+        raise ValueError("scope-list prefix inference requires two clauses")
+
+    later_tokens = [clause.split() for clause in clause_texts[1:]]
+    shared_length = min(len(tokens) for tokens in later_tokens)
+    for index in range(shared_length):
+        token = later_tokens[0][index].casefold()
+        if any(tokens[index].casefold() != token for tokens in later_tokens[1:]):
+            shared_length = index
+            break
+
+    first_clause = clause_texts[0]
+    for candidate_length in range(shared_length, 0, -1):
+        candidate_tokens = later_tokens[0][:candidate_length]
+        candidate_pattern = r"\s+".join(
+            re.escape(token) for token in candidate_tokens
+        )
+        matches = list(
+            re.finditer(
+                rf"(?<!\w){candidate_pattern}(?!\w)",
+                first_clause,
+                re.IGNORECASE,
+            )
+        )
+        if not matches:
+            continue
+        common_prefix = " ".join(
+            first_clause[: matches[-1].start()].split()
+        )
+        if any(character.isalnum() for character in common_prefix):
+            return common_prefix
+        return ""
+    return None
+
+
+def parse_scope_reference_list_item(fragment: str) -> list[PlaceReferenceMatch]:
+    """Expand one terminal multi-clause reference list into scope-list rows.
+
+    A matched fragment contains two or more textual clauses, each followed by
+    a nonempty contiguous list of direct-child ``sref``/``mref`` elements.
+    Conventional comma/``and``/``or`` text joins references within one list;
+    any other intervening text starts the next clause. The final non-whitespace
+    content must be the final reference element. General non-reference inline
+    markup is flattened into the surrounding clause text, while markup that
+    contains a nested reference rejects the fragment.
+
+    The first clause is retained as written. A deterministic common prefix is
+    inferred by :func:`shared_scope_list_prefix` and prepended to every later
+    clause. Reference attribute order is immaterial.
+
+    Args:
+        fragment: Inner-XML string from one element of ``places.refs``.
+
+    Returns:
+        One ``(referenced_places, exclusion_scope)`` pair per clause, or an
+        empty list when the fragment is not a complete terminal multi-clause
+        list.
+
+    Raises:
+        ValueError: If a structurally matched reference element omits a
+            required attribute or is not empty.
+    """
+
+    try:
+        wrapper = ET.fromstring(f"<xml>{fragment}</xml>")
+    except ET.ParseError:
+        return []
+
+    pending_text = wrapper.text or ""
+    groups: list[tuple[list[IndexReference], str]] = []
+    current_refs: list[IndexReference] = []
+    current_clause: str | None = None
+
+    for element in wrapper:
+        tag_name = local_name(element.tag)
+        if tag_name not in {"sref", "mref"}:
+            if any(
+                local_name(descendant.tag) in {"sref", "mref"}
+                for descendant in element.iter()
+            ):
+                return []
+            pending_text += "".join(element.itertext())
+            pending_text += element.tail or ""
+            continue
+
+        if not current_refs:
+            current_clause = normalize_exclusion_scope(pending_text)
+            if current_clause is None:
+                return []
+        elif PLACE_REFERENCE_SEPARATOR_PATTERN.fullmatch(pending_text) is None:
+            next_clause = normalize_exclusion_scope(pending_text)
+            if next_clause is None or current_clause is None:
+                return []
+            next_clause = re.sub(
+                r"^(?:and|or)\s+",
+                "",
+                next_clause,
+                count=1,
+                flags=re.IGNORECASE,
+            )
+            if not next_clause:
+                return []
+            groups.append((current_refs, current_clause))
+            current_refs = []
+            current_clause = next_clause
+
+        current_refs.append(place_reference_value(element))
+        pending_text = element.tail or ""
+
+    if pending_text.strip() or not current_refs or current_clause is None:
+        return []
+    groups.append((current_refs, current_clause))
+    if len(groups) < 2:
+        return []
+
+    clause_texts = [clause for _, clause in groups]
+    common_prefix = shared_scope_list_prefix(clause_texts)
+    if common_prefix is None:
+        return []
+    matches: list[PlaceReferenceMatch] = []
+    for index, (references, clause) in enumerate(groups):
+        expanded_clause = clause
+        if index > 0 and common_prefix:
+            expanded_clause = normalize_exclusion_scope(
+                f"{common_prefix} {clause}"
+            )
+            if expanded_clause is None:
+                raise ValueError("expanded scope-list clause is empty")
+        matches.append((references, expanded_clause))
+    return matches
 
 
 def parse_scope_reference_item(
     fragment: str,
-) -> tuple[list[IndexReference], str | None] | None:
+) -> list[PlaceReferenceMatch]:
     """Parse one terminal reference-list item as a scope reference.
 
     A successful match has an optional mixed-content prefix followed by
@@ -1891,10 +2058,10 @@ def parse_scope_reference_item(
         fragment: Inner-XML string from one element of ``places.refs``.
 
     Returns:
-        ``(referenced_places, exclusion_scope)`` for a complete match, or
-        ``None`` when the fragment does not have the target structure. The
-        complete normalized prefix text is returned without collective-term
-        or last-comma filtering.
+        A one-item list containing ``(referenced_places, exclusion_scope)``
+        for a complete match, or an empty list when the fragment does not have
+        the target structure. The complete normalized prefix text is returned
+        without collective-term or last-comma filtering.
 
     Raises:
         ValueError: If a structurally matched reference element omits a
@@ -1904,7 +2071,7 @@ def parse_scope_reference_item(
     try:
         wrapper = ET.fromstring(f"<xml>{fragment}</xml>")
     except ET.ParseError:
-        return None
+        return []
 
     children = list(wrapper)
     list_start = len(children)
@@ -1917,22 +2084,22 @@ def parse_scope_reference_item(
     prefix_elements = children[:list_start]
     reference_elements = children[list_start:]
     if not reference_elements:
-        return None
+        return []
     if any(
         local_name(descendant.tag) in {"sref", "mref"}
         for element in prefix_elements
         for descendant in element.iter()
     ):
-        return None
+        return []
 
     for element in reference_elements[:-1]:
         if (
             PLACE_REFERENCE_SEPARATOR_PATTERN.fullmatch(element.tail or "")
             is None
         ):
-            return None
+            return []
     if (reference_elements[-1].tail or "").strip():
-        return None
+        return []
 
     referenced_places = [
         place_reference_value(element) for element in reference_elements
@@ -1942,7 +2109,7 @@ def parse_scope_reference_item(
         prefix_parts.extend(element.itertext())
         prefix_parts.append(element.tail or "")
     exclusion_scope = normalize_exclusion_scope("".join(prefix_parts))
-    return referenced_places, exclusion_scope
+    return [(referenced_places, exclusion_scope)]
 
 
 def extract_place_references(
@@ -1955,14 +2122,14 @@ def extract_place_references(
     Args:
         connection: Open SQLite connection containing both required tables and
             participating in the caller's active transaction.
-        parser: Function that recognizes one reference string and returns its
-            normalized targets and optional exclusion scope.
+        parser: Function that recognizes one reference string and returns zero
+            or more normalized target/scope pairs.
         reference_function: Nonempty value stored in
             ``places_references.function`` for every matched item.
 
     Returns:
-        Number of inserted ``places_references`` rows and removed reference
-        items.
+        Number of inserted ``places_references`` rows. A parser may expand one
+        removed source item into multiple rows.
 
     Raises:
         ValueError: If ``reference_function`` is empty, a non-null
@@ -1971,7 +2138,7 @@ def extract_place_references(
         sqlite3.Error: If source selection, insertion, or place updates fail.
 
     Notes:
-        One output row is written for each item matched by ``parser``.
+        One output row is written for each match returned by ``parser``.
         Remaining array items retain their original strings and order. The
         function does not create tables, commit, or roll back, allowing
         multiple semantic passes to process the residual references in order.
@@ -2004,20 +2171,20 @@ def extract_place_references(
                     f"places rowid {rowid} refs contains a non-string item"
                 )
             parsed = parser(item)
-            if parsed is None:
+            if not parsed:
                 remaining_refs.append(item)
                 continue
 
-            higher_priority_refs, exclusion_scope = parsed
-            reference_rows.append(
-                (
-                    symbol,
-                    title_part,
-                    json.dumps(higher_priority_refs, ensure_ascii=False),
-                    exclusion_scope,
-                    reference_function,
+            for higher_priority_refs, exclusion_scope in parsed:
+                reference_rows.append(
+                    (
+                        symbol,
+                        title_part,
+                        json.dumps(higher_priority_refs, ensure_ascii=False),
+                        exclusion_scope,
+                        reference_function,
+                    )
                 )
-            )
             matched = True
 
         if matched:
@@ -2477,12 +2644,19 @@ def import_scheme(
                         parse_precedence_reference_item,
                         "precedence",
                     )
+                    scope_list_count = extract_place_references(
+                        connection,
+                        parse_scope_reference_list_item,
+                        "scope_list",
+                    )
                     scope_count = extract_place_references(
                         connection,
                         parse_scope_reference_item,
                         "scope",
                     )
-                    reference_count = precedence_count + scope_count
+                    reference_count = (
+                        precedence_count + scope_list_count + scope_count
+                    )
                     results["places_references"] = (reference_count, False)
             else:
                 connection.execute("DROP TABLE IF EXISTS places_priority")
@@ -2493,12 +2667,19 @@ def import_scheme(
                     parse_precedence_reference_item,
                     "precedence",
                 )
+                scope_list_count = extract_place_references(
+                    connection,
+                    parse_scope_reference_list_item,
+                    "scope_list",
+                )
                 scope_count = extract_place_references(
                     connection,
                     parse_scope_reference_item,
                     "scope",
                 )
-                reference_count = precedence_count + scope_count
+                reference_count = (
+                    precedence_count + scope_list_count + scope_count
+                )
                 results["places_references"] = (reference_count, False)
         except Exception:
             connection.rollback()
