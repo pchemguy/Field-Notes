@@ -21,8 +21,8 @@ Stages run sequentially in source order and remove their processed
 4. ``kind="n"`` entries become declared, well-formed XML note fragments.
 5. remaining ``entryType="I"`` nodes become ``classified_aspects``.
 6. remaining ``entryType="K"`` nodes become the ``places`` hierarchy.
-7. precedence, multi-clause scope-list, and terminal scope references are
-   extracted from stored ``places.refs`` values.
+7. precedence, multi-clause scope-list, example-qualified scope, and terminal
+   scope references are extracted from stored ``places.refs`` values.
 
 The whole-tree representation deliberately favors a clear extraction model
 over bounded memory use. Large future editions should be measured before this
@@ -150,15 +150,23 @@ clauses that also occurs in the first clause. Text before that occurrence in
 the first clause is the common prefix and is prepended to every later clause.
 If no such sequence exists, no common prefix is added.
 
-The final scope pass then recognizes a remaining fragment consisting of an
-optional mixed-content prefix followed by one terminal contiguous
+The scope-example pass then recognizes a retained scope prefix and contiguous
+``sref``/``mref`` list followed by ``, e.g.`` and example content. The complete
+example suffix is discarded. The retained part must independently satisfy the
+terminal scope contract: no earlier embedded reference and no text between its
+last reference and the example marker. One row is written with ``function``
+set to ``scope_example``. Because this pass follows ``scope_list``, an example
+that forms part of a recognized multi-clause list remains a ``scope_list`` row.
+
+The final scope pass recognizes a remaining fragment consisting of an optional
+mixed-content prefix followed by one terminal contiguous
 ``sref``/``mref`` list and no other embedded reference. Non-reference inline
 markup in the prefix is flattened to its logical text, so ``<u>see</u>``
 contributes ``see``. The pass writes ``function`` as ``scope`` and the complete
 normalized prefix as ``exclusion_scope``. No collective-term filtering or
 last-comma removal is applied.
 
-For all three functions, ``higher_priority_refs`` is a nonempty JSON array in
+For all four functions, ``higher_priority_refs`` is a nonempty JSON array in
 source order: ``sref`` becomes its ``ref`` string and ``mref`` becomes
 ``[ref, endRef]``. XML attribute order is immaterial. Scope-free rows use SQL
 ``NULL``. Every extracted source item is removed from its originating
@@ -271,6 +279,10 @@ CLASSIFIED_RELATING_TITLE_PATTERN = re.compile(
 PLACE_REFERENCE_SEPARATOR_PATTERN = re.compile(
     r"^\s*(?:,\s*(?:(?:and|or)\s+)?|(?:and|or)\s+)\s*$",
     re.IGNORECASE,
+)
+PLACE_EXAMPLE_MARKER_PATTERN = re.compile(
+    r"^\s*,\s*e\.g\.\s*(?P<example_text>.*)$",
+    re.IGNORECASE | re.DOTALL,
 )
 PRIORITY_TRAILER_PATTERN = re.compile(
     r"^\s*takes?\s+precedence\b(?P<suffix>.*)$",
@@ -2042,6 +2054,95 @@ def parse_scope_reference_list_item(fragment: str) -> list[PlaceReferenceMatch]:
     return matches
 
 
+def parse_scope_example_reference_item(
+    fragment: str,
+) -> list[PlaceReferenceMatch]:
+    """Extract a base scope while discarding its complete example suffix.
+
+    A successful fragment contains an optional mixed-content prefix, one
+    contiguous direct-child ``sref``/``mref`` list, and an example suffix that
+    begins immediately after the final base reference with ``, e.g.``. The
+    suffix must contain some text or markup but is otherwise deliberately not
+    parsed; all of it, including any example references, is discarded.
+
+    The retained base is accepted only when it independently has the same
+    shape as a terminal scope item: its prefix contains no direct or nested
+    reference, only conventional comma/``and``/``or`` separators occur within
+    the reference list, and no non-marker text follows the final base
+    reference. The caller runs the scope-list pass first, so list examples
+    recognized there never reach this parser.
+
+    Args:
+        fragment: Inner-XML string from one element of ``places.refs``.
+
+    Returns:
+        A one-item list containing the retained base references and normalized
+        base prefix, or an empty list when the complete fragment does not have
+        the required example-qualified scope structure.
+
+    Raises:
+        ValueError: If a structurally matched base reference omits a required
+            attribute or is not empty.
+    """
+
+    try:
+        wrapper = ET.fromstring(f"<xml>{fragment}</xml>")
+    except ET.ParseError:
+        return []
+
+    children = list(wrapper)
+    marker_index: int | None = None
+    marker_match: re.Match[str] | None = None
+    for index, element in enumerate(children):
+        if local_name(element.tag) not in {"sref", "mref"}:
+            continue
+        match = PLACE_EXAMPLE_MARKER_PATTERN.fullmatch(element.tail or "")
+        if match is not None:
+            marker_index = index
+            marker_match = match
+            break
+
+    if marker_index is None or marker_match is None:
+        return []
+    if (
+        not marker_match.group("example_text").strip()
+        and marker_index == len(children) - 1
+    ):
+        return []
+
+    list_start = marker_index
+    while list_start > 0:
+        previous = children[list_start - 1]
+        if local_name(previous.tag) not in {"sref", "mref"}:
+            break
+        if PLACE_REFERENCE_SEPARATOR_PATTERN.fullmatch(previous.tail or "") is None:
+            break
+        list_start -= 1
+
+    prefix_elements = children[:list_start]
+    if any(
+        local_name(descendant.tag) in {"sref", "mref"}
+        for element in prefix_elements
+        for descendant in element.iter()
+    ):
+        return []
+
+    base_reference_elements = children[list_start : marker_index + 1]
+    for element in base_reference_elements[:-1]:
+        if PLACE_REFERENCE_SEPARATOR_PATTERN.fullmatch(element.tail or "") is None:
+            return []
+
+    base_references = [
+        place_reference_value(element) for element in base_reference_elements
+    ]
+    prefix_parts = [wrapper.text or ""]
+    for element in prefix_elements:
+        prefix_parts.extend(element.itertext())
+        prefix_parts.append(element.tail or "")
+    exclusion_scope = normalize_exclusion_scope("".join(prefix_parts))
+    return [(base_references, exclusion_scope)]
+
+
 def parse_scope_reference_item(
     fragment: str,
 ) -> list[PlaceReferenceMatch]:
@@ -2649,13 +2750,21 @@ def import_scheme(
                         parse_scope_reference_list_item,
                         "scope_list",
                     )
+                    scope_example_count = extract_place_references(
+                        connection,
+                        parse_scope_example_reference_item,
+                        "scope_example",
+                    )
                     scope_count = extract_place_references(
                         connection,
                         parse_scope_reference_item,
                         "scope",
                     )
                     reference_count = (
-                        precedence_count + scope_list_count + scope_count
+                        precedence_count
+                        + scope_list_count
+                        + scope_example_count
+                        + scope_count
                     )
                     results["places_references"] = (reference_count, False)
             else:
@@ -2672,13 +2781,21 @@ def import_scheme(
                     parse_scope_reference_list_item,
                     "scope_list",
                 )
+                scope_example_count = extract_place_references(
+                    connection,
+                    parse_scope_example_reference_item,
+                    "scope_example",
+                )
                 scope_count = extract_place_references(
                     connection,
                     parse_scope_reference_item,
                     "scope",
                 )
                 reference_count = (
-                    precedence_count + scope_list_count + scope_count
+                    precedence_count
+                    + scope_list_count
+                    + scope_example_count
+                    + scope_count
                 )
                 results["places_references"] = (reference_count, False)
         except Exception:
