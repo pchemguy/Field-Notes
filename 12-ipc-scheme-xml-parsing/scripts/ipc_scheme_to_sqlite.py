@@ -39,8 +39,8 @@ The script owns and may rebuild these tables:
 * ``notes(symbol, endSymbol, note_xml)``;
 * ``classified_aspects(kind, symbol, parent_symbol, terms)``;
 * ``places(kind, symbol, parent_symbol, titlePart, refs)``; and
-* ``places_priority(id, symbol, titlePart, higher_priority_refs,
-  limiting_clause)``.
+* ``places_references(id, symbol, titlePart, higher_priority_refs,
+  exclusion_scope, function)``.
 
 JSON columns are stored as UTF-8-capable SQLite ``TEXT`` and constrained with
 SQLite JSON functions. Arrays remain arrays even when they contain one item.
@@ -126,17 +126,18 @@ corresponding flat JSON array of strings and is SQL ``NULL`` when the source
 title part has no entry reference. There is no JSON object or positional
 ``terms_N`` key.
 
-Place precedence
+Place references
 ----------------
 After ``places`` has been populated, each string in ``places.refs`` is parsed
 as an XML fragment. A fragment containing one contiguous ``sref``/``mref``
 list followed by ``take precedence`` or ``takes precedence`` becomes one
-``places_priority`` row. ``higher_priority_refs`` is a nonempty JSON array in
-source order: ``sref`` becomes its ``ref`` string and ``mref`` becomes
-``[ref, endRef]``. XML attribute order is immaterial.
+``places_references`` row whose ``function`` is ``precedence``.
+``higher_priority_refs`` is a nonempty JSON array in source order: ``sref``
+becomes its ``ref`` string and ``mref`` becomes ``[ref, endRef]``. XML
+attribute order is immaterial.
 
 Text preceding or following the reference list and precedence phrase becomes
-``limiting_clause``. For prefix text, everything after its last comma is
+``exclusion_scope``. For prefix text, everything after its last comma is
 treated as a collective list descriptor and discarded. If both prefix and
 suffix clauses occur, their normalized text is joined in source order with
 ``; ``. Clause-free rows use SQL ``NULL``. Every extracted source item is
@@ -149,11 +150,13 @@ The output path is the XML path with its suffix replaced by ``.db``. Existing
 database files are reused. By default, every owned table is dropped and rebuilt
 inside one transaction; unrelated tables are untouched. The obsolete owned
 table ``gheadings`` is also removed in default mode.
+The obsolete derived table ``places_priority`` is likewise removed during a
+default rebuild.
 
 With ``--preserve-existing-tables``, each existing base table is independently
 left untouched and reported as skipped, while missing base tables are created.
-Because priority extraction mutates ``places`` while populating its derived
-table, ``places`` and ``places_priority`` must either both exist or both be
+Because precedence extraction mutates ``places`` while populating its derived
+table, ``places`` and ``places_references`` must either both exist or both be
 absent in preservation mode; a mixed state is rejected. All XML extraction
 still runs so later stages always see the same residual tree. XML parsing and
 row construction finish before ``BEGIN IMMEDIATE``. A parsing, validation, or
@@ -310,7 +313,7 @@ PlaceRow = tuple[
     str,
     str | None,
 ]
-PlacePriorityRow = tuple[str | None, str, str, str | None]
+PlaceReferenceRow = tuple[str | None, str, str, str | None, str]
 HeadingRow = SubsectionRow | GuidanceHeadingRow
 
 
@@ -1731,8 +1734,8 @@ def extract_places(root: ET.Element) -> list[PlaceRow]:
     return rows
 
 
-def normalize_priority_clause(text: str) -> str | None:
-    """Normalize optional limiting-clause text without changing its wording.
+def normalize_exclusion_scope(text: str) -> str | None:
+    """Normalize optional exclusion-scope text without changing its wording.
 
     Args:
         text: Decoded XML text occurring outside the precedence reference list.
@@ -1748,23 +1751,23 @@ def normalize_priority_clause(text: str) -> str | None:
     return normalized
 
 
-def normalize_priority_prefix(text: str) -> str | None:
-    """Normalize a prefix clause using the last-comma descriptor convention.
+def normalize_prefix_exclusion_scope(text: str) -> str | None:
+    """Normalize prefix scope using the last-comma descriptor convention.
 
     Args:
-        text: Text preceding the first ``sref`` or ``mref`` in a priority item.
+        text: Text preceding the first reference in a precedence item.
 
     Returns:
-        Normalized limiting clause, or ``None`` when the prefix is empty. If a
+        Normalized exclusion scope, or ``None`` when the prefix is empty. If a
         comma occurs, the comma and everything following it are discarded as a
         collective descriptor for the subsequent reference list.
     """
 
     clause_text = text.rsplit(",", 1)[0] if "," in text else text
-    return normalize_priority_clause(clause_text)
+    return normalize_exclusion_scope(clause_text)
 
 
-def priority_reference_value(element: ET.Element) -> IndexReference:
+def precedence_reference_value(element: ET.Element) -> IndexReference:
     """Convert one empty ``sref`` or ``mref`` element to its JSON value.
 
     Args:
@@ -1779,23 +1782,23 @@ def priority_reference_value(element: ET.Element) -> IndexReference:
     """
 
     if list(element) or (element.text and element.text.strip()):
-        raise ValueError("place priority reference element must be empty")
+        raise ValueError("place precedence reference element must be empty")
 
     tag_name = local_name(element.tag)
     ref = element.get("ref")
     if not ref:
-        raise ValueError(f"place priority {tag_name} is missing ref")
+        raise ValueError(f"place precedence {tag_name} is missing ref")
     if tag_name == "sref":
         return ref
     if tag_name == "mref":
         end_ref = element.get("endRef")
         if not end_ref:
-            raise ValueError("place priority mref is missing endRef")
+            raise ValueError("place precedence mref is missing endRef")
         return [ref, end_ref]
-    raise ValueError(f"unsupported place priority reference: {tag_name}")
+    raise ValueError(f"unsupported place precedence reference: {tag_name}")
 
 
-def parse_place_priority_item(
+def parse_precedence_reference_item(
     fragment: str,
 ) -> tuple[list[IndexReference], str | None] | None:
     """Parse one complete ``places.refs`` item as a precedence statement.
@@ -1804,13 +1807,13 @@ def parse_place_priority_item(
     match contains only a contiguous direct-child ``sref``/``mref`` list,
     conventional comma/``and``/``or`` separators, and a final ``take
     precedence`` or ``takes precedence`` phrase. Arbitrary text may precede
-    the list or follow that phrase and becomes limiting-clause text.
+    the list or follow that phrase and becomes exclusion-scope text.
 
     Args:
         fragment: Inner-XML string from one element of ``places.refs``.
 
     Returns:
-        ``(higher_priority_refs, limiting_clause)`` for a complete match, or
+        ``(higher_priority_refs, exclusion_scope)`` for a complete match, or
         ``None`` when the fragment does not have the target structure.
 
     Raises:
@@ -1843,26 +1846,26 @@ def parse_place_priority_item(
         return None
 
     higher_priority_refs = [
-        priority_reference_value(element) for element in reference_elements
+        precedence_reference_value(element) for element in reference_elements
     ]
-    prefix_clause = normalize_priority_prefix(wrapper.text or "")
-    suffix_clause = normalize_priority_clause(trailer_match.group("suffix"))
+    prefix_clause = normalize_prefix_exclusion_scope(wrapper.text or "")
+    suffix_clause = normalize_exclusion_scope(trailer_match.group("suffix"))
     clauses = [
         clause for clause in (prefix_clause, suffix_clause) if clause is not None
     ]
-    limiting_clause = "; ".join(clauses) if clauses else None
-    return higher_priority_refs, limiting_clause
+    exclusion_scope = "; ".join(clauses) if clauses else None
+    return higher_priority_refs, exclusion_scope
 
 
-def extract_places_priority(connection: sqlite3.Connection) -> int:
-    """Move precedence items from ``places.refs`` to ``places_priority``.
+def extract_place_precedence_references(connection: sqlite3.Connection) -> int:
+    """Move precedence items from ``places.refs`` to ``places_references``.
 
     Args:
         connection: Open SQLite connection containing both required tables and
             participating in the caller's active transaction.
 
     Returns:
-        Number of inserted ``places_priority`` rows and removed reference
+        Number of inserted ``places_references`` rows and removed reference
         items.
 
     Raises:
@@ -1876,7 +1879,7 @@ def extract_places_priority(connection: sqlite3.Connection) -> int:
         not create tables, commit, or roll back.
     """
 
-    priority_rows: list[PlacePriorityRow] = []
+    reference_rows: list[PlaceReferenceRow] = []
     place_updates: list[tuple[str | None, int]] = []
     source_rows = connection.execute(
         """
@@ -1899,18 +1902,19 @@ def extract_places_priority(connection: sqlite3.Connection) -> int:
                 raise ValueError(
                     f"places rowid {rowid} refs contains a non-string item"
                 )
-            parsed = parse_place_priority_item(item)
+            parsed = parse_precedence_reference_item(item)
             if parsed is None:
                 remaining_refs.append(item)
                 continue
 
-            higher_priority_refs, limiting_clause = parsed
-            priority_rows.append(
+            higher_priority_refs, exclusion_scope = parsed
+            reference_rows.append(
                 (
                     symbol,
                     title_part,
                     json.dumps(higher_priority_refs, ensure_ascii=False),
-                    limiting_clause,
+                    exclusion_scope,
+                    "precedence",
                 )
             )
             matched = True
@@ -1929,17 +1933,17 @@ def extract_places_priority(connection: sqlite3.Connection) -> int:
 
     connection.executemany(
         """
-        INSERT INTO places_priority
-            (symbol, titlePart, higher_priority_refs, limiting_clause)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO places_references
+            (symbol, titlePart, higher_priority_refs, exclusion_scope, function)
+        VALUES (?, ?, ?, ?, ?)
         """,
-        priority_rows,
+        reference_rows,
     )
     connection.executemany(
         "UPDATE places SET refs = ? WHERE rowid = ?",
         place_updates,
     )
-    return len(priority_rows)
+    return len(reference_rows)
 
 
 def table_exists(connection: sqlite3.Connection, table_name: str) -> bool:
@@ -2061,7 +2065,7 @@ def create_owned_table(
         "notes",
         "classified_aspects",
         "places",
-        "places_priority",
+        "places_references",
     }:
         raise ValueError(f"unsupported owned table: {table_name}")
 
@@ -2173,10 +2177,10 @@ def create_owned_table(
         )
         return
 
-    if table_name == "places_priority":
+    if table_name == "places_references":
         connection.execute(
             """
-            CREATE TABLE places_priority (
+            CREATE TABLE places_references (
                 id                   INTEGER PRIMARY KEY,
                 symbol               TEXT,
                 titlePart            TEXT NOT NULL,
@@ -2184,7 +2188,8 @@ def create_owned_table(
                     CHECK (json_valid(higher_priority_refs) AND
                            json_type(higher_priority_refs) = 'array' AND
                            json_array_length(higher_priority_refs) > 0),
-                limiting_clause      TEXT
+                exclusion_scope      TEXT,
+                function             TEXT NOT NULL
             )
             """
         )
@@ -2216,14 +2221,14 @@ def import_scheme(
 
     XML extraction stages always run in order so each kind is removed from the
     residual tree even when its existing base table is preserved. Base-table
-    writes precede the database-backed place-priority extraction stage. All
+    writes precede the database-backed place-reference extraction stage. All
     non-preserved writes occur together in one transaction.
 
     Args:
         xml_path: IPC scheme XML file to parse as the source of truth.
         database_path: SQLite file to create or reuse.
         preserve_existing_tables: When true, independently skip existing base
-            tables and preserve the coupled ``places``/``places_priority``
+            tables and preserve the coupled ``places``/``places_references``
             pair; when false, rebuild all owned tables.
 
     Returns:
@@ -2354,25 +2359,28 @@ def import_scheme(
                     )
                 results[table_name] = (len(rows), False)
 
-            priority_exists = table_exists(connection, "places_priority")
+            references_exist = table_exists(connection, "places_references")
             places_skipped = results["places"][1]
             if preserve_existing_tables:
-                if priority_exists != places_skipped:
+                if references_exist != places_skipped:
                     raise ValueError(
-                        "preservation mode requires places and places_priority "
+                        "preservation mode requires places and places_references "
                         "to either both exist or both be absent"
                     )
-                if priority_exists:
-                    results["places_priority"] = (0, True)
+                if references_exist:
+                    results["places_references"] = (0, True)
                 else:
-                    create_owned_table(connection, "places_priority")
-                    priority_count = extract_places_priority(connection)
-                    results["places_priority"] = (priority_count, False)
+                    create_owned_table(connection, "places_references")
+                    reference_count = extract_place_precedence_references(
+                        connection
+                    )
+                    results["places_references"] = (reference_count, False)
             else:
                 connection.execute("DROP TABLE IF EXISTS places_priority")
-                create_owned_table(connection, "places_priority")
-                priority_count = extract_places_priority(connection)
-                results["places_priority"] = (priority_count, False)
+                connection.execute("DROP TABLE IF EXISTS places_references")
+                create_owned_table(connection, "places_references")
+                reference_count = extract_place_precedence_references(connection)
+                results["places_references"] = (reference_count, False)
         except Exception:
             connection.rollback()
             raise
@@ -2400,7 +2408,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Import IPC subsection, guidance-heading, index-term, note, "
-            "classified-aspect, place, and place-priority data into SQLite."
+            "classified-aspect, place, and place-reference data into SQLite."
         ),
     )
     parser.add_argument(
