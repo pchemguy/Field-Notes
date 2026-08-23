@@ -141,10 +141,12 @@ prefix and suffix scopes occur, their normalized text is joined in source
 order with ``; ``.
 
 The scope pass then recognizes a remaining fragment consisting of an optional
-text prefix followed by one terminal contiguous ``sref``/``mref`` list and no
-other embedded reference. It writes ``function`` as ``scope`` and the complete
-normalized prefix as ``exclusion_scope``. No collective-term filtering or
-last-comma removal is applied in this pass.
+mixed-content prefix followed by one terminal contiguous ``sref``/``mref``
+list and no other embedded reference. Non-reference inline markup in the prefix
+is flattened to its logical text, so ``<u>see</u>`` contributes ``see``. The
+pass writes ``function`` as ``scope`` and the complete normalized prefix as
+``exclusion_scope``. No collective-term filtering or last-comma removal is
+applied.
 
 For both functions, ``higher_priority_refs`` is a nonempty JSON array in source
 order: ``sref`` becomes its ``ref`` string and ``mref`` becomes
@@ -1878,12 +1880,12 @@ def parse_scope_reference_item(
 ) -> tuple[list[IndexReference], str | None] | None:
     """Parse one terminal reference-list item as a scope reference.
 
-    A successful match has an optional text prefix followed by exactly one
-    contiguous direct-child ``sref``/``mref`` list at the end of the fragment.
+    A successful match has an optional mixed-content prefix followed by
+    exactly one contiguous direct-child ``sref``/``mref`` list at the end of
+    the fragment. Non-reference prefix markup is flattened to logical text.
     Only comma/``and``/``or`` separators may occur between references, and no
-    text may follow the final reference. Requiring every child reference to be
-    part of this terminal list rejects fragments containing an earlier
-    embedded reference followed by prose and a second list.
+    text may follow the final reference. Any direct or nested reference before
+    the terminal list rejects the fragment.
 
     Args:
         fragment: Inner-XML string from one element of ``places.refs``.
@@ -1891,8 +1893,8 @@ def parse_scope_reference_item(
     Returns:
         ``(referenced_places, exclusion_scope)`` for a complete match, or
         ``None`` when the fragment does not have the target structure. The
-        complete normalized prefix is returned without collective-term or
-        last-comma filtering.
+        complete normalized prefix text is returned without collective-term
+        or last-comma filtering.
 
     Raises:
         ValueError: If a structurally matched reference element omits a
@@ -1904,12 +1906,22 @@ def parse_scope_reference_item(
     except ET.ParseError:
         return None
 
-    reference_elements = list(wrapper)
+    children = list(wrapper)
+    list_start = len(children)
+    while (
+        list_start > 0
+        and local_name(children[list_start - 1].tag) in {"sref", "mref"}
+    ):
+        list_start -= 1
+
+    prefix_elements = children[:list_start]
+    reference_elements = children[list_start:]
     if not reference_elements:
         return None
     if any(
-        local_name(element.tag) not in {"sref", "mref"}
-        for element in reference_elements
+        local_name(descendant.tag) in {"sref", "mref"}
+        for element in prefix_elements
+        for descendant in element.iter()
     ):
         return None
 
@@ -1925,7 +1937,11 @@ def parse_scope_reference_item(
     referenced_places = [
         place_reference_value(element) for element in reference_elements
     ]
-    exclusion_scope = normalize_exclusion_scope(wrapper.text or "")
+    prefix_parts = [wrapper.text or ""]
+    for element in prefix_elements:
+        prefix_parts.extend(element.itertext())
+        prefix_parts.append(element.tail or "")
+    exclusion_scope = normalize_exclusion_scope("".join(prefix_parts))
     return referenced_places, exclusion_scope
 
 
