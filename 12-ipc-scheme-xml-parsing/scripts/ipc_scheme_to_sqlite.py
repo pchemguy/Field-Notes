@@ -21,7 +21,8 @@ Stages run sequentially in source order and remove their processed
 4. ``kind="n"`` entries become declared, well-formed XML note fragments.
 5. remaining ``entryType="I"`` nodes become ``classified_aspects``.
 6. remaining ``entryType="K"`` nodes become the ``places`` hierarchy.
-7. precedence references are extracted from stored ``places.refs`` values.
+7. precedence and scope references are extracted from stored ``places.refs``
+   values.
 
 The whole-tree representation deliberately favors a clear extraction model
 over bounded memory use. Large future editions should be measured before this
@@ -129,20 +130,28 @@ title part has no entry reference. There is no JSON object or positional
 Place references
 ----------------
 After ``places`` has been populated, each string in ``places.refs`` is parsed
-as an XML fragment. A fragment containing one contiguous ``sref``/``mref``
-list followed by ``take precedence`` or ``takes precedence`` becomes one
-``places_references`` row whose ``function`` is ``precedence``.
-``higher_priority_refs`` is a nonempty JSON array in source order: ``sref``
-becomes its ``ref`` string and ``mref`` becomes ``[ref, endRef]``. XML
-attribute order is immaterial.
+as an XML fragment. References are extracted in two successive passes.
 
-Text preceding or following the reference list and precedence phrase becomes
-``exclusion_scope``. For prefix text, everything after its last comma is
-treated as a collective list descriptor and discarded. If both prefix and
-suffix clauses occur, their normalized text is joined in source order with
-``; ``. Clause-free rows use SQL ``NULL``. Every extracted source item is
-removed from its originating ``places.refs`` array; an emptied array becomes
-SQL ``NULL``. Unmatched array items remain unchanged and in source order.
+The precedence pass recognizes one contiguous ``sref``/``mref`` list followed
+by ``take precedence`` or ``takes precedence`` and writes ``function`` as
+``precedence``. Text preceding or following the reference list and precedence
+phrase becomes ``exclusion_scope``. For prefix text, everything after its last
+comma is treated as a collective list descriptor and discarded. If both
+prefix and suffix scopes occur, their normalized text is joined in source
+order with ``; ``.
+
+The scope pass then recognizes a remaining fragment consisting of an optional
+text prefix followed by one terminal contiguous ``sref``/``mref`` list and no
+other embedded reference. It writes ``function`` as ``scope`` and the complete
+normalized prefix as ``exclusion_scope``. No collective-term filtering or
+last-comma removal is applied in this pass.
+
+For both functions, ``higher_priority_refs`` is a nonempty JSON array in source
+order: ``sref`` becomes its ``ref`` string and ``mref`` becomes
+``[ref, endRef]``. XML attribute order is immaterial. Scope-free rows use SQL
+``NULL``. Every extracted source item is removed from its originating
+``places.refs`` array; an emptied array becomes SQL ``NULL``. Unmatched array
+items remain unchanged and in source order.
 
 Database lifecycle and safety
 -----------------------------
@@ -155,7 +164,7 @@ default rebuild.
 
 With ``--preserve-existing-tables``, each existing base table is independently
 left untouched and reported as skipped, while missing base tables are created.
-Because precedence extraction mutates ``places`` while populating its derived
+Because reference extraction mutates ``places`` while populating its derived
 table, ``places`` and ``places_references`` must either both exist or both be
 absent in preservation mode; a mixed state is rejected. All XML extraction
 still runs so later stages always see the same residual tree. XML parsing and
@@ -192,7 +201,7 @@ import sqlite3
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import TypedDict
+from typing import Callable, TypedDict
 from xml.sax.saxutils import escape
 
 
@@ -247,7 +256,7 @@ CLASSIFIED_RELATING_TITLE_PATTERN = re.compile(
     r"\s*relating\s+to\s*(?P<subject>.*)$",
     re.IGNORECASE,
 )
-PRIORITY_SEPARATOR_PATTERN = re.compile(
+PLACE_REFERENCE_SEPARATOR_PATTERN = re.compile(
     r"^\s*(?:,\s*(?:(?:and|or)\s+)?|(?:and|or)\s+)\s*$",
     re.IGNORECASE,
 )
@@ -302,6 +311,10 @@ IndexGuidanceHeadingRow = tuple[
 ]
 GuidanceExclusionRow = tuple[str, str]
 IndexReference = str | list[str]
+PlaceReferenceParser = Callable[
+    [str],
+    tuple[list[IndexReference], str | None] | None,
+]
 IndexTermRow = tuple[str | None, str | None, str, str]
 NoteRow = tuple[str | None, str | None, str]
 ClassifiedAspectRow = tuple[str | None, str | None, str | None, str | None]
@@ -1767,7 +1780,7 @@ def normalize_prefix_exclusion_scope(text: str) -> str | None:
     return normalize_exclusion_scope(clause_text)
 
 
-def precedence_reference_value(element: ET.Element) -> IndexReference:
+def place_reference_value(element: ET.Element) -> IndexReference:
     """Convert one empty ``sref`` or ``mref`` element to its JSON value.
 
     Args:
@@ -1782,20 +1795,20 @@ def precedence_reference_value(element: ET.Element) -> IndexReference:
     """
 
     if list(element) or (element.text and element.text.strip()):
-        raise ValueError("place precedence reference element must be empty")
+        raise ValueError("place reference element must be empty")
 
     tag_name = local_name(element.tag)
     ref = element.get("ref")
     if not ref:
-        raise ValueError(f"place precedence {tag_name} is missing ref")
+        raise ValueError(f"place {tag_name} is missing ref")
     if tag_name == "sref":
         return ref
     if tag_name == "mref":
         end_ref = element.get("endRef")
         if not end_ref:
-            raise ValueError("place precedence mref is missing endRef")
+            raise ValueError("place mref is missing endRef")
         return [ref, end_ref]
-    raise ValueError(f"unsupported place precedence reference: {tag_name}")
+    raise ValueError(f"unsupported place reference: {tag_name}")
 
 
 def parse_precedence_reference_item(
@@ -1836,7 +1849,10 @@ def parse_precedence_reference_item(
         return None
 
     for element in reference_elements[:-1]:
-        if PRIORITY_SEPARATOR_PATTERN.fullmatch(element.tail or "") is None:
+        if (
+            PLACE_REFERENCE_SEPARATOR_PATTERN.fullmatch(element.tail or "")
+            is None
+        ):
             return None
 
     trailer_match = PRIORITY_TRAILER_PATTERN.fullmatch(
@@ -1846,7 +1862,7 @@ def parse_precedence_reference_item(
         return None
 
     higher_priority_refs = [
-        precedence_reference_value(element) for element in reference_elements
+        place_reference_value(element) for element in reference_elements
     ]
     prefix_clause = normalize_prefix_exclusion_scope(wrapper.text or "")
     suffix_clause = normalize_exclusion_scope(trailer_match.group("suffix"))
@@ -1857,27 +1873,96 @@ def parse_precedence_reference_item(
     return higher_priority_refs, exclusion_scope
 
 
-def extract_place_precedence_references(connection: sqlite3.Connection) -> int:
-    """Move precedence items from ``places.refs`` to ``places_references``.
+def parse_scope_reference_item(
+    fragment: str,
+) -> tuple[list[IndexReference], str | None] | None:
+    """Parse one terminal reference-list item as a scope reference.
+
+    A successful match has an optional text prefix followed by exactly one
+    contiguous direct-child ``sref``/``mref`` list at the end of the fragment.
+    Only comma/``and``/``or`` separators may occur between references, and no
+    text may follow the final reference. Requiring every child reference to be
+    part of this terminal list rejects fragments containing an earlier
+    embedded reference followed by prose and a second list.
+
+    Args:
+        fragment: Inner-XML string from one element of ``places.refs``.
+
+    Returns:
+        ``(referenced_places, exclusion_scope)`` for a complete match, or
+        ``None`` when the fragment does not have the target structure. The
+        complete normalized prefix is returned without collective-term or
+        last-comma filtering.
+
+    Raises:
+        ValueError: If a structurally matched reference element omits a
+            required attribute or is not empty.
+    """
+
+    try:
+        wrapper = ET.fromstring(f"<xml>{fragment}</xml>")
+    except ET.ParseError:
+        return None
+
+    reference_elements = list(wrapper)
+    if not reference_elements:
+        return None
+    if any(
+        local_name(element.tag) not in {"sref", "mref"}
+        for element in reference_elements
+    ):
+        return None
+
+    for element in reference_elements[:-1]:
+        if (
+            PLACE_REFERENCE_SEPARATOR_PATTERN.fullmatch(element.tail or "")
+            is None
+        ):
+            return None
+    if (reference_elements[-1].tail or "").strip():
+        return None
+
+    referenced_places = [
+        place_reference_value(element) for element in reference_elements
+    ]
+    exclusion_scope = normalize_exclusion_scope(wrapper.text or "")
+    return referenced_places, exclusion_scope
+
+
+def extract_place_references(
+    connection: sqlite3.Connection,
+    parser: PlaceReferenceParser,
+    reference_function: str,
+) -> int:
+    """Move one recognized reference function out of ``places.refs``.
 
     Args:
         connection: Open SQLite connection containing both required tables and
             participating in the caller's active transaction.
+        parser: Function that recognizes one reference string and returns its
+            normalized targets and optional exclusion scope.
+        reference_function: Nonempty value stored in
+            ``places_references.function`` for every matched item.
 
     Returns:
         Number of inserted ``places_references`` rows and removed reference
         items.
 
     Raises:
-        ValueError: If a non-null ``places.refs`` value is not a JSON array of
-            strings or a matched reference lacks required attributes.
+        ValueError: If ``reference_function`` is empty, a non-null
+            ``places.refs`` value is not a JSON array of strings, or a matched
+            reference lacks required attributes.
         sqlite3.Error: If source selection, insertion, or place updates fail.
 
     Notes:
-        One output row is written for each matching array item. Remaining
-        array items retain their original strings and order. The function does
-        not create tables, commit, or roll back.
+        One output row is written for each item matched by ``parser``.
+        Remaining array items retain their original strings and order. The
+        function does not create tables, commit, or roll back, allowing
+        multiple semantic passes to process the residual references in order.
     """
+
+    if not reference_function:
+        raise ValueError("place reference function must not be empty")
 
     reference_rows: list[PlaceReferenceRow] = []
     place_updates: list[tuple[str | None, int]] = []
@@ -1902,7 +1987,7 @@ def extract_place_precedence_references(connection: sqlite3.Connection) -> int:
                 raise ValueError(
                     f"places rowid {rowid} refs contains a non-string item"
                 )
-            parsed = parse_precedence_reference_item(item)
+            parsed = parser(item)
             if parsed is None:
                 remaining_refs.append(item)
                 continue
@@ -1914,7 +1999,7 @@ def extract_place_precedence_references(connection: sqlite3.Connection) -> int:
                     title_part,
                     json.dumps(higher_priority_refs, ensure_ascii=False),
                     exclusion_scope,
-                    "precedence",
+                    reference_function,
                 )
             )
             matched = True
@@ -2371,15 +2456,33 @@ def import_scheme(
                     results["places_references"] = (0, True)
                 else:
                     create_owned_table(connection, "places_references")
-                    reference_count = extract_place_precedence_references(
-                        connection
+                    precedence_count = extract_place_references(
+                        connection,
+                        parse_precedence_reference_item,
+                        "precedence",
                     )
+                    scope_count = extract_place_references(
+                        connection,
+                        parse_scope_reference_item,
+                        "scope",
+                    )
+                    reference_count = precedence_count + scope_count
                     results["places_references"] = (reference_count, False)
             else:
                 connection.execute("DROP TABLE IF EXISTS places_priority")
                 connection.execute("DROP TABLE IF EXISTS places_references")
                 create_owned_table(connection, "places_references")
-                reference_count = extract_place_precedence_references(connection)
+                precedence_count = extract_place_references(
+                    connection,
+                    parse_precedence_reference_item,
+                    "precedence",
+                )
+                scope_count = extract_place_references(
+                    connection,
+                    parse_scope_reference_item,
+                    "scope",
+                )
+                reference_count = precedence_count + scope_count
                 results["places_references"] = (reference_count, False)
         except Exception:
             connection.rollback()
