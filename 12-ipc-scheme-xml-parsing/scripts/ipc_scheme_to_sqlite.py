@@ -38,7 +38,7 @@ The script owns and may rebuild these tables:
 * ``index_terms(symbol, endSymbol, terms, refs)``;
 * ``notes(symbol, endSymbol, note_xml)``;
 * ``classified_aspects(kind, symbol, parent_symbol, terms)``;
-* ``places(kind, symbol, parent_symbol, titlePart, refs)``; and
+* ``places(kind, symbol, parent_symbol, titlePart, refs, residual_score)``; and
 * ``places_references(id, symbol, titlePart, higher_priority_refs,
   exclusion_scope, function)``.
 
@@ -112,19 +112,27 @@ removed from recognized boilerplate.
 Places
 ------
 Remaining ``entryType="K"`` nodes are stored as
-``places(kind, symbol, parent_symbol, titlePart, refs)``. One row is
-emitted per owned ``titlePart``; ``kind``, ``symbol``, and the nearest enclosing
-K node's ``parent_symbol`` repeat across a place's rows. ``titlePart`` is the
-scalar content built only from that source title part's ``text`` elements.
-Inline XML, including ``sref`` and ``mref``, remains markup rather than becoming
-reference values. A source title part without text retains an empty-string
-value.
+``places(kind, symbol, parent_symbol, titlePart, refs, residual_score)``. One
+row is emitted per owned ``titlePart``; ``kind``, ``symbol``, and the nearest
+enclosing K node's ``parent_symbol`` repeat across a place's rows.
+``titlePart`` is the scalar content built only from that source title part's
+``text`` elements. Inline XML, including ``sref`` and ``mref``, remains markup
+rather than becoming reference values. A source title part without text
+retains an empty-string value.
 
 Each owned ``entryReference`` contributes one inner-XML string containing its
 prose, separators, and unchanged inline tags. ``refs`` is the
 corresponding flat JSON array of strings and is SQL ``NULL`` when the source
 title part has no entry reference. There is no JSON object or positional
 ``terms_N`` key.
+
+``residual_score`` is a virtual generated integer column. It adds the strongest
+matching member of each mutually exclusive provided-for, covered, and other
+lexical family, plus independent symbol evidence for normalized main groups
+``99/00`` and ``999/00``. Its case-insensitive regular expressions use the
+deterministic two-argument SQLite function ``regexpi(pattern, value)`` supplied
+by the built-in :file:`ext/misc/regexp.c` extension. Every SQLite client that
+reads or writes this schema must provide that function.
 
 Place references
 ----------------
@@ -203,8 +211,10 @@ per-table results are written to stdout.
 Runtime requirements
 --------------------
 The implementation uses only the Python standard library and requires SQLite
-JSON scalar functions such as ``json_valid`` and ``json_type``. This revision
-was exercised with Python 3.12.13 and SQLite 3.53.1.
+JSON scalar functions such as ``json_valid`` and ``json_type``. The linked
+SQLite library must also build :file:`ext/misc/regexp.c` in so its deterministic
+``regexpi`` function is available to the generated column. This revision was
+exercised with Python 3.12.13 and SQLite 3.53.1.
 """
 
 from __future__ import annotations
@@ -2317,6 +2327,40 @@ def extract_place_references(
     return len(reference_rows)
 
 
+def require_sqlite_regexpi(connection: sqlite3.Connection) -> None:
+    """Verify that SQLite supplies ``regexpi`` from ``ext/misc/regexp.c``.
+
+    Args:
+        connection: Open SQLite connection whose capabilities are required.
+
+    Returns:
+        ``None``.
+
+    Raises:
+        sqlite3.OperationalError: If ``regexpi`` is unavailable or does not
+            perform a case-insensitive match with the expected argument order.
+
+    Notes:
+        The importer deliberately does not provide a Python substitute. The
+        generated column must use the same deterministic regular-expression
+        implementation as other SQLite clients that inspect the database.
+    """
+
+    try:
+        result = connection.execute(
+            "SELECT regexpi('residual', 'RESIDUAL')"
+        ).fetchone()
+    except sqlite3.OperationalError as error:
+        raise sqlite3.OperationalError(
+            "SQLite must provide regexpi(pattern, value) from "
+            "ext/misc/regexp.c"
+        ) from error
+    if result != (1,):
+        raise sqlite3.OperationalError(
+            "SQLite regexpi(pattern, value) failed its capability check"
+        )
+
+
 def table_exists(connection: sqlite3.Connection, table_name: str) -> bool:
     """Test whether SQLite contains a table with an exact name.
 
@@ -2522,7 +2566,40 @@ def create_owned_table(
                 refs          TEXT
                     CHECK (refs IS NULL OR
                            (json_valid(refs) AND
-                            json_type(refs) = 'array'))
+                            json_type(refs) = 'array')),
+                residual_score INTEGER GENERATED ALWAYS AS (
+                    CASE
+                        WHEN regexpi(
+                            '\\bnot( otherwise)? provided for\\b',
+                            titlePart
+                        ) THEN 4
+                        WHEN regexpi('\\bprovided for\\b', titlePart) THEN 1
+                        ELSE 0
+                    END
+                    +
+                    CASE
+                        WHEN regexpi(
+                            '\\bnot covered (by|in)\\b',
+                            titlePart
+                        ) THEN 4
+                        WHEN regexpi(
+                            '\\bcovered (by|in)\\b',
+                            titlePart
+                        ) THEN 1
+                        ELSE 0
+                    END
+                    +
+                    CASE
+                        WHEN regexpi('\\bother than\\b', titlePart) THEN 1
+                        WHEN regexpi('^other\\b', titlePart) THEN 3
+                        ELSE 0
+                    END
+                    +
+                    CASE
+                        WHEN substr(symbol, 5, 4) IN ('0099', '0999') THEN 3
+                        ELSE 0
+                    END
+                ) VIRTUAL
             )
             """
         )
@@ -2608,6 +2685,7 @@ def import_scheme(
     """
 
     with sqlite3.connect(database_path) as connection:
+        require_sqlite_regexpi(connection)
         tree = ET.parse(xml_path)
         root = tree.getroot()
         group_types = collect_group_types(root)
