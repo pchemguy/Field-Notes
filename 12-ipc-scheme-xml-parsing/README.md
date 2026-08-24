@@ -104,42 +104,100 @@ Residual places cover subject matter left over after the scope of other classifi
 The XML does not explicitly identify residual places. They must instead be detected through a combination of lexical and symbol-based indicators:
 
 ```sql
-lower(titlePart) REGEXP '\bnot +(otherwise +)?provided +for\b'
-lower(titlePart) REGEXP '\bprovided +for\b'
-lower(titlePart) REGEXP '\bnot +covered +(by|in)\b'
-lower(titlePart) REGEXP '\bcovered +(by|in)\b'
-lower(titlePart) REGEXP '^ *other\b'
-lower(titlePart) REGEXP '\bother +than\b'
+lower(titlePart) REGEXP '\bnot (otherwise )?provided for\b'
+lower(titlePart) REGEXP '\bprovided for\b'
+lower(titlePart) REGEXP '\bnot covered (by|in)\b'
+lower(titlePart) REGEXP '\bcovered (by|in)\b'
+lower(titlePart) REGEXP '^other\b'
+lower(titlePart) REGEXP '\bother than\b'
 substr(symbol, 5, 4) IN ('0099', '0999')
 ```
 
-These indicators do not all carry the same evidential weight:
+These indicators do not all carry the same evidential weight. To represent their combined evidence, `residual_score` is defined as an additive evidence score. It is not a probability or a definitive semantic classification.
 
-| Indicator                            | Interpretation                                                                           | Evidential weight        |
-| ------------------------------------ | ---------------------------------------------------------------------------------------- | ------------------------ |
-| `not otherwise provided for`         | Explicitly identifies subject matter left outside more specifically provided places      | Strong                   |
-| `not provided for`                   | Explicitly identifies subject matter not assigned to the specified or surrounding places | Strong                   |
-| `not covered by` or `not covered in` | Explicitly excludes the coverage of specified places                                     | Strong                   |
-| Title beginning with `Other`         | Normally identifies a residual alternative within the surrounding hierarchy              | Strong lexical indicator |
-| Main group `99/00` or `999/00`       | Follows a conventional symbol-based pattern for residual subject matter                  | Strong heuristic         |
-| `provided for`                       | Establishes that the place’s scope depends on subject matter assigned elsewhere          | Weak                     |
-| `covered by` or `covered in`         | Establishes a scope relationship with another place                                      | Weak                     |
-| `other than`                         | Expresses an exclusion that may or may not define a residual category                    | Ambiguous                |
+| Indicator                                            | Interpretation                                                                           | Evidential weight        | Score |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------ | ----: |
+| `not otherwise provided for`                         | Explicitly identifies subject matter left outside more specifically provided places      | Strong                   |     4 |
+| `not provided for`                                   | Explicitly identifies subject matter not assigned to the specified or surrounding places | Strong                   |     4 |
+| `not covered by` or `not covered in`                 | Explicitly excludes the coverage of specified places                                     | Strong                   |     4 |
+| Title beginning with `Other`, excluding `Other than` | Normally identifies a residual alternative within the surrounding hierarchy              | Strong lexical indicator |     3 |
+| Main group `99/00` or `999/00`                       | Follows a conventional symbol-based pattern for residual subject matter                  | Strong heuristic         |     3 |
+| Positive `provided for`                              | Establishes that the place’s scope depends on subject matter assigned elsewhere          | Weak                     |     1 |
+| Positive `covered by` or `covered in`                | Establishes a scope relationship with another place                                      | Weak                     |     1 |
+| `other than`                                         | Expresses an exclusion that may or may not define a residual category                    | Ambiguous                |     1 |
 
-Main groups `99/00` and `999/00`, represented by `0099` and `0999` in normalized symbols, are conventionally used for residual subject matter. Nevertheless, this symbol pattern should remain a heuristic rather than be treated as a semantic guarantee.
+Main groups `99/00` and `999/00`, represented by `0099` and `0999` in normalized symbols, are conventionally used for residual subject matter. Nevertheless, this symbol pattern remains a heuristic rather than a semantic guarantee.
 
-The positive expressions `provided for` and `covered by` or `covered in` are intentionally retained as weaker candidates. They establish that a title must be interpreted in relation to other places, but they do not independently establish that the current place is residual. Their negative forms provide substantially stronger evidence.
+The positive expressions `provided for` and `covered by` or `covered in` are intentionally retained as weaker indicators. They establish that a title must be interpreted in relation to other places, but they do not independently establish that the current place is residual. Their negative forms provide substantially stronger evidence.
 
-Because the broader positive patterns also match their negative forms, detection must evaluate the more specific negative patterns first. A match for `not provided for`, for example, should not be reduced to the weaker `provided for` classification merely because both expressions match the same title.
+To avoid double counting nested or overlapping patterns, indicators are divided into mutually exclusive families. Only the strongest matching member of each family contributes to the score:
 
-Detection should preserve the reason or reasons for identifying each candidate rather than immediately collapsing the results into a single Boolean classification. At minimum, the retained evidence should distinguish:
+1. **Provided-for family:** contributes `4`, `4`, or `1`.
+2. **Covered family:** contributes `4` or `1`.
+3. **Other family:** contributes `3` or `1`.
+4. **Symbol family:** independently contributes `3`.
 
-* the matched indicator;
-* its positive or negative polarity;
-* whether it is lexical or symbol-based;
-* its evidential weight.
+Consequently:
 
-A place may satisfy several indicators simultaneously. Preserving those separate signals allows later analysis to distinguish strongly supported residual places, conventional symbol-based candidates, relational-scope dependencies, and ambiguous exclusion-based candidates.
+* `not otherwise provided for` does not also receive the positive `provided for` point;
+* `not provided for` does not also receive the positive `provided for` point;
+* `not covered by` does not also receive the positive `covered by` point;
+* a title beginning with `Other than` receives the ambiguous `other than` score rather than both scores;
+* a title beginning with `Other` may still receive the stronger score when `other than` occurs only later in the title;
+* independent evidence, such as a title beginning with `Other` combined with a `99/00` symbol, remains cumulative.
+
+The column is defined as:
+
+```sql
+residual_score INTEGER
+```
+
+A direct calculation is:
+
+```sql
+UPDATE places
+SET residual_score =
+    CASE
+        WHEN lower(titlePart) REGEXP '\bnot( otherwise)? provided for\b' THEN 4
+        WHEN lower(titlePart) REGEXP '\bprovided for\b' THEN 1
+        ELSE 0
+    END
+    +
+    CASE
+        WHEN lower(titlePart) REGEXP '\bnot covered (by|in)\b' THEN 4
+        WHEN lower(titlePart) REGEXP '\bcovered (by|in)\b' THEN 1
+        ELSE 0
+    END
+    +
+    CASE
+        WHEN lower(titlePart) REGEXP '\bother than\b' THEN 1
+        WHEN lower(titlePart) REGEXP '^other\b' THEN 3
+        ELSE 0
+    END
+    +
+    CASE
+        WHEN substr(symbol, 5, 4) IN ('0099', '0999') THEN 3
+        ELSE 0
+    END;
+```
+
+The order of the `CASE` branches is significant. The more specific negative or otherwise stronger expression must be tested before its broader subpattern. A match for `not provided for`, for example, must not be reduced to the weaker positive `provided for` classification merely because the broader expression also matches the same title.
+
+The resulting score can initially be interpreted as follows:
+
+| Score | Meaning                                                                |
+| ----: | ---------------------------------------------------------------------- |
+|   `0` | No identified residual evidence                                        |
+| `1–2` | Weak or ambiguous candidate                                            |
+|   `3` | Strong lexical or symbol-based heuristic, or accumulated weak evidence |
+|   `4` | Explicit residual expression                                           |
+|  `5+` | Multiple mutually independent indicators                               |
+
+These thresholds remain descriptive until they have been checked against the full scheme. The score ranks the available evidence; it does not prove that a place is semantically residual.
+
+A single total can also arise from different combinations of evidence. The matched family contributions should therefore remain reproducible from the documented rules and independently inspectable when validating or refining the scoring model.
+
+Finally, because `titlePart` may preserve inline XML, lexical matching should ideally operate on its flattened logical text. Otherwise, markup inserted within a phrase could prevent an otherwise valid pattern from matching.
 
 ## 4. `symbol`: node identifier versus reference
 
