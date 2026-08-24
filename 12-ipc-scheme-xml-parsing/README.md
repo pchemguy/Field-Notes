@@ -158,20 +158,20 @@ A direct calculation is:
 UPDATE places
 SET residual_score =
     CASE
-        WHEN lower(titlePart) REGEXP '\bnot( otherwise)? provided for\b' THEN 4
-        WHEN lower(titlePart) REGEXP '\bprovided for\b' THEN 1
+        WHEN regexpi('\bnot( otherwise)? provided for\b', titlePart) THEN 4
+        WHEN regexpi('\bprovided for\b', titlePart) THEN 1
         ELSE 0
     END
     +
     CASE
-        WHEN lower(titlePart) REGEXP '\bnot covered (by|in)\b' THEN 4
-        WHEN lower(titlePart) REGEXP '\bcovered (by|in)\b' THEN 1
+        WHEN regexpi('\bnot covered (by|in)\b', titlePart) THEN 4
+        WHEN regexpi('\bcovered (by|in)\b', titlePart) THEN 1
         ELSE 0
     END
     +
     CASE
-        WHEN lower(titlePart) REGEXP '\bother than\b' THEN 1
-        WHEN lower(titlePart) REGEXP '^other\b' THEN 3
+        WHEN regexpi('\bother than\b', titlePart) THEN 1
+        WHEN regexpi('^other\b', titlePart) THEN 3
         ELSE 0
     END
     +
