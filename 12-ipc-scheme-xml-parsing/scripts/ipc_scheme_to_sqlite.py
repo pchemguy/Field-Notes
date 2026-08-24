@@ -34,8 +34,7 @@ The script owns and may rebuild these tables:
 
 * ``subsections(title_parts, symbol, endSymbol)``;
 * ``gheadings_core(title_parts, symbol, endSymbol)``;
-* ``gheadings_index(title_parts, symbol, endSymbol, refs)``;
-* ``gheading_index_exclusions(target_list, exclusion_list)``;
+* ``gheadings_index(title_parts, symbol, endSymbol, refs, exclusion_list)``;
 * ``index_terms(symbol, endSymbol, terms, refs)``;
 * ``notes(symbol, endSymbol, note_xml)``;
 * ``classified_aspects(kind, symbol, parent_symbol, terms)``;
@@ -72,14 +71,14 @@ source order: ``sref`` becomes a symbol string and ``mref`` becomes
 An indexing title may include a clause beginning with ``, with the exception
 of``. The clause must then contain one or more punctuation-free words followed
 by one reference-list pointer. Its reference list is removed from
-``gheadings_index.refs`` and written with the main target list to
-``gheading_index_exclusions(target_list, exclusion_list)``. Both columns use
-the same flat-list convention as ``gheadings_index.refs``.
+``gheadings_index.refs`` and written to that row's optional
+``exclusion_list`` column. Both reference columns use the same flat-list
+convention.
 
 Indexing guidance headings also receive strict boilerplate cleanup. Recognized
-association and exclusion forms retain only their subject. Pure associations
-have no meaningful subject and are omitted from the stored ``title_parts``
-array. If filtering leaves the complete array empty, the
+group/subclass association and exclusion forms retain only their subject. Pure
+associations have no meaningful subject and are omitted from the stored
+``title_parts`` array. If filtering leaves the complete array empty, the
 ``gheadings_index`` row is not stored. A leading ``the`` and one terminal
 period are removed from an extracted subject, whose first cased character is
 uppercased without lowercasing acronyms. Reference-free headings retain SQL
@@ -177,10 +176,9 @@ Database lifecycle and safety
 -----------------------------
 The output path is the XML path with its suffix replaced by ``.db``. Existing
 database files are reused. By default, every owned table is dropped and rebuilt
-inside one transaction; unrelated tables are untouched. The obsolete owned
-table ``gheadings`` is also removed in default mode.
-The obsolete derived table ``places_priority`` is likewise removed during a
-default rebuild.
+inside one transaction; unrelated tables are untouched. The obsolete tables
+``gheadings``, ``gheading_index_exclusions``, and ``places_priority`` are also
+removed during a default rebuild.
 
 With ``--preserve-existing-tables``, each existing base table is independently
 left untouched and reported as skipped, while missing base tables are created.
@@ -207,8 +205,6 @@ Runtime requirements
 The implementation uses only the Python standard library and requires SQLite
 JSON scalar functions such as ``json_valid`` and ``json_type``. This revision
 was exercised with Python 3.12.13 and SQLite 3.53.1.
-
-https://chatgpt.com/c/6a867504-2564-83eb-a26a-52f11f60ea06
 """
 
 from __future__ import annotations
@@ -227,14 +223,16 @@ from xml.sax.saxutils import escape
 
 DEFAULT_SCHEME_PATTERN = re.compile(r"^EN_ipc_scheme_\d{8}\.xml$")
 REFERENCE_LIST_SEPARATOR = re.compile(
-    r"(?:\s*,\s*(?:and\s+)?|\s+and\s+)",
+    r"(?:\s*,\s*(?:(?:and|or)\s+)?|\s+(?:and|or)\s+)",
     re.IGNORECASE,
 )
 REFERENCE_POINTER_PATTERN = r"\{ref\[\d+\]\}"
 REFERENCE_POINTER_INDEX_PATTERN = re.compile(r"\{ref\[(\d+)\]\}")
 EXCLUSION_DESCRIPTOR_WORD_PATTERN = r"[^\W\d_]+"
+INDEX_ASSOCIATION_TARGET_PATTERN = r"(?:groups?|subclass(?:es)?)"
 INDEX_EXCEPTION_PATTERN = re.compile(
-    rf"^Indexing scheme\s*,?\s*associated with groups?\s+"
+    rf"^Indexing scheme\s*,?\s*associated with "
+    rf"{INDEX_ASSOCIATION_TARGET_PATTERN}\s+"
     rf"(?P<scope>{REFERENCE_POINTER_PATTERN})\s*,\s*"
     rf"with the exception of\s+"
     rf"(?P<exclusion_descriptor>{EXCLUSION_DESCRIPTOR_WORD_PATTERN}"
@@ -244,19 +242,22 @@ INDEX_EXCEPTION_PATTERN = re.compile(
     re.IGNORECASE,
 )
 INDEX_ASSOCIATED_SUBJECT_PATTERN = re.compile(
-    rf"^Indexing scheme\s*,?\s*associated with groups?\s+"
+    rf"^Indexing scheme\s*,?\s*associated with "
+    rf"{INDEX_ASSOCIATION_TARGET_PATTERN}\s+"
     rf"(?P<scope>{REFERENCE_POINTER_PATTERN})\s*,?\s*"
     rf"(?:and\s+)?relating to\s+(?P<subject>.+)$",
     re.IGNORECASE,
 )
 INDEX_PURE_ASSOCIATION_PATTERN = re.compile(
-    rf"^Indexing scheme\s*,?\s*associated with groups?\s+"
+    rf"^Indexing scheme\s*,?\s*associated with "
+    rf"{INDEX_ASSOCIATION_TARGET_PATTERN}\s+"
     rf"(?P<scope>{REFERENCE_POINTER_PATTERN})$",
     re.IGNORECASE,
 )
 INDEX_ASSOCIATED_WITHOUT_REFERENCE_PATTERN = re.compile(
-    r"^Indexing scheme\s*,?\s*associated with groups?\s+"
-    r"(?:and\s+)?relating to\s+(?P<subject>.+)$",
+    rf"^Indexing scheme\s*,?\s*associated with "
+    rf"{INDEX_ASSOCIATION_TARGET_PATTERN}\s*,?\s*"
+    rf"(?:and\s+)?relating to\s+(?P<subject>.+)$",
     re.IGNORECASE,
 )
 INDEX_RELATED_SUBJECT_PATTERN = re.compile(
@@ -332,8 +333,8 @@ IndexGuidanceHeadingRow = tuple[
     str | None,
     str | None,
     str | None,
+    str | None,
 ]
-GuidanceExclusionRow = tuple[str, str]
 IndexReference = str | list[str]
 PlaceReferenceMatch = tuple[list[IndexReference], str | None]
 PlaceReferenceParser = Callable[
@@ -562,13 +563,14 @@ def flatten_guidance_reference_entry(entry: object) -> list[IndexReference]:
 def normalize_index_guidance(
     title_parts_json: str,
     refs_json: str | None,
-) -> tuple[str, str | None, GuidanceExclusionRow | None]:
+) -> tuple[str, str | None, str | None]:
     """Normalize one indexing heading's titles and reference-list roles.
 
     Temporary object-encoded reference entries are selected by pointers in the
     recognized title boilerplate. The main pointer becomes the heading's sole
-    flat target list. An optional exclusion pointer becomes a separate row and
-    is not retained in ``gheadings_index.refs``.
+    flat target list. An optional exclusion pointer becomes the same heading
+    row's separate flat exclusion list and is not retained in
+    ``gheadings_index.refs``.
 
     Args:
         title_parts_json: JSON array of rendered title strings containing
@@ -578,7 +580,7 @@ def normalize_index_guidance(
 
     Returns:
         Pointer-free title-parts JSON, normalized target-list JSON or ``None``,
-        and an optional ``(target_list, exclusion_list)`` row.
+        and normalized exclusion-list JSON or ``None``.
 
     Raises:
         ValueError: If JSON shapes, pointer roles, pointer indexes, or reference
@@ -643,7 +645,7 @@ def normalize_index_guidance(
     exclusion_index = next(iter(exclusion_indexes))
     exclusion_list = flatten_guidance_reference_entry(raw_entries[exclusion_index])
     exclusion_json = json.dumps(exclusion_list, ensure_ascii=False)
-    return normalized_titles, target_json, (target_json, exclusion_json)
+    return normalized_titles, target_json, exclusion_json
 
 
 def local_name(name: str) -> str:
@@ -713,8 +715,8 @@ def inline_title_part(
     """Render a title part and append its reference entries separately.
 
     A single reference becomes one entry. Adjacent references separated only
-    by comma/``and`` list grammar become one nested-list entry. Each entry is
-    replaced inline by ``{ref[N]}``, using its zero-based index in
+    by comma/``and``/``or`` list grammar become one nested-list entry. Each
+    entry is replaced inline by ``{ref[N]}``, using its zero-based index in
     ``references``.
 
     Args:
@@ -2341,24 +2343,24 @@ def route_guidance_headings(
 ) -> tuple[
     list[CoreGuidanceHeadingRow],
     list[IndexGuidanceHeadingRow],
-    list[GuidanceExclusionRow],
 ]:
     """Route extracted guidance headings by resolved non-``ignt`` entry type.
 
     The routing value is intentionally omitted from stored rows. Core rows also
     omit the temporary, always-null ``refs`` field. Index rows receive
     pointer-free title cleanup and one normalized target list, then rows whose
-    complete cleaned title array is empty are discarded. Optional exclusion
-    lists become separate rows. A missing or unsupported type is rejected so a
-    heading cannot silently disappear or be written to the wrong table.
+    complete cleaned title array is empty are discarded. An optional exclusion
+    list remains on its indexing-heading row. A missing or unsupported type is
+    rejected so a heading cannot silently disappear or be written to the wrong
+    table.
 
     Args:
         rows: Extracted five-field guidance rows whose fourth field is the
             temporary resolved ``entryType`` routing value.
 
     Returns:
-        Three-field core (``K``) rows, nonempty-title four-field index (``I``)
-        rows, and two-field target/exclusion rows.
+        Three-field core (``K``) rows and nonempty-title five-field index
+        (``I``) rows.
 
     Raises:
         ValueError: If a guidance heading has no corresponding ``I``/``K`` type.
@@ -2366,7 +2368,6 @@ def route_guidance_headings(
 
     core_rows: list[CoreGuidanceHeadingRow] = []
     index_rows: list[IndexGuidanceHeadingRow] = []
-    exclusion_rows: list[GuidanceExclusionRow] = []
     for row in rows:
         if len(row) != 5:
             raise ValueError("guidance heading row has an invalid shape")
@@ -2378,7 +2379,7 @@ def route_guidance_headings(
                 )
             core_rows.append((title_parts, symbol, end_symbol))
         elif group_type == "I":
-            normalized_titles, normalized_refs, exclusion_row = (
+            normalized_titles, normalized_refs, exclusion_list = (
                 normalize_index_guidance(title_parts, refs)
             )
             if json.loads(normalized_titles):
@@ -2388,17 +2389,16 @@ def route_guidance_headings(
                         symbol,
                         end_symbol,
                         normalized_refs,
+                        exclusion_list,
                     )
                 )
-            if exclusion_row is not None:
-                exclusion_rows.append(exclusion_row)
         else:
             display_type = "missing" if group_type is None else repr(group_type)
             raise ValueError(
                 f"guidance heading {symbol or '<missing symbol>'} has "
                 f"unsupported group type {display_type}; expected 'I' or 'K'"
             )
-    return core_rows, index_rows, exclusion_rows
+    return core_rows, index_rows
 
 
 def create_owned_table(
@@ -2429,7 +2429,6 @@ def create_owned_table(
         "subsections",
         "gheadings_core",
         "gheadings_index",
-        "gheading_index_exclusions",
         "index_terms",
         "notes",
         "classified_aspects",
@@ -2461,23 +2460,6 @@ def create_owned_table(
                            json_type(title_parts) = 'array'),
                 symbol      TEXT,
                 endSymbol   TEXT
-            )
-            """
-        )
-        return
-
-    if table_name == "gheading_index_exclusions":
-        connection.execute(
-            """
-            CREATE TABLE gheading_index_exclusions (
-                target_list    TEXT NOT NULL
-                    CHECK (json_valid(target_list) AND
-                           json_type(target_list) = 'array' AND
-                           json_array_length(target_list) > 0),
-                exclusion_list TEXT NOT NULL
-                    CHECK (json_valid(exclusion_list) AND
-                           json_type(exclusion_list) = 'array' AND
-                           json_array_length(exclusion_list) > 0)
             )
             """
         )
@@ -2575,7 +2557,12 @@ def create_owned_table(
                 CHECK (refs IS NULL OR
                        (json_valid(refs) AND
                         json_type(refs) = 'array' AND
-                        json_array_length(refs) > 0))
+                        json_array_length(refs) > 0)),
+            exclusion_list TEXT
+                CHECK (exclusion_list IS NULL OR
+                       (json_valid(exclusion_list) AND
+                        json_type(exclusion_list) = 'array' AND
+                        json_array_length(exclusion_list) > 0))
         )
         """
     )
@@ -2626,9 +2613,7 @@ def import_scheme(
         group_types = collect_group_types(root)
         subsection_rows = extract_entries(root, "t", False)
         guidance_rows = extract_entries(root, "g", True, group_types)
-        core_rows, index_rows, exclusion_rows = route_guidance_headings(
-            guidance_rows
-        )
+        core_rows, index_rows = route_guidance_headings(guidance_rows)
         index_term_rows = extract_index_terms(root)
         note_rows = extract_notes(root)
         classified_aspect_rows = extract_classified_aspects(root)
@@ -2637,7 +2622,6 @@ def import_scheme(
             "subsections": subsection_rows,
             "gheadings_core": core_rows,
             "gheadings_index": index_rows,
-            "gheading_index_exclusions": exclusion_rows,
             "index_terms": index_term_rows,
             "notes": note_rows,
             "classified_aspects": classified_aspect_rows,
@@ -2649,6 +2633,9 @@ def import_scheme(
             results: dict[str, tuple[int, bool]] = {}
             if not preserve_existing_tables:
                 connection.execute("DROP TABLE IF EXISTS gheadings")
+                connection.execute(
+                    "DROP TABLE IF EXISTS gheading_index_exclusions"
+                )
             for table_name, rows in rows_by_table.items():
                 if preserve_existing_tables and table_exists(connection, table_name):
                     results[table_name] = (0, True)
@@ -2670,15 +2657,6 @@ def import_scheme(
                         INSERT INTO gheadings_core
                             (title_parts, symbol, endSymbol)
                         VALUES (?, ?, ?)
-                        """,
-                        rows,
-                    )
-                elif table_name == "gheading_index_exclusions":
-                    connection.executemany(
-                        """
-                        INSERT INTO gheading_index_exclusions
-                            (target_list, exclusion_list)
-                        VALUES (?, ?)
                         """,
                         rows,
                     )
@@ -2721,8 +2699,9 @@ def import_scheme(
                     connection.executemany(
                         """
                         INSERT INTO gheadings_index
-                            (title_parts, symbol, endSymbol, refs)
-                        VALUES (?, ?, ?, ?)
+                            (title_parts, symbol, endSymbol, refs,
+                             exclusion_list)
+                        VALUES (?, ?, ?, ?, ?)
                         """,
                         rows,
                     )
