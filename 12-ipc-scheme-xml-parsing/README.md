@@ -97,6 +97,50 @@ Structural records form the nested `ipcEntry` hierarchies remaining after the sp
 
 While IPC scheme specification also defines an auxiliary `entryType="D"`, such entries are not present in the current scheme and are intentionally outside the current model.
 
+### 3.3 Residual places
+
+Residual places cover subject matter left over after the scope of other classification places has been accounted for. Their meaning is therefore relational: it cannot be determined from the residual title alone. It may depend on explicit references, sibling places, the parent scope, or the surrounding classification structure. A residual place must consequently be interpreted against the places whose subject matter is excluded, already provided for, covered elsewhere, or otherwise distinguished.
+
+The XML does not explicitly identify residual places. They must instead be detected through a combination of lexical and symbol-based indicators:
+
+```sql
+lower(titlePart) REGEXP '\bnot +(otherwise +)?provided +for\b'
+lower(titlePart) REGEXP '\bprovided +for\b'
+lower(titlePart) REGEXP '\bnot +covered +(by|in)\b'
+lower(titlePart) REGEXP '\bcovered +(by|in)\b'
+lower(titlePart) REGEXP '^ *other\b'
+lower(titlePart) REGEXP '\bother +than\b'
+substr(symbol, 5, 4) IN ('0099', '0999')
+```
+
+These indicators do not all carry the same evidential weight:
+
+| Indicator                            | Interpretation                                                                           | Evidential weight        |
+| ------------------------------------ | ---------------------------------------------------------------------------------------- | ------------------------ |
+| `not otherwise provided for`         | Explicitly identifies subject matter left outside more specifically provided places      | Strong                   |
+| `not provided for`                   | Explicitly identifies subject matter not assigned to the specified or surrounding places | Strong                   |
+| `not covered by` or `not covered in` | Explicitly excludes the coverage of specified places                                     | Strong                   |
+| Title beginning with `Other`         | Normally identifies a residual alternative within the surrounding hierarchy              | Strong lexical indicator |
+| Main group `99/00` or `999/00`       | Follows a conventional symbol-based pattern for residual subject matter                  | Strong heuristic         |
+| `provided for`                       | Establishes that the place’s scope depends on subject matter assigned elsewhere          | Weak                     |
+| `covered by` or `covered in`         | Establishes a scope relationship with another place                                      | Weak                     |
+| `other than`                         | Expresses an exclusion that may or may not define a residual category                    | Ambiguous                |
+
+Main groups `99/00` and `999/00`, represented by `0099` and `0999` in normalized symbols, are conventionally used for residual subject matter. Nevertheless, this symbol pattern should remain a heuristic rather than be treated as a semantic guarantee.
+
+The positive expressions `provided for` and `covered by` or `covered in` are intentionally retained as weaker candidates. They establish that a title must be interpreted in relation to other places, but they do not independently establish that the current place is residual. Their negative forms provide substantially stronger evidence.
+
+Because the broader positive patterns also match their negative forms, detection must evaluate the more specific negative patterns first. A match for `not provided for`, for example, should not be reduced to the weaker `provided for` classification merely because both expressions match the same title.
+
+Detection should preserve the reason or reasons for identifying each candidate rather than immediately collapsing the results into a single Boolean classification. At minimum, the retained evidence should distinguish:
+
+* the matched indicator;
+* its positive or negative polarity;
+* whether it is lexical or symbol-based;
+* its evidential weight.
+
+A place may satisfy several indicators simultaneously. Preserving those separate signals allows later analysis to distinguish strongly supported residual places, conventional symbol-based candidates, relational-scope dependencies, and ambiguous exclusion-based candidates.
+
 ## 4. `symbol`: node identifier versus reference
 
 The same attribute name has two different roles.
