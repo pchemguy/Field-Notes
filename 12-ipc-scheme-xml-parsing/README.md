@@ -153,14 +153,7 @@ Consequently:
 The column is defined as:
 
 ```sql
-residual_score INTEGER
-```
-
-A direct calculation is:
-
-```sql
-UPDATE places
-SET residual_score =
+residual_score INTEGER GENERATED ALWAYS AS (
     CASE
         WHEN regexpi('\bnot( otherwise)? provided for\b', titlePart) THEN 4
         WHEN regexpi('\bprovided for\b', titlePart) THEN 1
@@ -182,7 +175,8 @@ SET residual_score =
     CASE
         WHEN substr(symbol, 5, 4) IN ('0099', '0999') THEN 3
         ELSE 0
-    END;
+    END
+) VIRTUAL
 ```
 
 The order of the `CASE` branches is significant. The more specific negative or otherwise stronger expression must be tested before its broader subpattern. A match for `not provided for`, for example, must not be reduced to the weaker positive `provided for` classification merely because the broader expression also matches the same title.
