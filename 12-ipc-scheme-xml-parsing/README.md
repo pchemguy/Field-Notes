@@ -155,13 +155,13 @@ The column is defined as:
 ```sql
 residual_score INTEGER GENERATED ALWAYS AS (
     CASE
-        WHEN regexpi('\bnot( otherwise)? provided for\b', titlePart) THEN 4
+        WHEN regexpi('\bnot( \S+){0,2} provided for\b', titlePart) THEN 4
         WHEN regexpi('\bprovided for\b', titlePart) THEN 1
         ELSE 0
     END
     +
     CASE
-        WHEN regexpi('\bnot covered (by|in)\b', titlePart) THEN 4
+        WHEN regexpi('\bnot( \S+){0,2} covered (by|in|elsewhere)\b', titlePart) THEN 4
         WHEN regexpi('\bcovered (by|in)\b', titlePart) THEN 1
         ELSE 0
     END
@@ -788,3 +788,7 @@ Parsing should therefore begin by resolving and removing the special record clas
 After `places` is created, recognized `entryReference` functions are extracted incrementally from `places.refs` into `places_references` in specificity order. Successfully interpreted items leave the residual array; unknown forms remain available for later analysis.
 
 This separation between source decomposition, structural hierarchy construction, and incremental semi-structured reference extraction is the foundation of the relational model.
+
+## Notes
+
+- Consider performing word frequency analysis on `places.titlePart` (e.g., single word, pairs, triplets).

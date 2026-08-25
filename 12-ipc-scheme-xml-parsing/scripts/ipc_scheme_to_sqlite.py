@@ -130,11 +130,12 @@ title part has no entry reference. There is no JSON object or positional
 matching member of each mutually exclusive provided-for, covered, and other
 lexical family, plus independent symbol evidence for normalized main groups
 ``99/00`` and ``999/00``. Strong negative provided-for and covered matches
-permit zero through two intervening non-whitespace tokens after ``not``. Its
-case-insensitive regular expressions use the deterministic two-argument SQLite
-function ``regexpi(pattern, value)`` supplied by the built-in
-:file:`ext/misc/regexp.c` extension. Every SQLite client that reads or writes
-this schema must provide that function.
+permit zero through two intervening non-whitespace tokens after ``not``; the
+covered form accepts ``by``, ``in``, or ``elsewhere``. Its case-insensitive
+regular expressions use the deterministic two-argument SQLite function
+``regexpi(pattern, value)`` supplied by the built-in :file:`ext/misc/regexp.c`
+extension. Every SQLite client that reads or writes this schema must provide
+that function.
 
 Place references
 ----------------
@@ -2581,7 +2582,7 @@ def create_owned_table(
                     +
                     CASE
                         WHEN regexpi(
-                            '\\bnot( \\S+){0,2} covered (by|in)\\b',
+                            '\\bnot( \\S+){0,2} covered (by|in|elsewhere)\\b',
                             titlePart
                         ) THEN 4
                         WHEN regexpi(
