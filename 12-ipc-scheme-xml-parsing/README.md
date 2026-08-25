@@ -97,11 +97,13 @@ Structural records form the nested `ipcEntry` hierarchies remaining after the sp
 
 While IPC scheme specification also defines an auxiliary `entryType="D"`, such entries are not present in the current scheme and are intentionally outside the current model.
 
-### 3.3 Residual places
+### 3.3 Residual coverage, relational scope exclusion, and negative technical definition
 
 Residual places cover subject matter left over after the scope of other classification places has been accounted for. Their meaning is therefore relational: it cannot be determined from the residual title alone. It may depend on explicit references, sibling places, the parent scope, or the surrounding classification structure. A residual place must consequently be interpreted against the places whose subject matter is excluded, already provided for, covered elsewhere, or otherwise distinguished.
 
-The XML does not explicitly identify residual places. They must instead be detected through a combination of lexical and symbol-based indicators:
+While residual places act as "catchall" for a certain subject area (often within the parent scope of the residual place), relational scope exclusion generally partitions a subject area by excluding specifically named scope from the given category. The exclusion part is typically articulated using standard grammatical exclusion constructs, such as '\b(not )covered (by|in)\b?',  '\bother than\b', 'except', and so on.
+
+Identifying residual places and places with relational scope exclusion and negative technical definition is important for extracting semantics from IPC. However, the XML scheme neither explicitly identifies any such places nor provides a means to model them structurally. Therefore, such places must instead be detected as flagged candidates through a combination of lexical and symbol-based indicators:
 
 ```sql
 lower(titlePart) REGEXP '\bnot (otherwise )?provided for\b'
@@ -112,6 +114,8 @@ lower(titlePart) REGEXP '^other\b'
 lower(titlePart) REGEXP '\bother than\b'
 substr(symbol, 5, 4) IN ('0099', '0999')
 ```
+
+ following by manual and/or AI-assisted evaluation of identified candidates.
 
 These indicators do not all carry the same evidential weight. To represent their combined evidence, `residual_score` is defined as an additive evidence score. It is not a probability or a definitive semantic classification.
 
