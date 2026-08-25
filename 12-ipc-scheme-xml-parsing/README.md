@@ -99,56 +99,34 @@ While IPC scheme specification also defines an auxiliary `entryType="D"`, such e
 
 ### 3.3 Residual coverage, relational scope exclusion, and negative technical definition
 
-Residual places cover subject matter left over after the scope of other classification places has been accounted for. Their meaning is therefore relational: it cannot be determined from the residual title alone. It may depend on explicit references, sibling places, the parent scope, or the surrounding classification structure. A residual place must consequently be interpreted against the places whose subject matter is excluded, already provided for, covered elsewhere, or otherwise distinguished.
+Residual places cover subject matter left over after the scope of other classification places has been accounted for. Their meaning is relational: the title may depend on explicit references, sibling places, the parent scope, or the surrounding classification structure. A residual place must consequently be interpreted against the places whose subject matter is excluded, already provided for, covered elsewhere, or otherwise distinguished.
 
-While residual places act as "catchall" for a certain subject area (often within the parent scope of the residual place), relational scope exclusion generally partitions a subject area by excluding specifically named scope from the given category. The exclusion part is typically articulated using standard grammatical exclusion constructs, such as '\b(not )covered (by|in)\b?',  '\bother than\b', 'except', and so on.
+Three related modelling tasks should nevertheless remain separate:
 
-Identifying residual places and places with relational scope exclusion and negative technical definition is important for extracting semantics from IPC. However, the XML scheme neither explicitly identifies any such places nor provides a means to model them structurally. Therefore, such places must instead be detected as flagged candidates through a combination of lexical and symbol-based indicators:
+1. `places.residual_score` ranks candidate residual places from lexical and symbol evidence. It is a heuristic, not a semantic label.
+2. `places_references` extracts reference-bearing relations expressed by `entryReference` content, including precedence and several scope-list grammars.
+3. `title_decompositions` records manually reviewed negative technical definitions by splitting one source title into `base_scope` and `excluded_scope`.
 
-```sql
-lower(titlePart) REGEXP '\bnot (otherwise )?provided for\b'
-lower(titlePart) REGEXP '\bprovided for\b'
-lower(titlePart) REGEXP '\bnot covered (by|in)\b'
-lower(titlePart) REGEXP '\bcovered (by|in)\b'
-lower(titlePart) REGEXP '^other\b'
-lower(titlePart) REGEXP '\bother than\b'
-substr(symbol, 5, 4) IN ('0099', '0999')
-```
+The distinction matters. A title such as `CABLES OTHER THAN ELECTRIC` contains a negative technical definition but no target reference. Conversely, an extracted scope reference may limit a place without making the place a residual category. The three representations complement one another rather than describing interchangeable facts.
 
- following by manual and/or AI-assisted evaluation of identified candidates.
+#### Residual candidate scoring
 
-These indicators do not all carry the same evidential weight. To represent their combined evidence, `residual_score` is defined as an additive evidence score. It is not a probability or a definitive semantic classification.
+The XML does not carry an explicit residual-place flag. Candidate detection therefore combines lexical signals in `titlePart` with conventional symbol patterns. `residual_score` is an additive evidence score implemented as a virtual generated column; it is neither a probability nor a definitive classification.
 
-| Indicator                                            | Interpretation                                                                           | Evidential weight        | Score |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------ | ----: |
-| `not otherwise provided for`                         | Explicitly identifies subject matter left outside more specifically provided places      | Strong                   |     4 |
-| `not provided for`                                   | Explicitly identifies subject matter not assigned to the specified or surrounding places | Strong                   |     4 |
-| `not covered by` or `not covered in`                 | Explicitly excludes the coverage of specified places                                     | Strong                   |     4 |
-| Title beginning with `Other`, excluding `Other than` | Normally identifies a residual alternative within the surrounding hierarchy              | Strong lexical indicator |     3 |
-| Main group `99/00` or `999/00`                       | Follows a conventional symbol-based pattern for residual subject matter                  | Strong heuristic         |     3 |
-| Positive `provided for`                              | Establishes that the place’s scope depends on subject matter assigned elsewhere          | Weak                     |     1 |
-| Positive `covered by` or `covered in`                | Establishes a scope relationship with another place                                      | Weak                     |     1 |
-| `other than`                                         | Expresses an exclusion that may or may not define a residual category                    | Ambiguous                |     1 |
+Indicators are divided into four families. Within each family, `CASE` selects at most one contribution; contributions from different families remain additive.
 
-Main groups `99/00` and `999/00`, represented by `0099` and `0999` in normalized symbols, are conventionally used for residual subject matter. Nevertheless, this symbol pattern remains a heuristic rather than a semantic guarantee.
+| Family | Strong or primary match | Contribution | Weaker or alternative match | Contribution |
+| --- | --- | ---: | --- | ---: |
+| Provided-for | `not`, followed by zero to two non-space tokens, then `provided for` | `7` for a non-class-99 symbol of length at most four; otherwise `4` | `provided for` | `1` |
+| Covered | `not`, followed by zero to two non-space tokens, then `covered by`, `covered in`, or `covered elsewhere` | `7` for a non-class-99 symbol of length at most four; otherwise `4` | `covered by` or `covered in` | `1` |
+| Other | `other than` anywhere in the title | `1` | title begins with `Other`, provided `other than` did not match anywhere | `3` |
+| Symbol | normalized main group `99/00` or `999/00`, or class `99` | `3` | — | — |
 
-The positive expressions `provided for` and `covered by` or `covered in` are intentionally retained as weaker indicators. They establish that a title must be interpreted in relation to other places, but they do not independently establish that the current place is residual. Their negative forms provide substantially stronger evidence.
+The zero-to-two-token allowance covers variants broader than the literal phrases `not provided for` and `not otherwise provided for`. The selective value `7` boosts explicit negative wording at broad levels represented by symbols of at most four characters. Class `99` is excluded from that boost because it receives its own independent three-point symbol contribution; an explicit negative expression on such a symbol contributes `4 + 3`, also totalling `7`.
 
-To avoid double counting nested or overlapping patterns, indicators are divided into mutually exclusive families. Only the strongest matching member of each family contributes to the score:
+Main groups `99/00` and `999/00` are represented by `0099` and `0999` at positions 5–8 of the normalized symbol. `substr(symbol, 2, 2) = '99'` detects class `99`. These patterns are useful residual heuristics, not semantic guarantees.
 
-1. **Provided-for family:** contributes `4`, `4`, or `1`.
-2. **Covered family:** contributes `4` or `1`.
-3. **Other family:** contributes `3` or `1`.
-4. **Symbol family:** independently contributes `3`.
-
-Consequently:
-
-* `not otherwise provided for` does not also receive the positive `provided for` point;
-* `not provided for` does not also receive the positive `provided for` point;
-* `not covered by` does not also receive the positive `covered by` point;
-* a title beginning with `Other than` receives the ambiguous `other than` score rather than both scores;
-* a title beginning with `Other` may still receive the stronger score when `other than` occurs only later in the title;
-* independent evidence, such as a title beginning with `Other` combined with a `99/00` symbol, remains cumulative.
+The positive forms remain deliberately weak. They establish a relation to subject matter assigned or covered elsewhere but do not independently establish that the current place is residual. Similarly, `other than` identifies exclusion wording that may define a negative technical category rather than a residual catchall.
 
 The column is defined as:
 
@@ -193,23 +171,30 @@ residual_score INTEGER GENERATED ALWAYS AS (
 ) VIRTUAL
 ```
 
-The order of the `CASE` branches is significant. The more specific negative or otherwise stronger expression must be tested before its broader subpattern. A match for `not provided for`, for example, must not be reduced to the weaker positive `provided for` classification merely because the broader expression also matches the same title.
+Branch order is significant. The strong negative test must precede its positive subpattern, and `other than` must precede `^other`; consequently any title containing `other than`, including one beginning with those words, receives only the one-point Other-family contribution. The symbol alternatives likewise share one `CASE` and cannot stack with one another.
 
-The resulting score can initially be interpreted as follows:
+The total ranks candidates for review. Values `1–3` normally reflect weak, ambiguous, or symbol-only evidence; `4` is an unboosted explicit negative expression; `7` may be either a selectively boosted expression or an unboosted expression plus the class-99 symbol heuristic; and larger totals combine evidence from independent families. Because the same total can arise through different paths, downstream validation should inspect the contributing rules rather than treat a score as a self-explanatory category.
 
-| Score | Meaning                                                                |
-| ----: | ---------------------------------------------------------------------- |
-|   `0` | No identified residual evidence                                        |
-| `1–2` | Weak or ambiguous candidate                                            |
-|   `3` | Strong lexical or symbol-based heuristic, or accumulated weak evidence |
-|   `4` | Explicit residual expression                                           |
-|  `5+` | Multiple mutually independent indicators                               |
+The expressions use case-insensitive `regexpi(pattern, value)` from SQLite's `ext/misc/regexp.c`. SQLite must expose that function as deterministic because generated-column expressions may call only deterministic functions. The importer checks this capability before schema mutation.
 
-These thresholds remain descriptive until they have been checked against the full scheme. The score ranks the available evidence; it does not prove that a place is semantically residual.
+`titlePart` preserves inline XML inside its source `<text>`. The current generated expression operates on that stored serialization, not on a separately flattened text column; markup inserted inside a target phrase can therefore prevent a match. This is a known limitation of the candidate score.
 
-A single total can also arise from different combinations of evidence. The matched family contributions should therefore remain reproducible from the documented rules and independently inspectable when validating or refining the scoring model.
+#### Manually reviewed title decomposition
 
-Finally, because `titlePart` may preserve inline XML, lexical matching should ideally operate on its flattened logical text. Otherwise, markup inserted within a phrase could prevent an otherwise valid pattern from matching.
+Automated scoring identifies candidates but does not attempt to infer an exact positive/negative split. Reviewed decompositions are maintained in the authoritative companion file `title_decompositions.sql`, whose DDL and data are imported as a unit:
+
+```sql
+CREATE TABLE title_decompositions (
+    id             INTEGER PRIMARY KEY,
+    symbol         TEXT NOT NULL COLLATE NOCASE CHECK (length(symbol) BETWEEN 1 AND 14),
+    titlePart      TEXT NOT NULL CHECK (length(trim(titlePart)) > 0),
+    base_scope     TEXT NOT NULL CHECK (length(trim(base_scope)) > 0),
+    excluded_scope TEXT NOT NULL CHECK (length(trim(excluded_scope)) > 0),
+    UNIQUE (symbol, titlePart)
+);
+```
+
+`titlePart` retains the source title used for identification and audit. `base_scope` states the positively included subject matter; `excluded_scope` states the technical subject matter explicitly removed from that scope. The manual table is deliberately separate from `places_references`: it decomposes title semantics and need not contain an `sref` or `mref` target.
 
 ## 4. `symbol`: node identifier versus reference
 
@@ -257,7 +242,7 @@ The source also contains explicit reference elements:
 These are references by definition and are distinct from the overloaded `ipcEntry/@symbol` issue. Their relational representation depends on context:
 
 - references in core guidance headings remain embedded as XML markup;
-- references in index guidance headings are parsed into compact JSON target lists, while exclusion lists are separated into their own table;
+- references in index guidance headings are parsed into compact JSON target lists, with any recognized exclusion list stored on the same `gheadings_index` row;
 - subclass-index references are normalized into compact JSON arrays;
 - reference markup inside notes remains preserved;
 - references attached to place title parts are initially preserved as XML-bearing strings in `places.refs`, then recognized reference functions are extracted into `places_references`; unmatched strings remain in `places.refs` unchanged.
@@ -276,6 +261,7 @@ flowchart TD
     F --> G["Extract entryType I: classified aspects"]
     G --> H["Residual entryType K: places"]
     H --> I["Extract recognized place-reference functions"]
+    I --> J["Import reviewed title decompositions"]
 ```
 
 Guidance target resolution must occur while the complete tree is still available. Extraction then proceeds in this order:
@@ -286,7 +272,8 @@ Guidance target resolution must occur while the complete tree is still available
 4. `kind="n"` — notes retained as XML;
 5. remaining `entryType="I"` — classified-aspect hierarchy;
 6. remaining `entryType="K"` — core classification-place hierarchy;
-7. database-backed post-processing of `places.refs` into `places_references`, in the fixed order `precedence` → `scope_list` → `scope_example` → `scope`.
+7. database-backed post-processing of `places.refs` into `places_references`, in the fixed order `precedence` → `scope_list` → `scope_example` → `scope`;
+8. execution of the authoritative `title_decompositions.sql` DDL and data inside the same import transaction.
 
 This order is not merely an implementation convenience. It corresponds to the source model:
 
@@ -323,23 +310,25 @@ The parser should fail visibly when an observed structural invariant changes. At
 - parent symbols that do not resolve within the same hierarchy;
 - malformed JSON in `places.refs` or non-string array elements;
 - reference fragments that superficially match a supported function but contain malformed `sref`/`mref` XML or invalid range attributes;
-- preservation-mode states in which only one of the coupled `places` and `places_references` tables exists.
+- preservation-mode states in which only one of the coupled `places` and `places_references` tables exists;
+- absence or incompatibility of deterministic `regexpi(pattern, value)` support before creating `places`;
+- an imported `title_decompositions` table that does not expose the expected five-column contract.
 
 ## 6. Relational model
 
 The relational model deliberately uses separate tables for source structures with different identity, hierarchy, and content semantics.
 
-| Table                       | Columns                                                                             | One row represents                                                              |
-| --------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `subsections`               | `title_parts, symbol, endSymbol`                                                    | One `kind="t"` auxiliary record                                                 |
-| `gheadings_core`            | `title_parts, symbol, endSymbol`                                                    | One `kind="g"` heading applying to core places                                  |
-| `gheadings_index`           | `title_parts, symbol, endSymbol, refs`                                              | One nonempty normalized `kind="g"` heading applying to classified aspects      |
-| `gheading_index_exclusions` | `target_list, exclusion_list`                                                       | One target/exclusion relationship parsed from index-guidance boilerplate        |
-| `index_terms`               | `symbol, endSymbol, terms, refs`                                                    | One root-to-terminal path through a `kind="i"` index tree                       |
-| `notes`                     | `symbol, endSymbol, note_xml`                                                       | One `kind="n"` auxiliary record                                                 |
-| `classified_aspects`        | `kind, symbol, parent_symbol, terms`                                                | One structural non-`ignt`, `entryType="I"` node                                 |
-| `places`                    | `kind, symbol, parent_symbol, titlePart, refs`                                      | One owned title part of a structural non-`ignt`, `entryType="K"` place          |
-| `places_references`         | `id, symbol, titlePart, higher_priority_refs, exclusion_scope, function`            | One extracted reference relation, or one expanded clause of a scope-list source |
+| Table | Columns | One row represents |
+| --- | --- | --- |
+| `subsections` | `title_parts, symbol, endSymbol` | One `kind="t"` auxiliary record |
+| `gheadings_core` | `title_parts, symbol, endSymbol` | One `kind="g"` heading applying to core places |
+| `gheadings_index` | `title_parts, symbol, endSymbol, refs, exclusion_list` | One nonempty normalized `kind="g"` heading applying to classified aspects |
+| `index_terms` | `symbol, endSymbol, terms, refs` | One root-to-terminal path through a `kind="i"` index tree |
+| `notes` | `symbol, endSymbol, note_xml` | One `kind="n"` auxiliary record |
+| `classified_aspects` | `kind, symbol, parent_symbol, terms` | One structural non-`ignt`, `entryType="I"` node |
+| `places` | `kind, symbol, parent_symbol, titlePart, refs, residual_score` | One owned title part of a structural non-`ignt`, `entryType="K"` place |
+| `places_references` | `id, symbol, titlePart, higher_priority_refs, exclusion_scope, function` | One extracted reference relation, or one expanded clause of a scope-list source |
+| `title_decompositions` | `id, symbol, titlePart, base_scope, excluded_scope` | One manually reviewed positive/negative decomposition of a place title |
 
 JSON values are stored in SQLite `TEXT` columns and constrained to the expected JSON container type. A one-item collection remains an array. Absence of an optional structured value is SQL `NULL`, not serialized JSON `null`.
 
@@ -358,8 +347,7 @@ Subsections are presentation-level range labels, not hierarchy nodes. Their symb
 
 ```sql
 gheadings_core(title_parts, symbol, endSymbol)
-gheadings_index(title_parts, symbol, endSymbol, refs)
-gheading_index_exclusions(target_list, exclusion_list)
+gheadings_index(title_parts, symbol, endSymbol, refs, exclusion_list)
 ```
 
 The same-symbol resolution described in Section 4.1 routes each source heading before its content is transformed. The two target domains then follow deliberately different workflows.
@@ -372,7 +360,7 @@ This preservation rule avoids imposing the narrowly formulaic index-guidance gra
 
 #### Index guidance
 
-`gheadings_index` is partially normalized. Source references are first parsed into temporary ordered lists and associated with their grammatical role. Stored `refs` contains only the heading's target list, using the same compact representation as `index_terms`:
+`gheadings_index` is partially normalized. Source references are first parsed into temporary ordered lists and associated with their grammatical role. Stored `refs` contains the heading's target list, while `exclusion_list` contains any recognized exception targets. Both use the same compact representation as `index_terms`:
 
 - `sref` becomes its `ref` string;
 - `mref` becomes `[ref, endRef]`;
@@ -384,7 +372,7 @@ For example:
 ["B62D0006000000", ["B23K0001000000", "B23K0031000000"]]
 ```
 
-The stored value is one target list directly; it does not use `{sref: ...}` or `{mref: ...}` objects. A reference-free index heading stores SQL `NULL` in `refs`.
+Each stored value is one list directly; neither column uses `{sref: ...}` or `{mref: ...}` objects. A missing target or exclusion list is stored as SQL `NULL` in the corresponding column.
 
 Recognized indexing boilerplate is removed from `title_parts`. The result contains plain subject strings:
 
@@ -398,7 +386,8 @@ Indexing scheme relating to circuit arrangements for AC distribution networks.
 
 Normalization is conservative and deterministic:
 
-- optional commas, singular/plural `group` wording, and the observed optional conjunctions are accepted only in defined positions;
+- optional commas, singular/plural `group` and `subclass` wording, and the observed optional conjunctions are accepted only in defined positions;
+- conjunctions and punctuation joining adjacent source references are consumed as reference-list grammar; they do not survive as synthetic title text, and no internal reference placeholder is stored in `title_parts`;
 - a leading case-insensitive `The` is removed from an extracted subject;
 - only the first cased character is uppercased, preserving acronyms such as `CAD`, `AC`, and `CHP`;
 - one final period is removed;
@@ -422,16 +411,10 @@ produces the guidance row:
 ```json
 title_parts = ["Driving conditions sensed and responded to"]
 refs = ["B62D0006000000"]
-```
-
-and the separate exclusion row:
-
-```json
-target_list = ["B62D0006000000"]
 exclusion_list = [["B62D0006020000", "B62D0006100000"]]
 ```
 
-Exclusion references are not retained in `gheadings_index.refs`. Both columns of `gheading_index_exclusions` are nonempty JSON arrays; their scalar/range elements use the same compact `sref`/`mref` convention. The exclusion relation deliberately stores target lists rather than a foreign key because auxiliary guidance rows do not yet have manufactured identities.
+The target and exclusion lists now remain on the same guidance row; no synthetic identity or separate relationship table is needed. `exclusion_list` is SQL `NULL` when the recognized heading has no exception clause.
 
 The compact target list in `gheadings_index.refs` can be expanded into a uniform relational form when individual target references need to be joined or filtered. The following query is the intended basis for a view that may be added to the parser later:
 
@@ -455,7 +438,7 @@ SELECT
 FROM gheadings_index, json_each(refs) AS r;
 ```
 
-`json_each(refs)` emits one row per target reference. A scalar `sref` value becomes `ref` with `endRef` set to SQL `NULL`; a two-item `mref` array becomes its `ref` and `endRef` bounds. The original guidance row is repeated once for each target reference while its `title_parts`, `symbol`, and `endSymbol` values remain available for context. Rows whose `refs` value is SQL `NULL` produce no rows in this expansion. Exclusion references are intentionally absent because they belong to `gheading_index_exclusions`. A future view can also expose `r.key` as a zero-based target-reference index if source order must be addressable explicitly. This query is documented for later use only; the current parser does not create the view.
+`json_each(refs)` emits one row per target reference. A scalar `sref` value becomes `ref` with `endRef` set to SQL `NULL`; a two-item `mref` array becomes its `ref` and `endRef` bounds. The original guidance row is repeated once for each target reference while its `title_parts`, `symbol`, `endSymbol`, and `exclusion_list` remain available for context. Rows whose `refs` value is SQL `NULL` produce no rows in this expansion. `exclusion_list` can be expanded independently with another `json_each` when individual exception targets are required. A future view can also expose `r.key` as a zero-based target-reference index if source order must be addressable explicitly. This query is documented for later use only; the current parser does not create the view.
 
 ### 6.3 `index_terms`
 
@@ -534,7 +517,7 @@ Titles matching formulaic `Indexing scheme associated with <word>` wording are t
 ### 6.6 `places`
 
 ```sql
-places(kind, symbol, parent_symbol, titlePart, refs)
+places(kind, symbol, parent_symbol, titlePart, refs, residual_score)
 ```
 
 `places` is normalized with respect to owned title parts and their attached `entryReference` elements. One structural place can therefore produce several rows:
@@ -543,7 +526,8 @@ places(kind, symbol, parent_symbol, titlePart, refs)
 - `symbol`: logical identifier of the core classification place;
 - `parent_symbol`: nearest enclosing structural `entryType="K"` place's symbol;
 - `titlePart`: scalar content of one owned `<titlePart>`, with inline XML inside its `<text>` preserved;
-- `refs`: JSON array containing that same title part's owned `<entryReference>` strings in source order, or SQL `NULL` when none remain.
+- `refs`: JSON array containing that same title part's owned `<entryReference>` strings in source order, or SQL `NULL` when none remain;
+- `residual_score`: virtual generated candidate score defined in Section 3.3 and recomputed from `symbol` and `titlePart` when read.
 
 Hierarchy fields repeat across the rows belonging to the same place. This repetition is deliberate: the row is the association between one place and one title part, not a manufactured title-part entity with a synthetic key.
 
@@ -671,6 +655,21 @@ FROM places_references AS pr,
 
 `ref_index` preserves source order within each stored target list. For scope rows, `ref`/`endRef` are targets; only `function = 'precedence'` asserts the higher-priority relationship implied by the physical column name.
 
+### 6.8 `title_decompositions`
+
+```sql
+title_decompositions(id, symbol, titlePart, base_scope, excluded_scope)
+```
+
+This manually curated table stores reviewed title-level exclusions that cannot be recovered merely by parsing `sref` or `mref` elements. Its DDL and rows come from `title_decompositions.sql`; the importer does not reconstruct the schema or data in Python.
+
+- `id`: supplied primary key;
+- `symbol`, `titlePart`: identify the source place row under a case-insensitive symbol comparison and the exact reviewed title;
+- `base_scope`: positively included technical scope;
+- `excluded_scope`: technical scope excluded by the title's negative definition.
+
+All four text values are required to be nonempty after trimming, `symbol` is constrained to 1–14 characters, and `(symbol, titlePart)` is unique. Because the SQL file is authoritative, changes to this manual corpus should be made there and imported on the next default rebuild.
+
 ## 7. Post-processing principles
 
 Post-processing is intentionally asymmetric because different source structures have been understood to different degrees.
@@ -685,14 +684,17 @@ Post-processing is intentionally asymmetric because different source structures 
 8. **Retain positional information.** Repeated place rows preserve title-part ownership, JSON arrays preserve reference order, and `ref_index` can expose that order relationally.
 9. **Use SQL `NULL` for absence.** JSON arrays represent present collections; SQL `NULL` means an optional value is absent. A consumed `places.refs` array becomes SQL `NULL`, not `[]`.
 10. **Reject or retain rather than guess.** Unrecognized index-guidance boilerplate is an error because it belongs to a closed normalization workflow. Unrecognized place-reference prose remains residual source content because that workflow is intentionally incremental.
+11. **Keep reviewed semantics explicit.** Candidate scoring and reference parsing do not silently populate `title_decompositions`; its positive/negative splits remain human-reviewed source data.
 
 ### 7.1 Database ownership, reruns, and preservation
 
-The importer owns the nine tables documented in Section 6. In its normal rebuild mode it drops and recreates owned tables inside one transaction, including obsolete owned schemas from prior revisions where applicable. Unrelated database objects are not part of that ownership boundary.
+The importer owns the nine tables documented in Section 6. In its normal rebuild mode it drops and recreates owned tables inside one transaction, including obsolete owned schemas from prior revisions where applicable. `title_decompositions` is recreated by executing the DDL and data in `title_decompositions.sql`; the other current tables are created by the importer. Unrelated database objects are not part of that ownership boundary.
 
 The XML stages populate the source-derived tables first. The database-backed place-reference stage then inserts derived rows into `places_references` and updates only the corresponding `places.refs` values. These operations occur in the same transaction, so a failure does not leave a partially extracted reference set.
 
 Preservation mode treats `places` and `places_references` as a coupled pair. Both must already exist or both must be absent. Preserving only one side is rejected because it would either mutate a table declared preserved or retain derived rows that no longer correspond to the current residual `places.refs` values.
+
+In preservation mode, an existing `title_decompositions` table is left untouched and the companion SQL file is not required for that table. In default mode the file must be available, and its statements execute under the importer's transaction. Outer `BEGIN`/`COMMIT` dump wrappers are ignored so the importer retains transaction control; rollback or savepoint controls inside the companion script are rejected.
 
 ## 8. Why the model is split into multiple tables
 
@@ -702,11 +704,12 @@ A single `ipc_entries` table would obscure several incompatible notions:
 - classification hierarchy versus internal index hierarchy;
 - core classification versus classified-aspect domains;
 - normalized references versus preserved XML fragments;
-- index-guidance targets versus exclusions from those targets;
-- node-local titles versus path-expanded index terms.
+- index-guidance targets versus exclusions stored alongside those targets;
+- node-local titles versus path-expanded index terms;
 - source-faithful place reference strings versus extracted relation functions;
 - one place's structural identity versus its several title-part rows;
-- precedence targets versus scope targets that share a historical column name but differ by `function`.
+- precedence targets versus scope targets that share a historical column name but differ by `function`;
+- machine-ranked residual candidates versus manually reviewed title decompositions.
 
 The multi-table model makes these distinctions explicit. It also avoids manufacturing universal synthetic identifiers for auxiliary records whose
 source symbols are scope anchors rather than record IDs.
@@ -724,6 +727,8 @@ The split is therefore semantic normalization, not merely a convenience for the 
 - Place-reference extraction covers only the four documented grammars. Remaining `places.refs` values are deliberate residual data for later modelling, not necessarily parser failures.
 - The `scope_list` reconstruction rule is structural and deterministic but remains an interpretation of elliptical natural-language coordination; new clause patterns should be audited before broadening it.
 - `scope_example` intentionally discards the complete example suffix after retaining the independently valid base scope relation. It does not store example references elsewhere.
+- `residual_score` is heuristic, and inline XML can interrupt lexical patterns because matching operates on the stored `titlePart` serialization.
+- `title_decompositions` is a selective manual corpus, not an exhaustive catalogue of every negative technical definition in the scheme.
 - Reference markup inside note XML and unprocessed place-reference strings is not yet exposed as relational edges.
 - The meaning of absent `endSymbol` should be documented from authoritative IPC specifications or validated systematically before an inferred range rule is encoded.
 - Candidate keys, uniqueness constraints, and foreign-key constraints should be enabled only after full-scheme audits confirm the relevant invariants.
@@ -731,7 +736,7 @@ The split is therefore semantic normalization, not merely a convenience for the 
 
 ## 10. Running and inspecting the importer
 
-The relational importer accepts an IPC scheme XML filename as its positional input. When the filename is omitted, it searches the current directory for a file matching `EN_ipc_scheme_YYYYMMDD.xml`. The output database uses the input stem with a `.db` extension and is created beside the source file.
+The relational importer accepts an IPC scheme XML filename as its positional input. When the filename is omitted, it searches the current directory for a file matching `EN_ipc_scheme_YYYYMMDD.xml`. The output database uses the input stem with a `.db` extension and is created beside the source file. A default rebuild also expects the authoritative `title_decompositions.sql` DDL/data file in the current directory.
 
 ```shell
 python scripts/ipc_scheme_to_sqlite.py EN_ipc_scheme_20270101.xml
@@ -739,7 +744,7 @@ python scripts/ipc_scheme_to_sqlite.py EN_ipc_scheme_20270101.xml
 
 Use the script's `--help` output for the current preservation option and other CLI details. In default mode, rerunning the importer rebuilds its owned tables but leaves unrelated database objects alone. The work is transactional: a parsing, validation, or insertion failure rolls back the import rather than committing a mixture of old and new owned data.
 
-The importer does not require SQLite's optional `ext/misc/regexp` extension. SQLite JSON1 support is required for the JSON constraints, reference-array updates, and the inspection queries documented here.
+SQLite JSON1 support is required for the JSON constraints, reference-array updates, and inspection queries documented here. The importer also requires deterministic `regexpi(pattern, value)` support from `ext/misc/regexp.c` because `places.residual_score` is a generated column. It checks that capability before parsing the XML or mutating the schema.
 
 Useful first checks after import include:
 
@@ -766,6 +771,20 @@ FROM places
 GROUP BY symbol
 HAVING count(*) > 1
 ORDER BY symbol;
+
+-- Highest-ranked residual candidates and any reviewed decomposition.
+SELECT
+    p.symbol,
+    p.titlePart,
+    p.residual_score,
+    d.base_scope,
+    d.excluded_scope
+FROM places AS p
+LEFT JOIN title_decompositions AS d
+  ON d.symbol = p.symbol
+ AND d.titlePart = p.titlePart
+WHERE p.residual_score > 0
+ORDER BY p.residual_score DESC, p.symbol, p.titlePart;
 ```
 
 The second query is especially important during continued modelling: its result is the remaining semi-structured workload after all recognized items have been moved to `places_references`.
@@ -784,7 +803,7 @@ The [`scripts/`](scripts/) directory contains the current relational importer an
 | [`ipc_entries_to_sqlite_grouped.py`](scripts/ipc_entries_to_sqlite_grouped.py) | Earlier relational prototype that separates `K`, `I`, and `ignt` entries and records selected immediate relationships. |
 | [`ipc_entry_stats.py`](scripts/ipc_entry_stats.py) | Reports `ipcEntry` counts by `kind`, by `entryType`, and by their combinations, as tables or JSON. |
 | [`ipc_scheme_core.py`](scripts/ipc_scheme_core.py) | Produces a beautified `_core.xml` copy after removing all `ignt` and `entryType="I"` subtrees. |
-| [`ipc_scheme_to_sqlite.py`](scripts/ipc_scheme_to_sqlite.py) | Implements the staged XML-aware conversion and the subsequent ordered extraction of recognized place-reference functions into the normalized SQLite tables documented in Section 6. |
+| [`ipc_scheme_to_sqlite.py`](scripts/ipc_scheme_to_sqlite.py) | Implements the staged XML-aware conversion, ordered extraction of recognized place-reference functions, generated residual scoring, and transactional import of `title_decompositions.sql` into the SQLite model documented in Section 6. |
 | [`ipc_xml_to_treeline.py`](scripts/ipc_xml_to_treeline.py) | Projects every `ipcEntry` and its XML attributes into a TreeLine hierarchy for interactive exploration. |
 | [`list_xml_tags.py`](scripts/list_xml_tags.py) | Inventories XML tag counts, attribute names, and immediate parent-child tag pairs in SQLite. |
 
@@ -799,9 +818,9 @@ ignt ipcEntry      → auxiliary record; symbol/endSymbol attributes describe at
 
 Parsing should therefore begin by resolving and removing the special record classes according to their own grammars. Only then should the remaining `I` and `K` entries be read as two structural hierarchies and projected into `classified_aspects` and `places`.
 
-After `places` is created, recognized `entryReference` functions are extracted incrementally from `places.refs` into `places_references` in specificity order. Successfully interpreted items leave the residual array; unknown forms remain available for later analysis.
+After `places` is created, recognized `entryReference` functions are extracted incrementally from `places.refs` into `places_references` in specificity order. Successfully interpreted items leave the residual array; unknown forms remain available for later analysis. The generated `residual_score` ranks lexical and symbol-based candidates, while `title_decompositions.sql` supplies a separate reviewed corpus of exact `base_scope`/`excluded_scope` splits.
 
-This separation between source decomposition, structural hierarchy construction, and incremental semi-structured reference extraction is the foundation of the relational model.
+This separation between source decomposition, structural hierarchy construction, incremental reference extraction, heuristic candidate ranking, and reviewed semantic decomposition is the foundation of the relational model.
 
 ## Notes
 
