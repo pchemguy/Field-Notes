@@ -3,11 +3,12 @@
 
 Purpose and source of truth
 ---------------------------
-The input IPC XML document is the sole source of imported records, ordering,
-symbols, ranges, hierarchy, title text, and reference markup. The importer does
-not supplement the source from external taxonomies or infer omitted symbols.
-Its only semantic transformations are the deterministic reference and
-boilerplate rules documented below.
+The input IPC XML document is the sole source of XML-derived records, ordering,
+symbols, ranges, hierarchy, title text, and reference markup. The separate
+:file:`title_decompositions.sql` file is the sole source of its manually curated
+table's DDL and data. The importer does not supplement either source from
+external taxonomies or infer omitted symbols. Its only semantic transformations
+are the deterministic reference and boilerplate rules documented below.
 
 Processing model
 ----------------
@@ -23,6 +24,8 @@ Stages run sequentially in source order and remove their processed
 6. remaining ``entryType="K"`` nodes become the ``places`` hierarchy.
 7. precedence, multi-clause scope-list, example-qualified scope, and terminal
    scope references are extracted from stored ``places.refs`` values.
+8. the complete companion :file:`title_decompositions.sql` script is executed
+   to install its manually curated table and data.
 
 The whole-tree representation deliberately favors a clear extraction model
 over bounded memory use. Large future editions should be measured before this
@@ -40,7 +43,8 @@ The script owns and may rebuild these tables:
 * ``classified_aspects(kind, symbol, parent_symbol, terms)``;
 * ``places(kind, symbol, parent_symbol, titlePart, refs, residual_score)``; and
 * ``places_references(id, symbol, titlePart, higher_priority_refs,
-  exclusion_scope, function)``.
+  exclusion_scope, function)``; and
+* ``title_decompositions(id, symbol, titlePart, base_scope, excluded_scope)``.
 
 JSON columns are stored as UTF-8-capable SQLite ``TEXT`` and constrained with
 SQLite JSON functions. Arrays remain arrays even when they contain one item.
@@ -186,31 +190,49 @@ source order: ``sref`` becomes its ``ref`` string and ``mref`` becomes
 ``places.refs`` array; an emptied array becomes SQL ``NULL``. Unmatched array
 items remain unchanged and in source order.
 
+Title decompositions
+--------------------
+The manually curated :file:`title_decompositions.sql` file in the current
+working directory is authoritative for both the ``title_decompositions`` DDL
+and its data. The importer executes its complete DDL and DML statements in
+source order within the same transaction as the XML-derived tables. Common
+dump-file ``BEGIN`` and ``COMMIT``/``END`` wrappers are ignored so only the
+importer's outer transaction controls atomicity; rollback and savepoint control
+statements are rejected. The resulting table must expose exactly ``id``,
+``symbol``, ``titlePart``, ``base_scope``, and ``excluded_scope`` in that order.
+
 Database lifecycle and safety
 -----------------------------
 The output path is the XML path with its suffix replaced by ``.db``. Existing
 database files are reused. By default, every owned table is dropped and rebuilt
-inside one transaction; unrelated tables are untouched. The obsolete tables
+inside one transaction. Importer-generated statements leave unrelated tables
+untouched; the companion SQL statements themselves are executed as supplied.
+The externally defined ``title_decompositions`` table is dropped immediately
+before its authoritative SQL script is run. The obsolete tables
 ``gheadings``, ``gheading_index_exclusions``, and ``places_priority`` are also
 removed during a default rebuild.
 
 With ``--preserve-existing-tables``, each existing base table is independently
 left untouched and reported as skipped, while missing base tables are created.
+An existing ``title_decompositions`` table is likewise preserved without
+executing its SQL file; when it is absent, the file is required and imported.
 Because reference extraction mutates ``places`` while populating its derived
 table, ``places`` and ``places_references`` must either both exist or both be
 absent in preservation mode; a mixed state is rejected. All XML extraction
 still runs so later stages always see the same residual tree. XML parsing and
-row construction finish before ``BEGIN IMMEDIATE``. A parsing, validation, or
-SQLite failure therefore cannot partially replace owned tables; the database
-transaction is rolled back. Rerunning default mode is deterministic for a
-fixed input document and SQLite JSON implementation.
+row construction, plus companion-file reading, finish before
+``BEGIN IMMEDIATE``. A parsing, validation, or SQLite failure therefore cannot
+partially replace owned tables; the database transaction is rolled back.
+Rerunning default mode is deterministic for fixed XML and SQL inputs and a
+fixed SQLite JSON implementation.
 
 Command line and exit status
 ----------------------------
 The XML path is optional. When absent, exactly one regular file matching
 ``EN_ipc_scheme_YYYYMMDD.xml`` must exist in the current directory; the eight-
-digit edition date is discovered and never hardcoded. Exit status ``0`` means
-success, ``1`` means XML/import/database failure, and ``2`` means input
+digit edition date is discovered and never hardcoded. The companion
+``title_decompositions.sql`` path is the current directory. Exit status ``0``
+means success, ``1`` means XML/import/database failure, and ``2`` means input
 selection or command-line usage failure. Diagnostics are written to stderr;
 per-table results are written to stdout.
 
@@ -238,6 +260,25 @@ from xml.sax.saxutils import escape
 
 
 DEFAULT_SCHEME_PATTERN = re.compile(r"^EN_ipc_scheme_\d{8}\.xml$")
+TITLE_DECOMPOSITIONS_FILENAME = "title_decompositions.sql"
+TITLE_DECOMPOSITIONS_COLUMNS = (
+    "id",
+    "symbol",
+    "titlePart",
+    "base_scope",
+    "excluded_scope",
+)
+TRANSACTION_CONTROL_PATTERN = re.compile(
+    r"""
+    \A\s*
+    (?:
+        --[^\r\n]*(?:\r?\n|\Z)\s*
+      | /\*.*?\*/\s*
+    )*
+    (?P<keyword>BEGIN|COMMIT|END|ROLLBACK|SAVEPOINT|RELEASE)\b
+    """,
+    re.IGNORECASE | re.DOTALL | re.VERBOSE,
+)
 REFERENCE_LIST_SEPARATOR = re.compile(
     r"(?:\s*,\s*(?:(?:and|or)\s+)?|\s+(?:and|or)\s+)",
     re.IGNORECASE,
@@ -2451,22 +2492,122 @@ def route_guidance_headings(
     return core_rows, index_rows
 
 
+def split_sql_statements(script: str) -> list[str]:
+    """Split a SQLite script without interpreting semicolons inside syntax.
+
+    Args:
+        script: Complete text of the companion SQL file.
+
+    Returns:
+        Complete statements in source order. A final statement may omit its
+        terminating semicolon; trailing comments are harmless statements.
+
+    Notes:
+        :func:`sqlite3.complete_statement` understands quoted semicolons and
+        compound constructs such as triggers. This avoids the implicit commit
+        performed by :meth:`sqlite3.Connection.executescript`.
+    """
+
+    statements: list[str] = []
+    buffer: list[str] = []
+    for character in script:
+        buffer.append(character)
+        if character == ";":
+            candidate = "".join(buffer)
+            if sqlite3.complete_statement(candidate):
+                if candidate.strip():
+                    statements.append(candidate)
+                buffer.clear()
+
+    trailing = "".join(buffer).strip()
+    if trailing:
+        statements.append(trailing)
+    return statements
+
+
+def import_title_decompositions_sql(
+    connection: sqlite3.Connection,
+    script: str,
+) -> int:
+    """Execute authoritative title-decomposition DDL and data atomically.
+
+    Args:
+        connection: Open SQLite connection already inside the importer's
+            transaction.
+        script: Complete contents of :file:`title_decompositions.sql`.
+
+    Returns:
+        Number of rows installed in ``title_decompositions``.
+
+    Raises:
+        ValueError: If the script contains rollback or savepoint control, does
+            not create the table, or creates an unexpected column layout.
+        sqlite3.Error: If SQLite rejects any DDL, DML, or validation query.
+
+    Notes:
+        DDL and inserts are intentionally not reconstructed by Python. The SQL
+        file remains their sole source of truth. Common dump-file transaction
+        wrappers are ignored; rollback and savepoint control are forbidden
+        because they could defeat the caller's rollback boundary.
+    """
+
+    statements = split_sql_statements(script)
+    if not statements:
+        raise ValueError(f"{TITLE_DECOMPOSITIONS_FILENAME} contains no SQL")
+
+    for statement_number, statement in enumerate(statements, start=1):
+        match = TRANSACTION_CONTROL_PATTERN.match(statement)
+        if match is not None:
+            keyword = match.group("keyword").upper()
+            if keyword in {"BEGIN", "COMMIT", "END"}:
+                continue
+            raise ValueError(
+                f"{TITLE_DECOMPOSITIONS_FILENAME} statement "
+                f"{statement_number} uses forbidden transaction control "
+                f"{keyword}"
+            )
+        connection.execute(statement)
+
+    if not table_exists(connection, "title_decompositions"):
+        raise ValueError(
+            f"{TITLE_DECOMPOSITIONS_FILENAME} did not create "
+            "title_decompositions"
+        )
+
+    actual_columns = tuple(
+        row[1]
+        for row in connection.execute("PRAGMA table_info(title_decompositions)")
+    )
+    if actual_columns != TITLE_DECOMPOSITIONS_COLUMNS:
+        raise ValueError(
+            "title_decompositions has unexpected columns: "
+            f"expected {TITLE_DECOMPOSITIONS_COLUMNS!r}, "
+            f"found {actual_columns!r}"
+        )
+
+    row = connection.execute(
+        "SELECT count(*) FROM title_decompositions"
+    ).fetchone()
+    assert row is not None
+    return int(row[0])
+
+
 def create_owned_table(
     connection: sqlite3.Connection,
     table_name: str,
 ) -> None:
-    """Create one empty importer-owned table with integrity constraints.
+    """Create one empty table whose DDL is defined internally by the importer.
 
     Args:
         connection: Open SQLite connection participating in the caller's
             transaction.
-        table_name: Exact supported owned-table name to create.
+        table_name: Exact supported internally defined table name to create.
 
     Returns:
         ``None``.
 
     Raises:
-        ValueError: If ``table_name`` is not owned by this importer.
+        ValueError: If ``table_name`` has no internally defined DDL.
         sqlite3.Error: If SQLite rejects the DDL or lacks required JSON
             functions.
 
@@ -2668,9 +2809,10 @@ def create_owned_table(
 def import_scheme(
     xml_path: Path,
     database_path: Path,
+    title_decompositions_path: Path,
     preserve_existing_tables: bool,
 ) -> dict[str, tuple[int, bool]]:
-    """Parse one scheme and transactionally populate every owned table.
+    """Populate XML-derived and manually curated tables transactionally.
 
     XML extraction stages always run in order so each kind is removed from the
     residual tree even when its existing base table is preserved. Base-table
@@ -2678,11 +2820,15 @@ def import_scheme(
     non-preserved writes occur together in one transaction.
 
     Args:
-        xml_path: IPC scheme XML file to parse as the source of truth.
+        xml_path: IPC scheme XML file serving as the source of truth for
+            XML-derived tables.
         database_path: SQLite file to create or reuse.
+        title_decompositions_path: Companion SQL file supplying the complete
+            ``title_decompositions`` DDL and data.
         preserve_existing_tables: When true, independently skip existing base
             tables and preserve the coupled ``places``/``places_references``
-            pair; when false, rebuild all owned tables.
+            pair and ``title_decompositions``; when false, rebuild all owned
+            tables.
 
     Returns:
         In deterministic table order, a mapping from table name to
@@ -2691,21 +2837,31 @@ def import_scheme(
 
     Raises:
         ET.ParseError: If the input is not well-formed XML.
-        OSError: If the XML or database path cannot be accessed.
+        OSError: If the XML, SQL, or database path cannot be accessed.
         ValueError: If source structure or reference content violates an
             explicitly checked importer invariant.
         sqlite3.Error: If the database cannot be opened, constrained rows
             cannot be inserted, or a transaction operation fails.
 
     Notes:
-        XML parsing and extraction occur before ``BEGIN IMMEDIATE``. Once the
-        transaction begins, any exception triggers an explicit rollback. The
-        SQLite connection context may create a previously absent database file,
-        but it cannot leave partially rebuilt owned tables.
+        XML parsing and extraction and any required companion-file read occur
+        before ``BEGIN IMMEDIATE``. Once the transaction begins, any exception
+        triggers an explicit rollback. The SQLite connection context may create
+        a previously absent database file, but it cannot leave partially
+        rebuilt owned tables.
     """
 
     with sqlite3.connect(database_path) as connection:
         require_sqlite_regexpi(connection)
+        title_decompositions_exists = table_exists(
+            connection,
+            "title_decompositions",
+        )
+        title_decompositions_script = None
+        if not (preserve_existing_tables and title_decompositions_exists):
+            title_decompositions_script = title_decompositions_path.read_text(
+                encoding="utf-8-sig"
+            )
         tree = ET.parse(xml_path)
         root = tree.getroot()
         group_types = collect_group_types(root)
@@ -2875,6 +3031,20 @@ def import_scheme(
                     + scope_count
                 )
                 results["places_references"] = (reference_count, False)
+
+            if preserve_existing_tables and title_decompositions_exists:
+                results["title_decompositions"] = (0, True)
+            else:
+                connection.execute("DROP TABLE IF EXISTS title_decompositions")
+                assert title_decompositions_script is not None
+                decomposition_count = import_title_decompositions_sql(
+                    connection,
+                    title_decompositions_script,
+                )
+                results["title_decompositions"] = (
+                    decomposition_count,
+                    False,
+                )
         except Exception:
             connection.rollback()
             raise
@@ -2902,7 +3072,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Import IPC subsection, guidance-heading, index-term, note, "
-            "classified-aspect, place, and place-reference data into SQLite."
+            "classified-aspect, place, place-reference, and manually curated "
+            "title-decomposition data into SQLite."
         ),
     )
     parser.add_argument(
@@ -2960,7 +3131,7 @@ def discover_scheme(directory: Path) -> Path:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Resolve the input, execute the import, and report table outcomes.
+    """Resolve XML and companion SQL inputs, import, and report outcomes.
 
     Args:
         argv: Optional command-line tokens excluding the executable name.
@@ -2989,10 +3160,14 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     database_path = xml_path.with_suffix(".db")
+    title_decompositions_path = (
+        Path.cwd() / TITLE_DECOMPOSITIONS_FILENAME
+    )
     try:
         results = import_scheme(
             xml_path,
             database_path,
+            title_decompositions_path,
             args.preserve_existing_tables,
         )
     except (ET.ParseError, OSError, sqlite3.Error, ValueError) as error:
