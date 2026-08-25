@@ -129,13 +129,14 @@ title part has no entry reference. There is no JSON object or positional
 ``residual_score`` is a virtual generated integer column. It adds the strongest
 matching member of each mutually exclusive provided-for, covered, and other
 lexical family, plus independent symbol evidence for normalized main groups
-``99/00`` and ``999/00``. Strong negative provided-for and covered matches
-permit zero through two intervening non-whitespace tokens after ``not``; the
-covered form accepts ``by``, ``in``, or ``elsewhere``. Its case-insensitive
-regular expressions use the deterministic two-argument SQLite function
-``regexpi(pattern, value)`` supplied by the built-in :file:`ext/misc/regexp.c`
-extension. Every SQLite client that reads or writes this schema must provide
-that function.
+``99/00`` and ``999/00``, or any symbol in class ``99``. These alternatives
+form one CASE expression and therefore contribute at most one symbol score.
+Strong negative provided-for and covered matches permit zero through two
+intervening non-whitespace tokens after ``not``; the covered form accepts
+``by``, ``in``, or ``elsewhere``. Its case-insensitive regular expressions use
+the deterministic two-argument SQLite function ``regexpi(pattern, value)``
+supplied by the built-in :file:`ext/misc/regexp.c` extension. Every SQLite
+client that reads or writes this schema must provide that function.
 
 Place references
 ----------------
@@ -2599,7 +2600,9 @@ def create_owned_table(
                     END
                     +
                     CASE
-                        WHEN substr(symbol, 5, 4) IN ('0099', '0999') THEN 3
+                        WHEN substr(symbol, 5, 4) IN ('0099', '0999')
+                          OR substr(symbol, 2, 2) = '99'
+                            THEN 3
                         ELSE 0
                     END
                 ) VIRTUAL

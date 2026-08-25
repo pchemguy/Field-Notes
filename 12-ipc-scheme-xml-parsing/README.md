@@ -173,7 +173,9 @@ residual_score INTEGER GENERATED ALWAYS AS (
     END
     +
     CASE
-        WHEN substr(symbol, 5, 4) IN ('0099', '0999') THEN 3
+        WHEN substr(symbol, 5, 4) IN ('0099', '0999')
+          OR substr(symbol, 2, 2) = '99'
+            THEN 3
         ELSE 0
     END
 ) VIRTUAL
