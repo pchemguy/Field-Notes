@@ -155,13 +155,25 @@ The column is defined as:
 ```sql
 residual_score INTEGER GENERATED ALWAYS AS (
     CASE
-        WHEN regexpi('\bnot( \S+){0,2} provided for\b', titlePart) THEN 4
+        WHEN regexpi('\bnot( \S+){0,2} provided for\b', titlePart) THEN
+            CASE
+                WHEN length(symbol) <= 4
+                 AND substr(symbol, 2, 2) <> '99'
+                    THEN 7
+                ELSE 4
+            END
         WHEN regexpi('\bprovided for\b', titlePart) THEN 1
         ELSE 0
     END
     +
     CASE
-        WHEN regexpi('\bnot( \S+){0,2} covered (by|in|elsewhere)\b', titlePart) THEN 4
+        WHEN regexpi('\bnot( \S+){0,2} covered (by|in|elsewhere)\b', titlePart) THEN
+            CASE
+                WHEN length(symbol) <= 4
+                 AND substr(symbol, 2, 2) <> '99'
+                    THEN 7
+                ELSE 4
+            END
         WHEN regexpi('\bcovered (by|in)\b', titlePart) THEN 1
         ELSE 0
     END

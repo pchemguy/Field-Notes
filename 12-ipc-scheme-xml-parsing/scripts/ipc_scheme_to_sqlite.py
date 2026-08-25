@@ -133,10 +133,12 @@ lexical family, plus independent symbol evidence for normalized main groups
 form one CASE expression and therefore contribute at most one symbol score.
 Strong negative provided-for and covered matches permit zero through two
 intervening non-whitespace tokens after ``not``; the covered form accepts
-``by``, ``in``, or ``elsewhere``. Its case-insensitive regular expressions use
-the deterministic two-argument SQLite function ``regexpi(pattern, value)``
-supplied by the built-in :file:`ext/misc/regexp.c` extension. Every SQLite
-client that reads or writes this schema must provide that function.
+``by``, ``in``, or ``elsewhere``. Either strong negative family scores ``7``
+instead of ``4`` when the symbol has at most four characters and is not in
+class ``99``. Its case-insensitive regular expressions use the deterministic
+two-argument SQLite function ``regexpi(pattern, value)`` supplied by the
+built-in :file:`ext/misc/regexp.c` extension. Every SQLite client that reads or
+writes this schema must provide that function.
 
 Place references
 ----------------
@@ -2576,7 +2578,13 @@ def create_owned_table(
                         WHEN regexpi(
                             '\\bnot( \\S+){0,2} provided for\\b',
                             titlePart
-                        ) THEN 4
+                        ) THEN
+                            CASE
+                                WHEN length(symbol) <= 4
+                                 AND substr(symbol, 2, 2) <> '99'
+                                    THEN 7
+                                ELSE 4
+                            END
                         WHEN regexpi('\\bprovided for\\b', titlePart) THEN 1
                         ELSE 0
                     END
@@ -2585,7 +2593,13 @@ def create_owned_table(
                         WHEN regexpi(
                             '\\bnot( \\S+){0,2} covered (by|in|elsewhere)\\b',
                             titlePart
-                        ) THEN 4
+                        ) THEN
+                            CASE
+                                WHEN length(symbol) <= 4
+                                 AND substr(symbol, 2, 2) <> '99'
+                                    THEN 7
+                                ELSE 4
+                            END
                         WHEN regexpi(
                             '\\bcovered (by|in)\\b',
                             titlePart
