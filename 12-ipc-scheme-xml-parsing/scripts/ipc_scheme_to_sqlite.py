@@ -243,6 +243,8 @@ JSON scalar functions such as ``json_valid`` and ``json_type``. The linked
 SQLite library must also build :file:`ext/misc/regexp.c` in so its deterministic
 ``regexpi`` function is available to the generated column. This revision was
 exercised with Python 3.12.13 and SQLite 3.53.1.
+
+https://chatgpt.com/c/6a867504-2564-83eb-a26a-52f11f60ea06
 """
 
 from __future__ import annotations
