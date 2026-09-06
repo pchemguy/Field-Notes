@@ -52,8 +52,6 @@ Each topic has its own folder containing a `README.md` and any supporting files.
 - [SQLitePackedBlob: compact storage for numeric arrays and embeddings](https://github.com/pchemguy/SQLitePackedBlob)
 - [SQLiteRegexpMatches: JSON arrays of regular-expression matches](https://github.com/pchemguy/SQLiteRegexpMatches)
 
-#### VBA Access and OOP Design
-
 #### VBA Database Access and OOP Design
 
 - [SecureADODB fork: exploring OOP-centric designs for database access](https://pchemguy.github.io/SecureADODB-Fork)
