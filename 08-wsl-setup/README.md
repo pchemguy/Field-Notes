@@ -1,4 +1,6 @@
-<!-- https://gemini.google.com/app/cf4f2fb394b7efe5 -->
+---
+url: https://gemini.google.com/app/cf4f2fb394b7efe5
+---
 
 # Setting up WSL for AI Development
 
