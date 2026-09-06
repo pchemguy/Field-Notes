@@ -36,13 +36,15 @@ Each topic has its own folder containing a `README.md` and any supporting files.
 - [Building and installing FFCV on Windows](https://github.com/pchemguy/FFCVonWindows)
 - [Testing C APIs directly with Pytest and CFFI](https://github.com/pchemguy/CFFI_Pytest_C_Testing)
 
-### SQLite: SQL and Data Modelling
+### SQLite
+
+#### SQL and Data Modelling
 
 - [Practical advanced SQL and SQLite notes](https://pchemguy.github.io/SQLite-SQL-Tutorial)
 - [Reverse engineering SQLite schemas with ERD Concepts](./notes/09-revengdb/README.md)
 - [SQLiteMP: materialized-path hierarchies in SQLite](https://github.com/pchemguy/SQLiteMP)
 
-### SQLite: Builds and Extensions
+#### Builds and Extensions
 
 - [Building SQLite and SQLiteODBC with ICU and additional extensions on Windows](https://pchemguy.github.io/SQLite-ICU-MinGW)
 - [Integrating loadable extensions into the SQLite amalgamation as auto-extensions](./notes/11-sqlite-msvc-build/README.md)
@@ -50,10 +52,10 @@ Each topic has its own folder containing a `README.md` and any supporting files.
 - [SQLitePackedBlob: compact storage for numeric arrays and embeddings](https://github.com/pchemguy/SQLitePackedBlob)
 - [SQLiteRegexpMatches: JSON arrays of regular-expression matches](https://github.com/pchemguy/SQLiteRegexpMatches)
 
-### SQLite and ADODB in VBA
+#### VBA Access and OOP Design
 
-- [SQLiteC for VBA: ADODB wrappers and direct SQLite C API access](https://github.com/pchemguy/SQLiteC-for-VBA)
-- [SecureADODB fork: modifications and alternative designs](https://pchemguy.github.io/SecureADODB-Fork)
+- [SQLiteC for VBA: designing OOP interfaces for direct SQLite C API and ADODB access](https://github.com/pchemguy/SQLiteC-for-VBA)
+- [SecureADODB fork: exploring alternative OOP database-access designs](https://pchemguy.github.io/SecureADODB-Fork)
 
 ### Patents
 
