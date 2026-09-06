@@ -84,4 +84,4 @@ nmake /f Makefile.msc "TOP=%DISTRODIR%" "EXTRA_SRC=%EXTRA_SRC%"
 
 I have also included a complete MSVC batch pipeline that downloads and builds SQLite, optionally builds ZLIB and ICU, prepares the selected modules, builds from a separate directory, and collects the resulting binaries.
 
-The full explanation and all scripts are available from [repository](https://github.com/pchemguy/Field-Notes/blob/main/11-sqlite-msvc-build/README.md).
+The full explanation and all scripts are available from [repository](https://github.com/pchemguy/Field-Notes/blob/main/notes/11-sqlite-msvc-build/README.md).

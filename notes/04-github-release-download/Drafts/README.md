@@ -7,11 +7,11 @@ https://gemini.google.com/app/538f45fab101cefe
 
 ## **Synopsis**
 
-|                      |                                                                                                                               |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| **Platform tested:** | Windows 10 LTSC 2021                                                                                                          |
-| **Main Script:**     | [GitHubRelease.bat](https://github.com/pchemguy/Field-Notes/blob/main/04-github-release-download/GitHubRelease.bat)           |
-| **Test Script:**     | [GitHubRelease_Test.bat](https://github.com/pchemguy/Field-Notes/blob/main/04-github-release-download/GitHubRelease_Test.bat) |
+|                      |                                                                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Platform tested:** | Windows 10 LTSC 2021                                                                                                                |
+| **Main Script:**     | [GitHubRelease.bat](https://github.com/pchemguy/Field-Notes/blob/main/notes/04-github-release-download/GitHubRelease.bat)           |
+| **Test Script:**     | [GitHubRelease_Test.bat](https://github.com/pchemguy/Field-Notes/blob/main/notes/04-github-release-download/GitHubRelease_Test.bat) |
 
 ### **Purpose**
 

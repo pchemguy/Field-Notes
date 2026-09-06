@@ -4,7 +4,7 @@ https://gemini.google.com/app/538f45fab101cefe
 
 # A Robust Script for Managing GitHub Binary Releases
 
-This document provides a detailed technical overview of [GitHubRelease.bat](https://github.com/pchemguy/Field-Notes/blob/main/04-github-release-download/GitHubRelease.bat), a command-line script for downloading and caching the latest binary releases from GitHub repositories. It is designed for `cmd.exe` (no PowerShell dependence) on Windows and relies on native or commonly available tools.
+This document provides a detailed technical overview of [GitHubRelease.bat](https://github.com/pchemguy/Field-Notes/blob/main/notes/04-github-release-download/GitHubRelease.bat), a command-line script for downloading and caching the latest binary releases from GitHub repositories. It is designed for `cmd.exe` (no PowerShell dependence) on Windows and relies on native or commonly available tools.
 
 ## Overview
 
@@ -22,7 +22,7 @@ Its entire workflow is controlled via environment variables, making it easy to i
 - **Metadata Parsing:** Uses `jq.exe` to parse GitHub's JSON metadata for high accuracy. If `jq` is not available, it will first attempt to download it. As a final resort, it gracefully falls back to the native Windows `findstr.exe` utility for RegEx-based parsing.
 - **Error Handling:** The script performs checks for all critical operations (dependency availability, network requests, file system actions) and exits early with a clear error message upon failure.
 - **Configurability:** All behavior is controlled through a clear set of environment variables.
-- **Included Testing:** The script includes internal routines for self-testing, which are executed if no external repository is specified. A companion [GitHubRelease_Test.bat](https://github.com/pchemguy/Field-Notes/blob/main/04-github-release-download/GitHubRelease_Test.bat) script provides more extensive test cases.
+- **Included Testing:** The script includes internal routines for self-testing, which are executed if no external repository is specified. A companion [GitHubRelease_Test.bat](https://github.com/pchemguy/Field-Notes/blob/main/notes/04-github-release-download/GitHubRelease_Test.bat) script provides more extensive test cases.
 
 See sample log [screenshots](./Screenshots.md).
 ## Prerequisites
@@ -135,7 +135,7 @@ endlocal & (set "JQ=%EXE_NAME%") & exit /b %EXIT_STATUS%
 
 ## Testing
 
-The project includes [GitHubRelease_Test.bat](https://github.com/pchemguy/Field-Notes/blob/main/04-github-release-download/GitHubRelease_Test.bat), a companion script that serves as a test suite. It invokes `GitHubRelease.bat` multiple times with different configurations to validate its functionality and robustness across various scenarios, including:
+The project includes [GitHubRelease_Test.bat](https://github.com/pchemguy/Field-Notes/blob/main/notes/04-github-release-download/GitHubRelease_Test.bat), a companion script that serves as a test suite. It invokes `GitHubRelease.bat` multiple times with different configurations to validate its functionality and robustness across various scenarios, including:
 - Successful direct and indirect downloads.
 - Expected failures from bad repository names.
 - Correct fallback from `jq` to `findstr`.

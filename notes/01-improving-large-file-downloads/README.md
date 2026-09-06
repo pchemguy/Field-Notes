@@ -1,6 +1,6 @@
 # Resuming Large File Downloads with Dynamic Links
 
-![](https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/01-improving-large-file-downloads/vis.jpg)
+![](https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/notes/01-improving-large-file-downloads/vis.jpg)
 
 ## Summary
 
@@ -29,7 +29,7 @@ Both solutions rely on the same core concept: continuing a session initiated in 
 
 ### Setup and Usage
 
-You'll need two files: the script **[download_wget.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_wget.bat)** and a *headers.txt* file (see example [here](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/headers.txt)).
+You'll need two files: the script **[download_wget.bat](https://github.com/pchemguy/Field-Notes/blob/main/notes/01-improving-large-file-downloads/download_wget.bat)** and a *headers.txt* file (see example [here](https://github.com/pchemguy/Field-Notes/blob/main/notes/01-improving-large-file-downloads/headers.txt)).
 
 1. **Locate wget:** The script is configured for "C:/dev/msys64/usr/bin/wget.exe". You should update this path or add wget to your system's `PATH`.
 2. **Create headers.txt:** Use your browser's developer tools (F12) to inspect the network request for your download and copy the main request headers (except for the cookie) into *headers.txt*.
@@ -68,7 +68,7 @@ The core command placed within the `goto` loop is:
 
 ### Setup and Usage
 
-You will need **[download_aria2.bat](https://github.com/pchemguy/Field-Notes/blob/main/01-improving-large-file-downloads/download_aria2.bat)** and the same *headers.txt* file. The setup steps are identical to wget: locate the executable, create *headers.txt*, and configure the script's variables.
+You will need **[download_aria2.bat](https://github.com/pchemguy/Field-Notes/blob/main/notes/01-improving-large-file-downloads/download_aria2.bat)** and the same *headers.txt* file. The setup steps are identical to wget: locate the executable, create *headers.txt*, and configure the script's variables.
 
 ### Execution Logic
 

@@ -1,6 +1,6 @@
 # Storage Considerations for a New PC, Part 2: Building a Dual-Purpose, Bootable USB Drive
 
-![](https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/02-storage-new-pc/vis2.jpg)
+![](https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/notes/02-storage-new-pc/vis2.jpg)
 
 ## Summary
 
@@ -10,7 +10,7 @@ The core of this project is Ventoy, a powerful tool that allows you to boot dire
 
 ## 1. Introduction
 
-In [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md) of this two-part series, we designed a resilient internal storage scheme for a new Windows workstation, a process that begins with a clean drive. Implementing that strategy requires an external, bootable medium to partition the system drive and perform a clean installation of the operating system. This guide covers the process of creating that essential tool: a versatile, multi-boot USB drive. The primary requirements are to support a full Windows To Go environment and standard Windows installation media, with the flexibility to boot other tools like system recovery suites and live Linux distributions.
+In [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/notes/02-storage-new-pc/README.md) of this two-part series, we designed a resilient internal storage scheme for a new Windows workstation, a process that begins with a clean drive. Implementing that strategy requires an external, bootable medium to partition the system drive and perform a clean installation of the operating system. This guide covers the process of creating that essential tool: a versatile, multi-boot USB drive. The primary requirements are to support a full Windows To Go environment and standard Windows installation media, with the flexibility to boot other tools like system recovery suites and live Linux distributions.
 
 A fast external Solid State Drive (SSD) is the ideal hardware for this task due to its speed and reliability. Since small-capacity SSDs are often poor value, a larger drive is more practical. This leads to our second core requirement: the drive must serve a dual purpose. It needs to function as our powerful multi-boot tool while the remaining space serves as a general-purpose drive for backups or portable applications. The goal is to achieve both of these functions on a single device without compromise.
 
@@ -117,7 +117,7 @@ The real power of this method is the ability to create a completely custom layou
 | Portable Programs |                     40 |                      50 |                     20 |
 | Archive           |               Variable |         Remaining space |                      - |
 
-Notice the unallocated space is strategically placed. As discussed in [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md), this space serves as a buffer for partition expansion and as SSD over-provisioning. However, Ventoy has a restriction: its main data partition (YUMI) and the VTOYEFI partition must be adjacent. This restriction means we cannot leave unallocated space directly after the YUMI partition. The workaround is to place the reserve space _after_ the VTOYEFI partition. If you ever need to expand the YUMI partition, use the following workflow:
+Notice the unallocated space is strategically placed. As discussed in [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/notes/02-storage-new-pc/README.md), this space serves as a buffer for partition expansion and as SSD over-provisioning. However, Ventoy has a restriction: its main data partition (YUMI) and the VTOYEFI partition must be adjacent. This restriction means we cannot leave unallocated space directly after the YUMI partition. The workaround is to place the reserve space _after_ the VTOYEFI partition. If you ever need to expand the YUMI partition, use the following workflow:
 1. **Delete the EFI Partition:** Use `diskpart` to delete the VTOYEFI partition (WDM will not allow this step).
 2. **Extend the Main Partition:** Use WDM or `diskpart` to extend the YUMI partition into the now-adjacent unallocated space.
 3. **Recreate the EFI Partition:** Run `Ventoy2Disk` and perform another "Non-destructive Install". Ventoy will automatically recreate the VTOYEFI partition in the correct location.
@@ -167,7 +167,7 @@ While WinToUSB offers the broadest support for source files, Rufus provides the 
 With the completion of this bootable drive, our two-part guide is now finished. You have not only designed a resilient internal storage architecture but also built the powerful, versatile tool required to deploy and maintain it.
 
 This single external drive now enables you to:
-- Implement the custom partitioning strategy from [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/README.md).
+- Implement the custom partitioning strategy from [Part 1](https://github.com/pchemguy/Field-Notes/blob/main/notes/02-storage-new-pc/README.md).
 - Perform clean installations of Windows or Linux.
 - Boot into a portable, configured Windows To Go environment.
 - Run a comprehensive suite of system recovery and diagnostic tools.

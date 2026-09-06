@@ -3,8 +3,8 @@ title: "Bootstrapping Python on Windows with Micromamba"
 published: true
 description: "A clean, deterministic way to build Python environments on Windows without shell hooks, registry edits, or broken installers. Use Micromamba only for what it does best."
 tags: ["python", "windows", "mamba"]
-cover_image: "https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/03-python-env-windows/visw.jpg"
-canonical_url: "https://github.com/pchemguy/Field-Notes/blob/main/03-python-env-windows/README.md"
+cover_image: "https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/notes/03-python-env-windows/visw.jpg"
+canonical_url: "https://github.com/pchemguy/Field-Notes/blob/main/notes/03-python-env-windows/README.md"
 ---
 
 Managing Python on Windows can feel like walking through quicksand. Between global installs, conflicting `PATH` entries, and "smart" shell hooks that modify your registry, things get messy fast.
@@ -90,4 +90,4 @@ No tricky commands, no hidden hooks. Just a clean environment that works as expe
 
 ## Final Words
 
-This approach provides a controlled and reproducible method for bootstrapping Python environments on Windows. By keeping the logic explicit and avoiding shell-level modifications, you get a robust setup that is easy to manage, version, and share. You can find the annotated `Micromamba_bootstrap.bat` script and additional information in the [project's GitHub repository](https://github.com/pchemguy/Field-Notes/blob/main/03-python-env-windows/README.md).
+This approach provides a controlled and reproducible method for bootstrapping Python environments on Windows. By keeping the logic explicit and avoiding shell-level modifications, you get a robust setup that is easy to manage, version, and share. You can find the annotated `Micromamba_bootstrap.bat` script and additional information in the [project's GitHub repository](https://github.com/pchemguy/Field-Notes/blob/main/notes/03-python-env-windows/README.md).

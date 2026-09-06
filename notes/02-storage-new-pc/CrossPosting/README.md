@@ -1,6 +1,6 @@
 # How I Still Partition My Drives for Streamlined Backup, Migration, and Failure Recovery
 
-[](https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/02-storage-new-pc/vis1.jpg)
+[](https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/notes/02-storage-new-pc/vis1.jpg)
 ## **TL;DR**
 
 - A single `C:` drive mixes disposable Windows system files with your irreplaceable data, making backups and recovery a nightmare.

@@ -1,7 +1,7 @@
 # Storage Considerations for a New PC, Part 1: Structuring Internal Storage for Robust Maintenance, Migration, and Failure Recovery
 
 
-![](https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/02-storage-new-pc/vis1.jpg)
+![](https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/notes/02-storage-new-pc/vis1.jpg)
 ## Summary
 
 This guide presents a resilient and practical strategy for structuring the internal storage of a new Windows workstation. The core philosophy is to move beyond a single C: drive and classify all data - from OS files to personal documents - based on its recovery cost, treating replaceable components differently from irreplaceable ones.
@@ -14,7 +14,7 @@ The setup of a new computer begins with a choice: accept the pre-installed opera
 
 This two-part series documents an approach I have refined for Windows-based workstations. In this Part 1, we will focus on the strategy for internal storage. This post establishes a set of principles for partitioning a system drive based on a file's role, volatility, and recovery cost. The goal is to create a logical structure that separates the ephemeral (the OS and basic applications) from the essential (your data and customized software environment), which in turn allows for a more efficient and resilient backup strategy.
 
-Implementing this storage architecture, of course, begins with a clean slate. To that end, **[Part 2: Building a Dual-Purpose, Bootable USB Drive](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/BootableUSBDrive.md)** details the creation of the necessary tool. It covers how to prepare a versatile drive that allows you to wipe a machine and apply this storage architecture from the ground up.
+Implementing this storage architecture, of course, begins with a clean slate. To that end, **[Part 2: Building a Dual-Purpose, Bootable USB Drive](https://github.com/pchemguy/Field-Notes/blob/main/notes/02-storage-new-pc/BootableUSBDrive.md)** details the creation of the necessary tool. It covers how to prepare a versatile drive that allows you to wipe a machine and apply this storage architecture from the ground up.
 
 ## 2. A Guiding Philosophy: Classifying Data by Recovery Cost
 
@@ -139,4 +139,4 @@ This blueprint provides a logical and resilient structure for your internal stor
 
 However, a plan is only as good as its implementation. This entire strategy begins with a clean installation of the operating system, which requires a bootable USB medium. In the next and final part of this series, we will focus on building that essential tool.
 
-**➡️ Continue to [Storage Considerations for a New PC, Part 2: Building a Dual-Purpose, Bootable USB Drive](https://github.com/pchemguy/Field-Notes/blob/main/02-storage-new-pc/BootableUSBDrive.md)**
+**➡️ Continue to [Storage Considerations for a New PC, Part 2: Building a Dual-Purpose, Bootable USB Drive](https://github.com/pchemguy/Field-Notes/blob/main/notes/02-storage-new-pc/BootableUSBDrive.md)**

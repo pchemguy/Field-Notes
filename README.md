@@ -28,20 +28,20 @@ The Table of Contents below also include references to closely related standalon
 ### System
 
 - Storage considerations for a new PC
-    - [Part 1: Structuring internal storage for robust migration and failure recovery](./02-storage-new-pc/README.md)
-    - [Part 2: Building a bootable USB drive](./02-storage-new-pc/BootableUSBDrive.md)
-- [Setting up WSL for AI development](./08-wsl-setup/README.md)
+    - [Part 1: Structuring internal storage for robust migration and failure recovery](./notes/02-storage-new-pc/README.md)
+    - [Part 2: Building a bootable USB drive](./notes/02-storage-new-pc/BootableUSBDrive.md)
+- [Setting up WSL for AI development](./notes/08-wsl-setup/README.md)
 
 ### Downloads and Git
 
-- [Resuming large file downloads with dynamic links](./01-improving-large-file-downloads/README.md) - A scripted `wget`/`aria2` solution for robustly downloading large files
-- [Scripted downloads of latest GitHub binary releases on Windows](./04-github-release-download/README.md)
-- [Resumable git clone for large code base and slow/unreliable connection](./07-resumable-git-clone/README.md)
+- [Resuming large file downloads with dynamic links](./notes/01-improving-large-file-downloads/README.md) - A scripted `wget`/`aria2` solution for robustly downloading large files
+- [Scripted downloads of latest GitHub binary releases on Windows](./notes/04-github-release-download/README.md)
+- [Resumable git clone for large code base and slow/unreliable connection](./notes/07-resumable-git-clone/README.md)
 
 ### Python Setup and Native Building
 
-- [Bootstrapping Python environments on Windows (via Micromamba)](./03-python-env-windows/README.md)
-- [Python pip fails to detect MSVC Build Tools on Windows](./05-python-pip-msvc/README.md)
+- [Bootstrapping Python environments on Windows (via Micromamba)](./notes/03-python-env-windows/README.md)
+- [Python pip fails to detect MSVC Build Tools on Windows](./notes/05-python-pip-msvc/README.md)
 - [Building and installing FFCV on Windows](https://github.com/pchemguy/FFCVonWindows)
 
 ### Python C API Testing
@@ -52,10 +52,10 @@ The Table of Contents below also include references to closely related standalon
 
 - [Advanced SQL/SQLite tutorial](https://pchemguy.github.io/SQLite-SQL-Tutorial)
 - [Building SQLite/SQLiteODBC with ICU and other extensions using MSVC and MinGW](https://pchemguy.github.io/SQLite-ICU-MinGW)
-- [Reverse engineering SQLite3 databases with ERD concepts](./09-revengdb/README.md)
+- [Reverse engineering SQLite3 databases with ERD concepts](./notes/09-revengdb/README.md)
 - [SQLiteMP - managing hierarchical category systems in SQLite](https://github.com/pchemguy/SQLiteMP)
-- [Integrating loadable extensions into SQLite amalgamation using MSVC toolchain](11-sqlite-msvc-build/README.md)
-- [SQLiteExtensionTemplate](https://github.com/pchemguy/SQLiteExtensionTemplate) - establishes a template for a C SQLite extension with [integrated building](11-sqlite-msvc-build/README.md) and [CFFI-based testing](https://github.com/pchemguy/CFFI_Pytest_C_Testing)
+- [Integrating loadable extensions into SQLite amalgamation using MSVC toolchain](notes/11-sqlite-msvc-build/README.md)
+- [SQLiteExtensionTemplate](https://github.com/pchemguy/SQLiteExtensionTemplate) - establishes a template for a C SQLite extension with [integrated building](notes/11-sqlite-msvc-build/README.md) and [CFFI-based testing](https://github.com/pchemguy/CFFI_Pytest_C_Testing)
 - [SQLitePackedBlob extension for transforming arrays between JSON and packed blob formats](https://github.com/pchemguy/SQLitePackedBlob)
 - [SQLiteRegexpMatches extension returning RegEx matches](https://github.com/pchemguy/SQLiteRegexpMatches)
 
@@ -66,12 +66,12 @@ The Table of Contents below also include references to closely related standalon
 
 ### Patents
 
-- [IPC scheme XML parsing notes](12-ipc-scheme-xml-parsing/README.md)
+- [IPC scheme XML parsing notes](notes/12-ipc-scheme-xml-parsing/README.md)
 
 ### AI-Assisted Development
 
 - [ChatGPT Exploratory Prompting](https://github.com/pchemguy/ChatGPTExploratoryPrompting)
-- [Greenfield development - from concept / idea to MVP](./10-ai-coding-prompts/README.md) - exploration of a prompting system and framework for AI-assisted (interactive and agentic) greenfield coding problem development
+- [Greenfield development - from concept / idea to MVP](./notes/10-ai-coding-prompts/README.md) - exploration of a prompting system and framework for AI-assisted (interactive and agentic) greenfield coding problem development
 
 ## Acknowledgments
 
