@@ -1,9 +1,10 @@
-<!--
-https://gemini.google.com/app/37bd5b95ab983a95
-https://gemini.google.com/app/cfef3eb756d8ccc6
-https://gemini.google.com/app/34a93568b8cf6672
-https://chatgpt.com/c/68e406d5-a274-8330-baae-5cd5e5bd795e
--->
+---
+urls:
+  - https://gemini.google.com/app/37bd5b95ab983a95
+  - https://gemini.google.com/app/cfef3eb756d8ccc6
+  - https://gemini.google.com/app/34a93568b8cf6672
+  - https://chatgpt.com/c/68e406d5-a274-8330-baae-5cd5e5bd795e
+---
 
 # Field-Notes
 
@@ -14,6 +15,7 @@ https://chatgpt.com/c/68e406d5-a274-8330-baae-5cd5e5bd795e
 This repository is my personal collection of technical notes, scripts, and solutions to the real-world problems I encounter as a tech professional. Think of it as a hybrid digital journal and personal knowledge base. Here, I document solutions for those often small but annoying IT issues that have tricky, non-obvious answers, as well as my exploration of various technical topics that spark my curiosity.
 
 This repo serves two main purposes:
+
 - A quick reference for my future self so I do not have to solve the same problem twice.
 - A public resource in the hope that these notes might help someone else facing a similar challenge.
 
