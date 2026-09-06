@@ -51,15 +51,15 @@ The Table of Contents below also include references to closely related standalon
 - [Advanced SQL/SQLite tutorial](https://pchemguy.github.io/SQLite-SQL-Tutorial)
 - [Building SQLite/SQLiteODBC with ICU and other extensions using MSVC and MinGW](https://pchemguy.github.io/SQLite-ICU-MinGW)
 - [Reverse engineering SQLite3 databases with ERD concepts](./09-revengdb/README.md)
-- [Managing hierarchical category systems in SQLite](https://github.com/pchemguy/SQLiteMP)
+- [SQLiteMP - managing hierarchical category systems in SQLite](https://github.com/pchemguy/SQLiteMP)
 - [Integrating loadable extensions into SQLite amalgamation using MSVC toolchain](11-sqlite-msvc-build/README.md)
-- [SQLite C extension template](https://github.com/pchemguy/SQLiteExtensionTemplate) - establishes a template for a C SQLite extension with [integrated building](11-sqlite-msvc-build/README.md) and [CFFI-based testing](https://github.com/pchemguy/CFFI_Pytest_C_Testing)
+- [SQLiteExtensionTemplate](https://github.com/pchemguy/SQLiteExtensionTemplate) - establishes a template for a C SQLite extension with [integrated building](11-sqlite-msvc-build/README.md) and [CFFI-based testing](https://github.com/pchemguy/CFFI_Pytest_C_Testing)
 - [SQLitePackedBlob extension for transforming arrays between JSON and packed blob formats](https://github.com/pchemguy/SQLitePackedBlob)
 - [SQLiteRegexpMatches extension returning RegEx matches](https://github.com/pchemguy/SQLiteRegexpMatches)
 
 ### SQLite in VBA
 
-- [SQLite library for VBA wrapping ADODB and SQLite C-language API](https://github.com/pchemguy/SQLiteC-for-VBA)
+- [SQLiteCforVBA library wrapping ADODB and SQLite C-language API](https://github.com/pchemguy/SQLiteC-for-VBA)
 - [SecureADODB fork exploratory](https://pchemguy.github.io/SecureADODB-Fork)
 
 ### Patents
