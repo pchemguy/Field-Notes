@@ -4,6 +4,7 @@ urls:
   - https://gemini.google.com/app/cfef3eb756d8ccc6
   - https://gemini.google.com/app/34a93568b8cf6672
   - https://chatgpt.com/c/68e406d5-a274-8330-baae-5cd5e5bd795e
+  - https://chatgpt.com/c/6a9d3d05-2d1c-83eb-af3a-16bb0c644d0f
 ---
 
 # Field-Notes
