@@ -19,8 +19,6 @@ Windows ships with the SQLite3 C-API library but lacks the high-level drivers re
 * **File System:**
     * `%SystemRoot%\System32\sqlite3odbc.dll` (64-bit)
     * `%SystemRoot%\SysWOW64\sqlite3odbc.dll` (32-bit)
-
-
 * **Registry Configuration:**
 
 ```registry
