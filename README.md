@@ -43,6 +43,7 @@ Each topic has its own folder containing a `README.md` and any supporting files.
 #### SQL and Data Modelling
 
 - [Practical advanced SQL and SQLite notes](https://pchemguy.github.io/SQLite-SQL-Tutorial)
+- [Exploring Zotero’s SQLite data model through direct database access](https://gist.github.com/pchemguy/19fa69fb4e74ef0cca0026aa0dbf5f42)
 - [Reverse engineering SQLite schemas with ERD Concepts](./notes/09-revengdb/README.md)
 - [SQLiteMP: materialized-path hierarchies in SQLite](https://github.com/pchemguy/SQLiteMP)
 
