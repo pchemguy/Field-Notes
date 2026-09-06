@@ -54,8 +54,8 @@ The Table of Contents below also include references to closely related standalon
 - [Managing hierarchical category systems in SQLite](https://github.com/pchemguy/SQLiteMP)
 - [Integrating loadable extensions into SQLite amalgamation using MSVC toolchain](11-sqlite-msvc-build/README.md)
 - [SQLite C extension template](https://github.com/pchemguy/SQLiteExtensionTemplate) - establishes a template for a C SQLite extension with [integrated building](11-sqlite-msvc-build/README.md) and [CFFI-based testing](https://github.com/pchemguy/CFFI_Pytest_C_Testing)
-- [SQLite extension for transforming arrays between JSON and packed blob formats](https://github.com/pchemguy/SQLitePackedBlob)
-- [SQLite extension returning RegEx matches](https://github.com/pchemguy/SQLiteRegexpMatches)
+- [SQLitePackedBlob extension for transforming arrays between JSON and packed blob formats](https://github.com/pchemguy/SQLitePackedBlob)
+- [SQLiteRegexpMatches extension returning RegEx matches](https://github.com/pchemguy/SQLiteRegexpMatches)
 
 ### SQLite in VBA
 
