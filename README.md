@@ -19,23 +19,56 @@ This repo serves two main purposes:
 
 Each topic is contained within its own folder. Inside each folder, you will find a `README.md` file that details the problem and the step-by-step solution, along with any necessary scripts or configuration files. This repository is a living document, and its structure will evolve as I add more notes. Please consider everything a work-in-progress.
 
+The Table of Contents below also include references to closely related standalone repositories, which can be considered as "promoted" notes.
+
 ## Table of Contents
 
-- [Resuming Large File Downloads with Dynamic Links](./01-improving-large-file-downloads/README.md) - A scripted `wget`/`aria2` solution for robustly downloading large files
-- Storage Considerations for a New PC (A Two-Part Series)
-    - [Part 1: Structuring Internal Storage for Robust Migration and Failure Recovery](./02-storage-new-pc/README.md)
-    - [Part 2: Building a Bootable USB Drive](./02-storage-new-pc/BootableUSBDrive.md)
-- [Bootstrapping Python Environments on Windows (via Micromamba)](./03-python-env-windows/README.md)
-- [Scripted Downloads of Latest GitHub Binary Releases on Windows](./04-github-release-download/README.md)
-- [Python pip Fails to Detect MSVC Build Tools on Windows](./05-python-pip-msvc/README.md)
+### System
+
+- Storage considerations for a new PC
+    - [Part 1: Structuring internal storage for robust migration and failure recovery](./02-storage-new-pc/README.md)
+    - [Part 2: Building a bootable USB drive](./02-storage-new-pc/BootableUSBDrive.md)
+- [Setting up WSL for AI development](./08-wsl-setup/README.md)
+
+### Downloads and Git
+
+- [Resuming large file downloads with dynamic links](./01-improving-large-file-downloads/README.md) - A scripted `wget`/`aria2` solution for robustly downloading large files
+- [Scripted downloads of latest GitHub binary releases on Windows](./04-github-release-download/README.md)
 - [Resumable git clone for large code base and slow/unreliable connection](./07-resumable-git-clone/README.md)
-- [Setting up WSL for AI Development](./08-wsl-setup/README.md)
-- [Reverse Engineering SQLite3 Databases with ERD Concepts](./09-revengdb/README.md)
-- [Greenfield Development - from Concept / Idea to MVP](./10-ai-coding-prompts/README.md) - exploration of a prompting system and framework for AI-assisted (interactive and agentic) greenfield coding problem development
-- [Integrating Loadable Extensions into SQLite Amalgamation using MSVC Toolchain](11-sqlite-msvc-build/README.md)
-- [Direct C API Testing with Pytest and CFFI](https://github.com/pchemguy/CFFI_Pytest_C_Testing) (standalone note)
-- [SQLite C Extension Template](https://github.com/pchemguy/SQLiteExtensionTemplate) - establishes a template for a C SQLite extension with [integrated building](11-sqlite-msvc-build/README.md) and [CFFI-based testing](https://github.com/pchemguy/CFFI_Pytest_C_Testing) (standalone note)
-- [IPC Scheme XML Parsing Notes](12-ipc-scheme-xml-parsing/README.md)
+
+### Python Setup and Native Building
+
+- [Bootstrapping Python environments on Windows (via Micromamba)](./03-python-env-windows/README.md)
+- [Python pip fails to detect MSVC Build Tools on Windows](./05-python-pip-msvc/README.md)
+- [Building and installing FFCV on Windows](https://github.com/pchemguy/FFCVonWindows)
+
+### Python C API Testing
+
+- [Direct C API testing with Pytest and CFFI](https://github.com/pchemguy/CFFI_Pytest_C_Testing)
+
+### SQLite
+
+- [Advanced SQL/SQLite tutorial](https://pchemguy.github.io/SQLite-SQL-Tutorial)
+- [Building SQLite/SQLiteODBC with ICU and other extensions using MSVC and MinGW](https://pchemguy.github.io/SQLite-ICU-MinGW)
+- [Reverse engineering SQLite3 databases with ERD concepts](./09-revengdb/README.md)
+- [Managing hierarchical category systems in SQLite](https://github.com/pchemguy/SQLiteMP)
+- [Integrating loadable extensions into SQLite amalgamation using MSVC toolchain](11-sqlite-msvc-build/README.md)
+- [SQLite C extension template](https://github.com/pchemguy/SQLiteExtensionTemplate) - establishes a template for a C SQLite extension with [integrated building](11-sqlite-msvc-build/README.md) and [CFFI-based testing](https://github.com/pchemguy/CFFI_Pytest_C_Testing)
+- [SQLite extension for transforming arrays between JSON and packed blob formats](https://github.com/pchemguy/SQLitePackedBlob)
+- [SQLite extension returning RegEx matches](https://github.com/pchemguy/SQLiteRegexpMatches)
+
+### SQLite in VBA
+
+- [SQLite library for VBA wrapping ADODB and SQLite C-language API](https://github.com/pchemguy/SQLiteC-for-VBA)
+- [SecureADODB fork exploratory](https://pchemguy.github.io/SecureADODB-Fork)
+
+### Patents
+
+- [IPC scheme XML parsing notes](12-ipc-scheme-xml-parsing/README.md)
+
+### Miscellaneous
+
+- [Greenfield development - from concept / idea to MVP](./10-ai-coding-prompts/README.md) - exploration of a prompting system and framework for AI-assisted (interactive and agentic) greenfield coding problem development
 
 ## Acknowledgments
 
