@@ -54,8 +54,10 @@ Each topic has its own folder containing a `README.md` and any supporting files.
 
 #### VBA Access and OOP Design
 
-- [SQLiteC for VBA: designing OOP interfaces for direct SQLite C API and ADODB access](https://github.com/pchemguy/SQLiteC-for-VBA)
-- [SecureADODB fork: exploring alternative OOP database-access designs](https://pchemguy.github.io/SecureADODB-Fork)
+#### VBA Database Access and OOP Design
+
+- [SecureADODB fork: exploring OOP-centric designs for database access](https://pchemguy.github.io/SecureADODB-Fork)
+- [SQLiteC for VBA: designing OOP interfaces for SQLite access via ADODB and directly through the C API](https://github.com/pchemguy/SQLiteC-for-VBA)
 
 ### Patents
 
