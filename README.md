@@ -68,8 +68,9 @@ The Table of Contents below also include references to closely related standalon
 
 - [IPC scheme XML parsing notes](12-ipc-scheme-xml-parsing/README.md)
 
-### Miscellaneous
+### AI-Assisted Development
 
+- [ChatGPT Exploratory Prompting](https://github.com/pchemguy/ChatGPTExploratoryPrompting)
 - [Greenfield development - from concept / idea to MVP](./10-ai-coding-prompts/README.md) - exploration of a prompting system and framework for AI-assisted (interactive and agentic) greenfield coding problem development
 
 ## Acknowledgments
