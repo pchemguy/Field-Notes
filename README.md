@@ -72,4 +72,4 @@ The Table of Contents below also include references to closely related standalon
 
 ## Acknowledgments
 
-The solutions and documentation in this repository were developed with active assistance from Google's Gemini Pro for brainstorming, code generation, and the refinement of code and text. GitHub Copilot was also used, particularly for drafting commit messages. All solutions have been tested and validated by the author.
+The solutions and documentation in this repository were developed with active AI assistance (mainly, Google Gemini and OpenAI ChatGPT) for brainstorming, code generation, and the refinement of code and text.
