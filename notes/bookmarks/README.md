@@ -13,6 +13,7 @@
 | LLM-CLI                                    |               |
 | LLM-Knowledge-Base                         |               |
 | MePic                                      |               |
+| Meta-Prompts                               |               |
 | NLP_Tools                                  |               |
 | Notes                                      |               |
 | ObsidianVault                              |               |
