@@ -66,8 +66,10 @@ Each topic has its own folder containing a `README.md` and any supporting files.
 
 ### AI-Assisted Development
 
+- [AI Disclosure Template](./notes/13-ai-disclosure-template/AI_DISCLOSURE.md)
 - [Exploratory prompting with ChatGPT](https://github.com/pchemguy/ChatGPTExploratoryPrompting)
 - [Greenfield development: from problem or idea to MVP](./notes/10-ai-coding-prompts/README.md)
+- [Markdown per-heading byte counts](https://github.com/pchemguy/Markdown-Stats)
 
 ## Acknowledgments
 
