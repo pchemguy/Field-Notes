@@ -60,9 +60,9 @@ Each topic has its own folder containing a `README.md` and any supporting files.
 - [SecureADODB fork: exploring OOP-centric designs for database access](https://pchemguy.github.io/SecureADODB-Fork)
 - [SQLiteC for VBA: designing OOP interfaces for SQLite access via ADODB and directly through the C API](https://github.com/pchemguy/SQLiteC-for-VBA)
 
-### Patents
+### AI Skills
 
-- [Parsing and relationally modelling the IPC scheme XML](./notes/12-ipc-scheme-xml-parsing/README.md)
+- [Technical Writing Assistant](https://github.com/pchemguy/Skill-Technical-Writing-Assistant)
 
 ### AI-Assisted Development
 
@@ -70,6 +70,10 @@ Each topic has its own folder containing a `README.md` and any supporting files.
 - [Exploratory prompting with ChatGPT](https://github.com/pchemguy/ChatGPTExploratoryPrompting)
 - [Greenfield development: from problem or idea to MVP](./notes/10-ai-coding-prompts/README.md)
 - [Markdown per-heading byte counts](https://github.com/pchemguy/Markdown-Stats)
+
+### Patents
+
+- [Parsing and relationally modelling the IPC scheme XML](./notes/12-ipc-scheme-xml-parsing/README.md)
 
 ## Acknowledgments
 
