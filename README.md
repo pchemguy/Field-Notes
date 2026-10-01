@@ -63,6 +63,7 @@ Each topic has its own folder containing a `README.md` and any supporting files.
 ### AI Skills
 
 - [Technical Writing Assistant](https://github.com/pchemguy/Skill-Technical-Writing-Assistant)
+- [Agent Skill and Plugin Assistant](https://github.com/pchemguy/Skill-Agent-Package-Author)
 
 ### AI-Assisted Development
 
