@@ -72,7 +72,7 @@ Each topic has its own folder containing a `README.md` and any supporting files.
 - [Exploratory prompting with ChatGPT](https://github.com/pchemguy/ChatGPTExploratoryPrompting)
 - [Greenfield development: from problem or idea to MVP](./notes/10-ai-coding-prompts/README.md)
 - [Markdown per-heading byte counts](https://github.com/pchemguy/Markdown-Stats)
-
+- [Running Antigravity App on Windows without PowerShell](notes/14-antigravity-win-run-command/README.md)
 ### Patents
 
 - [Parsing and relationally modelling the IPC scheme XML](./notes/12-ipc-scheme-xml-parsing/README.md)
