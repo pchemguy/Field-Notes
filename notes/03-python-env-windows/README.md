@@ -1,97 +1,60 @@
-# **Bootstrapping Python Environments on Windows**
+# Bootstrapping Python Environments on Windows
 
-![](https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/main/notes/03-python-env-windows/vis.jpg)
+![Bootstrapping Python environments on Windows](vis.jpg)
 
-This document describes a simplified and reproducible workflow for initializing Conda-based Python environments on Windows **without relying on shell initialization or automatic activation**. The approach focuses on transparent environment construction, deterministic behavior, and compatibility with standard Python tools. The presented method eliminates issues related to Micromamba’s shell hook logic and implicit state persistence while maintaining a lightweight structure. All essential actions - environment creation, configuration, and activation - are performed through explicit commands defined in dedicated batch scripts.
+I wanted each Windows project to have its own Python and package managers, with a plain Command Prompt usable before and after a build. Micromamba solved the first problem because its standalone executable can create a Conda environment at a chosen path before Python is installed. For the second, I use the environment’s own `conda.bat` to activate it in the CMD session that needs it.
 
-The repository contains:
-- Two annotated batch scripts implementing the described workflow:  
-    - [Micromamba_bootstrap.bat](https://github.com/pchemguy/Field-Notes/blob/main/notes/03-python-env-windows/Micromamba_bootstrap.bat)
-    - [get_sed.bat](https://github.com/pchemguy/Field-Notes/blob/main/notes/03-python-env-windows/get_sed.bat)
-- This README, providing background, design notes, and usage documentation.
-- Drafts and raw discovery/exploration notes containing broader or more technical details not currently included in the main text.
+The maintained implementation is the [Conda Bootstrap Windows harness](https://github.com/pchemguy/Conda-Bootstrap#windows-harness). `Anaconda.bat` builds the environment once. `conda_far.bat` opens it for everyday work. The [original single-script prototype](Micromamba_bootstrap.bat) is preserved here as a legacy artifact. The workflow below uses the maintained harness.
 
-Together, these materials form a concise reference implementation for controlled Micromamba-based environment bootstrapping on Windows.
+## Create the project environment
 
-## **Background and Motivation**
+Copy the **contents** of the [Windows harness directory](https://github.com/pchemguy/Conda-Bootstrap/tree/main/windows) into the local directory that will hold the project environment. For example, with `Anaconda.bat` in `D:\Dev\MyProject`, the resulting interpreter is `D:\Dev\MyProject\Anaconda\python.exe`. Pick the final location before building because installed wrappers can contain absolute paths.
 
-Traditional Python environment management assumes a system-level Python installation that serves as the base interpreter for user-created virtual environments.  
-While this approach is common, it introduces several fragility points:
-- Environment activation relies on environment variable inheritance (`PATH`, `PYTHONPATH`), which can inadvertently reference the wrong interpreter.
-- Misordered `PATH` entries may cause silent fallback to system installations rather than failing loudly.
-- Shell initialization files or activation hooks may persist undesired configurations across sessions.
+Edit the manifests beside `Anaconda.bat` before the first run.
 
-An alternative workflow can be applied on Windows, which does not integrate a system-level Python environment. The workflow described here adopts a more isolated and deterministic approach:
-- **No system-wide (root/base) Python installation** - every environment is self-contained.
-- **At most one environment per shell** - each shell session is either clean or linked to exactly one environment.
-- **No environment switching in spawned child shells.**
-- **No persistent shell hooks or autorun modifications.**
+| File | What to put in it |
+| --- | --- |
+| `Anaconda_bootstrap.yml` | Python and the base tools. To select Python 3.12, change the `python` entry under `dependencies` to `python=3.12`. The supplied base also includes Conda, Mamba, Micromamba, uv, and pytest. |
+| `Anaconda.yml` | Conda project dependencies. The supplied manifest includes Node.js, NumPy, pandas, and Polars. |
+| `Anaconda.txt` | Python requirements to install with uv after the Conda packages, including packages from PyPI or direct wheel URLs. |
 
-This design ensures that each environment can be created, activated, and destroyed independently without side effects or interference.
+**Before the first run**, check the pip and uv caches under `%LOCALAPPDATA%`. The harness replaces `pip\cache` and `uv\cache` with junctions to a shared cache, deleting the contents of existing ordinary directories at those paths. To choose the shared cache, set `_CACHE` to an existing writable directory. On the Conda path, the bootstrap also pauses before recursively deleting an existing `%APPDATA%\mamba`. The `/q` option skips that pause.
 
-## **Why Micromamba**
+On x64 Windows, open a Command Prompt with `curl.exe` and `tar.exe` available and no other Python or Conda installation on `PATH`. Run the bootstrap from the directory containing the copied files.
 
-The primary objective is to use a command line bootstrapping tool to create a minimal standalone environment containing:
-- A specific (or latest by default) version of Python.
-- One or more package managers (e.g., Conda and Mamba within the Conda ecosystem).
-
-Once created, this environment is self-sufficient and can be activated via standard scripts provided by the package managers. All subsequent package management operations (installing, updating, exporting) are handled within the environment itself.
-
-Micromamba is a single, dependency-free executable designed for bootstrapping and managing Conda-based environments. It provides the same functionality as Conda and Mamba for environment creation and package installation but does not require an existing Python installation.
-
-However, the official Windows-related Micromamba documentation is lacking, while the provided installation script, `install.bat`, is broken. Further,
-Micromamba's default behavior - particularly the `shell init` and `shell hook` mechanisms - introduces complications on Windows, including:
-- Registry modifications (via `AutoRun`) that affect all future `cmd.exe` sessions.
-- Non-portable activation logic relying on parent shell state.
-- Hard-coded absolute paths in generated scripts.
-
-These issues can be completely avoided by not initializing the shell at all. Instead, a custom bootstrap script uses *micromamba.exe* for creation of the new environment - the process not requiring any mandatory environment configuration, though `CONDA_PKGS_DIRS` should be set to point to package cache directory.
-
-## **Core Workflow and Usage**
-
-The provided batch script, `Micromamba_bootstrap.bat`, acts as a deterministic environment constructor. It downloads Micromamba (if unavailable) and then builds the target Python environment in a designated empty directory with minimal side effects. The recommended usage pattern involves two stages:
-
-### **1. Bootstrap phase**
-
-The bootstrap script is called once to create a standalone environment containing Python (for example, 3.12, optional), Mamba, and Conda:
-
-```batch
-Micromamba_bootstrap.bat my_env 3.12
+```bat
+cd /d D:\Dev\MyProject
+Anaconda.bat
 ```
 
-This call performs the following key steps:
-- **Download Micromamba (if not present)**  
-    Retrieves the latest binary from the official release channel.
-- **Create a new environment**  
-    Initializes a self-contained environment under `%ENV_PREFIX%` via `micromamba.exe create -p "%ENV_PREFIX%" python=3.12 mamba conda`  
-- **Activate the environment**  
-    Calls a standard script (e.g., `conda.bat`) to enable the environment.
+The bootstrap downloads or reuses Micromamba and uv, then calls `micromamba.exe create` with the bootstrap YAML and an explicit prefix. It calls `conda_far.bat /preactivate` to activate that prefix and checks its Python. A full run applies `Anaconda.yml` with Mamba. It then processes any `*.req.txt` files with pip, followed by `requirements.txt` and `Anaconda.txt` with uv when present. It writes `Anaconda_generated.yml` (Conda export) and `Anaconda.pip.txt` (Python package list) beside the batch file and returns to the original prompt. The supplied manifests leave versions open, so a fresh solve can select newer packages.
 
-### **2. Build and operational phase**
+Use `Anaconda.bat /init` for the base alone. Once `Anaconda\python.exe` exists, `Anaconda.bat` returns success immediately. That includes a base-only install or a run that failed after creating Python. To rebuild with the full manifests, move the old prefix aside and run the bootstrap again. [Windows bootstrap reference](https://github.com/pchemguy/Conda-Bootstrap/blob/main/windows/Anaconda.md)
 
-Subsequent installation of required packages is performed by user scripts placed within the new environment. Such scripts can use relative paths to activate the environment via standard `conda.bat` or `mamba.bat` wrappers. After activation, all management tasks (install, update, export) are handled using Conda or Mamba within the active environment.
+## Work in the environment
 
-## **Notes**
+From the local harness directory, run `conda_far.bat`. It activates `Anaconda\`, calls any sibling `config_*.bat` files, and starts FAR Manager if available or an interactive Command Prompt otherwise. In that session, check which interpreter your build will use.
 
-1. `micromamba.exe` is called only once directly from `Micromamba_bootstrap.bat` without shell initialization to create a minimal self-contained environment.
-2. While `conda.bat` is portable, Mamba/Micromamba generate `mamba.bat` with hard-coded absolute paths, reducing portability. The bootstrap script attempts to patch this script, but other hard-coded paths remain, so full portability is not guaranteed.
-3. Attempts to use `micromamba.exe` for activation failed persistently, even when invoking `mamba_hook.bat` as documented. The latter does not set `MAMBA_ROOT_PREFIX`, unlike `mamba.bat` generated by the `micromamba shell hook` command.    
-4. Within an active environment, both binaries (`conda.exe`, `mamba.exe`) and script wrappers (`conda.bat`, `mamba.bat`) are on the `PATH`. Since commands are typically called without an extension, the module used (binary vs. wrapper) depends on `PATH` order and resolution. Wrappers will take precedence if their directory (`{env_root}\condabin`) appears before binary directories (`{env_root}\Scripts` or `{env_root}\Library\bin`).
+```bat
+python -c "import sys; print(sys.executable)"
+```
 
->[!WARNING]
->
->`micromamba.exe` may fail silently (when executed without any arguments, it should normally produce usage information in console) if `micromamba.exe shell hook -s cmd.exe` is executed (no console output is produced at all, though %ERRORLEVEL% should be set to non-zero value). This command creates a directory `%APPDATA%\mamba` with scripts. These scripts are not needed for creating environment. If silent failure is observed, make sure to delete `%APPDATA%\mamba`, if exists.
+For the example above, this prints `D:\Dev\MyProject\Anaconda\python.exe`. To run project commands from a batch file of your own, place it beside the launcher and use `/batch` so execution returns to your script with the environment active.
 
-## **Summary and Outlook**
+```bat
+@echo off
+setlocal EnableExtensions EnableDelayedExpansion
+call "%~dp0conda_far.bat" /batch
+if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
+python --version
+```
 
-The presented workflow provides a controlled and reproducible method for bootstrapping Conda-based Python environments on Windows without relying on shell initialization or persistent configuration. By consolidating all environment setup logic into explicit, script-driven commands, it ensures predictable, self-contained operation while avoiding the side effects of Micromamba’s shell hooks.
+When the sibling `msbuild.bat` is present, the launcher asks it to detect and activate an installed x64 MSVC toolchain. If the tools cannot be found, activation stops and the helper points to installation instructions. Installation is manual. The separate [pip and MSVC field note](../05-python-pip-msvc/README.md) covers compiler discovery and the MSYS `link.exe` name collision. See the [launcher reference](https://github.com/pchemguy/Conda-Bootstrap/blob/main/windows/conda_far.md) for single-command execution and configuration hooks.
 
-This approach emphasizes:
-- **Transparency:** all steps are explicit and inspectable.
-- **Simplicity:** implemented entirely in `cmd.exe` batch syntax, without PowerShell dependency.
-- **Isolation:** no global variables or registry entries are modified.
-- **Reproducibility:** identical environments can be reconstructed from the same script and version inputs.
-- **Portability:** environments remain largely relocatable and independent of system configuration.
-- **Robustness:** no hidden dependencies on global state or transient shell settings.
+## Why I use the installed Conda wrapper
 
-While the current implementation fully addresses the initialization and activation stages, further refinements could improve portability by eliminating residual absolute paths and adding sample scripts for subsequent environment building or activation - though these processes rely entirely on standard workflows of conventional package managers.
+**Shell initialization and activation have different lifetimes.** In my original CMD tests, `micromamba shell init` could register an `AutoRun` command that affected subsequent Command Prompts. I also tried calling `mamba_hook.bat` directly. In the version I tested, it left `MAMBA_ROOT_PREFIX` unset, while the wrapper generated through `micromamba shell hook` set it. Creating a prefix with `micromamba.exe create` needs neither step. Once the prefix exists, the harness calls its `condabin\conda.bat` explicitly.
+
+**A shell-hook experiment left persistent files.** After running `micromamba.exe shell hook -s cmd.exe`, I saw files under `%APPDATA%\mamba` and subsequent Micromamba invocations sometimes produced no console output, even when I expected the usage text. In that situation, `echo %ERRORLEVEL%` immediately after the command is more informative than an empty console. This is the history behind the bootstrap’s cleanup of that directory.
+
+**The command name can hide which file CMD runs.** An active prefix can expose both `conda.bat` and `conda.exe`, or `mamba.bat` and `mamba.exe`. Their locations on `PATH` affect which one a bare command selects. That matters for activation because a batch wrapper can change the calling CMD environment. The harness calls the wrapper by path. In the earlier prototype I also tried rewriting absolute paths in generated Mamba wrappers with [a sed helper](get_sed.bat). The current harness uses the installed wrappers as supplied. If a project moves, rebuild its prefix at the destination.

@@ -7,6 +7,8 @@ cover_image: "https://raw.githubusercontent.com/pchemguy/Field-Notes/refs/heads/
 canonical_url: "https://github.com/pchemguy/Field-Notes/blob/main/notes/03-python-env-windows/README.md"
 ---
 
+> **Historical version.** This article describes the original prototype. For the maintained Windows harness and current setup instructions, see the [updated field note](./README.md).
+
 Managing Python on Windows can feel like walking through quicksand. Between global installs, conflicting `PATH` entries, and "smart" shell hooks that modify your registry, things get messy fast.
 
 This post documents a cleaner alternative. The workflow uses a standalone tool, [Micromamba](https://github.com/mamba-org/micromamba-releases), and a simple batch script to create Conda-based environments that are lightweight, deterministic, and transparent. It avoids shell initialization, activation hooks, and registry pollution entirely.
@@ -90,4 +92,4 @@ No tricky commands, no hidden hooks. Just a clean environment that works as expe
 
 ## Final Words
 
-This approach provides a controlled and reproducible method for bootstrapping Python environments on Windows. By keeping the logic explicit and avoiding shell-level modifications, you get a robust setup that is easy to manage, version, and share. You can find the annotated `Micromamba_bootstrap.bat` script and additional information in the [project's GitHub repository](https://github.com/pchemguy/Field-Notes/blob/main/notes/03-python-env-windows/README.md).
+This approach provides a controlled and reproducible method for bootstrapping Python environments on Windows. By keeping the logic explicit and avoiding shell-level modifications, you get a robust setup that is easy to manage, version, and share. The [original annotated batch script](./Micromamba_bootstrap.bat) is preserved alongside this article as a legacy artifact.
