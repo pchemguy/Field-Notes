@@ -4,7 +4,9 @@
 
 I wanted each Windows project to have its own Python and package managers, with a plain Command Prompt usable before and after a build. Micromamba solved the first problem because its standalone executable can create a Conda environment at a chosen path before Python is installed. For the second, I use the environment’s own `conda.bat` to activate it in the CMD session that needs it.
 
-The maintained implementation is the [Conda Bootstrap Windows harness](https://github.com/pchemguy/Conda-Bootstrap#windows-harness). `Anaconda.bat` builds the environment once. `conda_far.bat` opens it for everyday work. The [original single-script prototype](Micromamba_bootstrap.bat) is preserved here as a legacy artifact. The workflow below uses the maintained harness.
+On Windows, the [Conda Bootstrap CMD harness](https://github.com/pchemguy/Conda-Bootstrap#windows-harness) uses `Anaconda.bat` to build the environment and `conda_far.bat` to open it for everyday work. The [original single-script prototype](Micromamba_bootstrap.bat) is preserved here as a legacy artifact.
+
+Conda Bootstrap also provides a **Linux variant for Bash**. From the directory containing the copied Linux harness, run `bash ./Anaconda.sh` to create the local `Anaconda/` environment, then `source ./Anaconda_activate.sh` to activate it in the current shell. [Linux setup and usage](https://github.com/pchemguy/Conda-Bootstrap#linux-harness)
 
 ## Create the project environment
 
