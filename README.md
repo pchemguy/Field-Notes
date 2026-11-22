@@ -34,6 +34,7 @@ Each topic has its own folder containing a `README.md` and any supporting files.
 ### Python and Native-Code Development
 
 - [Bootstrapping reproducible Python environments on Windows with Micromamba](./notes/03-python-env-windows/README.md)
+- [Conda Bootstrap harness for Windows/CMD and Linux/Bash](https://github.com/pchemguy/Conda-Bootstrap).
 - [Working around pip failure to detect MSVC Build Tools](./notes/05-python-pip-msvc/README.md)
 - [Building and installing FFCV on Windows](https://github.com/pchemguy/FFCVonWindows)
 - [Testing C APIs directly with Pytest and CFFI](https://github.com/pchemguy/CFFI_Pytest_C_Testing)
