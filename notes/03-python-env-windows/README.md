@@ -9,7 +9,8 @@ On Windows, the [Conda Bootstrap CMD harness](https://github.com/pchemguy/Conda-
 Conda Bootstrap also provides a **Linux variant for Bash**. From the directory containing the copied Linux harness, run `bash ./Anaconda.sh` to create the local `Anaconda/` environment, then `source ./Anaconda_activate.sh` to activate it in the current shell. [Linux setup and usage](https://github.com/pchemguy/Conda-Bootstrap#linux-harness)
 
 > [!NOTE]
-> I keep my customized Conda Bootstrap setups in [my private `aipg` repository](https://github.com/pchemguy/aipg/tree/main/Python%20Bootsrap).
+> 
+> *Note to myself: customized Conda Bootstrap setups are  collected in a private [`aipg` repository](https://github.com/pchemguy/aipg/tree/main/Python%20Bootsrap).*
 
 ## Background and Motivation
 
