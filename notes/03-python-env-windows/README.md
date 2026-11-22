@@ -8,6 +8,19 @@ On Windows, the [Conda Bootstrap CMD harness](https://github.com/pchemguy/Conda-
 
 Conda Bootstrap also provides a **Linux variant for Bash**. From the directory containing the copied Linux harness, run `bash ./Anaconda.sh` to create the local `Anaconda/` environment, then `source ./Anaconda_activate.sh` to activate it in the current shell. [Linux setup and usage](https://github.com/pchemguy/Conda-Bootstrap#linux-harness)
 
+## Background and Motivation
+
+A common Windows setup starts with a machine-wide Python installation and uses it to create a virtual environment for each project. The problem I wanted to avoid was silent fallback. If activation leaves the wrong directory first on `PATH`, a build can still find `python.exe` and run successfully with the wrong interpreter. An inherited `PYTHONPATH` can also make the intended interpreter import modules from another project. Child processes inherit both settings.
+
+Windows does not require a system Python. I can leave Python off the machine-wide `PATH`, start with a plain Command Prompt, and choose an interpreter for the project at hand.
+
+- **One installation per project.** The project prefix contains Python, its package managers, and its dependencies. I can rebuild one project without replacing a shared base interpreter.
+- **At most one environment per shell.** I start from a clean prompt and activate one project. The launcher stops if Conda is already active or if CMD can already find `python.exe` or `conda.bat`.
+- **Child shells stay with the same project.** Build scripts and programs launched from the activated prompt inherit its environment. To work on a different project, I open a fresh prompt instead of switching environments in a child shell.
+- **Activation is explicit.** I want opening CMD to leave the choice of project to me. The harness calls the project’s Conda wrapper when needed and requires no persistent Micromamba shell hook or CMD `AutoRun` entry.
+
+Each project owns its installed environment. The harness shares downloads and package caches across projects, and Micromamba’s shell integration can leave files in the Windows user profile.
+
 ## Create the project environment
 
 Copy the **contents** of the [Windows harness directory](https://github.com/pchemguy/Conda-Bootstrap/tree/main/windows) into the local directory that will hold the project environment. For example, with `Anaconda.bat` in `D:\Dev\MyProject`, the resulting interpreter is `D:\Dev\MyProject\Anaconda\python.exe`. Pick the final location before building because installed wrappers can contain absolute paths.
@@ -20,7 +33,21 @@ Edit the manifests beside `Anaconda.bat` before the first run.
 | `Anaconda.yml` | Conda project dependencies. The supplied manifest includes Node.js, NumPy, pandas, and Polars. |
 | `Anaconda.txt` | Python requirements to install with uv after the Conda packages, including packages from PyPI or direct wheel URLs. |
 
-**Before the first run**, check the pip and uv caches under `%LOCALAPPDATA%`. The harness replaces `pip\cache` and `uv\cache` with junctions to a shared cache, deleting the contents of existing ordinary directories at those paths. To choose the shared cache, set `_CACHE` to an existing writable directory. On the Conda path, the bootstrap also pauses before recursively deleting an existing `%APPDATA%\mamba`. The `/q` option skips that pause.
+**Before the first run**, check the pip and uv caches under `%LOCALAPPDATA%`. The harness replaces `pip\cache` and `uv\cache` with junctions to a shared cache, deleting the contents of existing ordinary directories at those paths. To choose the shared cache, set `_CACHE` to an existing writable directory.
+
+> [!WARNING]
+> **Micromamba can fail silently after a CMD shell-hook experiment.** In my original tests, `micromamba.exe shell hook -s cmd.exe` created scripts under `%APPDATA%\mamba`. Afterward, even running `micromamba.exe` without arguments could return to the prompt without printing its usual usage information. Those hook scripts are unnecessary for creating a Conda prefix.
+>
+> If you see this symptom, run the executable directly from the directory containing it and check the exit status immediately. A nonzero status can be the only indication of failure.
+>
+> ```bat
+> .\micromamba.exe
+> echo %ERRORLEVEL%
+> ```
+>
+> If `%APPDATA%\mamba` exists, move it aside and repeat the check, or remove it if you no longer need its contents. This directory belongs to the Windows user profile and can be shared by several projects.
+>
+> `Anaconda.bat` checks `micromamba.exe --version` **before** it reaches cleanup. If that check fails, the script stops and the directory is still there. If the check succeeds and `%APPDATA%\mamba` exists, the Conda bootstrap warns that Micromamba can hang with that directory present. It pauses, then recursively deletes the directory before creating the prefix. Passing `/q` skips the pause and proceeds with deletion.
 
 On x64 Windows, open a Command Prompt with `curl.exe` and `tar.exe` available and no other Python or Conda installation on `PATH`. Run the bootstrap from the directory containing the copied files.
 
@@ -56,7 +83,5 @@ When the sibling `msbuild.bat` is present, the launcher asks it to detect and ac
 ## Why I use the installed Conda wrapper
 
 **Shell initialization and activation have different lifetimes.** In my original CMD tests, `micromamba shell init` could register an `AutoRun` command that affected subsequent Command Prompts. I also tried calling `mamba_hook.bat` directly. In the version I tested, it left `MAMBA_ROOT_PREFIX` unset, while the wrapper generated through `micromamba shell hook` set it. Creating a prefix with `micromamba.exe create` needs neither step. Once the prefix exists, the harness calls its `condabin\conda.bat` explicitly.
-
-**A shell-hook experiment left persistent files.** After running `micromamba.exe shell hook -s cmd.exe`, I saw files under `%APPDATA%\mamba` and subsequent Micromamba invocations sometimes produced no console output, even when I expected the usage text. In that situation, `echo %ERRORLEVEL%` immediately after the command is more informative than an empty console. This is the history behind the bootstrap’s cleanup of that directory.
 
 **The command name can hide which file CMD runs.** An active prefix can expose both `conda.bat` and `conda.exe`, or `mamba.bat` and `mamba.exe`. Their locations on `PATH` affect which one a bare command selects. That matters for activation because a batch wrapper can change the calling CMD environment. The harness calls the wrapper by path. In the earlier prototype I also tried rewriting absolute paths in generated Mamba wrappers with [a sed helper](get_sed.bat). The current harness uses the installed wrappers as supplied. If a project moves, rebuild its prefix at the destination.
