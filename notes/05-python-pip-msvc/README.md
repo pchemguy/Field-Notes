@@ -152,22 +152,8 @@ I'd make it a bit more precise and less colloquial while explaining _why_ the cl
 
 ## **MSVC Linker and MSYS Name Collision**
 
-Another issue I encountered when setting up Conda environments for native Windows builds involves a name collision between the MSVC and MSYS linkers.
+After getting setuptools to use my active MSVC environment, I encountered a second issue. My Conda environment contained an MSYS utility at `%CONDA_PREFIX%\Library\usr\bin\link.exe`. When that directory came first on `PATH`, builds invoked the MSYS utility instead of Microsoft’s linker, even though `cl.exe` worked.
 
-The Conda `git` package bundles a minimal MSYS2 environment and places its executables under:
+To check for this collision, run `where.exe cl.exe` and `where.exe link.exe` in the shell used for the build. The first result for each should point to the same MSVC toolset directory.
 
-```text
-{PYTHONHOME}\Library\usr\bin
-```
-
-This directory contains an MSYS utility named `link.exe`, which is unrelated to the Microsoft linker. Because the directory is added to `PATH` when the Conda environment is activated, it can take precedence over the MSVC `link.exe` when both the Conda and MSVC environments are active in the same shell.
-
-As a result, build systems expecting the Microsoft linker may instead invoke the MSYS utility, leading to confusing build failures.
-
-For my own environments, the simplest solution has been to rename the MSYS executable:
-
-```text
-link.exe → link_.exe
-```
-
-(or remove it entirely if it is not needed). In my experience, this has had no adverse effects and allows the MSVC linker to be resolved correctly via `PATH`.
+In my environment, I renamed the MSYS copy to `link_.exe`. The Windows harness now automates that rename and verifies which linker CMD resolves. [Conda Bootstrap - bootstrap and activation details](https://github.com/pchemguy/Conda-Bootstrap#bootstrap-and-activation-details)
