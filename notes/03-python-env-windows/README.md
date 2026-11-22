@@ -8,6 +8,9 @@ On Windows, the [Conda Bootstrap CMD harness](https://github.com/pchemguy/Conda-
 
 Conda Bootstrap also provides a **Linux variant for Bash**. From the directory containing the copied Linux harness, run `bash ./Anaconda.sh` to create the local `Anaconda/` environment, then `source ./Anaconda_activate.sh` to activate it in the current shell. [Linux setup and usage](https://github.com/pchemguy/Conda-Bootstrap#linux-harness)
 
+> [!NOTE]
+> I keep my customized Conda Bootstrap setups in [my private `aipg` repository](https://github.com/pchemguy/aipg/tree/main/Python%20Bootsrap).
+
 ## Background and Motivation
 
 A common Windows setup starts with a machine-wide Python installation and uses it to create a virtual environment for each project. The problem I wanted to avoid was silent fallback. If activation leaves the wrong directory first on `PATH`, a build can still find `python.exe` and run successfully with the wrong interpreter. An inherited `PYTHONPATH` can also make the intended interpreter import modules from another project. Child processes inherit both settings.
