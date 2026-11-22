@@ -36,18 +36,7 @@ Edit the manifests beside `Anaconda.bat` before the first run.
 **Before the first run**, check the pip and uv caches under `%LOCALAPPDATA%`. The harness replaces `pip\cache` and `uv\cache` with junctions to a shared cache, deleting the contents of existing ordinary directories at those paths. To choose the shared cache, set `_CACHE` to an existing writable directory.
 
 > [!WARNING]
-> **Micromamba can fail silently after a CMD shell-hook experiment.** In my original tests, `micromamba.exe shell hook -s cmd.exe` created scripts under `%APPDATA%\mamba`. Afterward, even running `micromamba.exe` without arguments could return to the prompt without printing its usual usage information. Those hook scripts are unnecessary for creating a Conda prefix.
->
-> If you see this symptom, run the executable directly from the directory containing it and check the exit status immediately. A nonzero status can be the only indication of failure.
->
-> ```bat
-> .\micromamba.exe
-> echo %ERRORLEVEL%
-> ```
->
-> If `%APPDATA%\mamba` exists, move it aside and repeat the check, or remove it if you no longer need its contents. This directory belongs to the Windows user profile and can be shared by several projects.
->
-> `Anaconda.bat` checks `micromamba.exe --version` **before** it reaches cleanup. If that check fails, the script stops and the directory is still there. If the check succeeds and `%APPDATA%\mamba` exists, the Conda bootstrap warns that Micromamba can hang with that directory present. It pauses, then recursively deletes the directory before creating the prefix. Passing `/q` skips the pause and proceeds with deletion.
+> In my CMD tests, `micromamba.exe shell hook -s cmd.exe` left scripts in `%APPDATA%\mamba`. If `micromamba.exe` prints nothing when run without arguments, check `echo %ERRORLEVEL%` immediately, move the directory aside if present, and retry. After its `--version` check succeeds, `Anaconda.bat` pauses before recursively deleting that directory if it exists. `/q` skips the pause.
 
 On x64 Windows, open a Command Prompt with `curl.exe` and `tar.exe` available and no other Python or Conda installation on `PATH`. Run the bootstrap from the directory containing the copied files.
 
