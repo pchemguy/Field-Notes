@@ -1,3 +1,8 @@
+---
+urls:
+  - https://chatgpt.com/c/6a648dd8-677c-83eb-ae07-14535c01617c
+---
+
 # Integrating Ordinary Loadable Extensions into the Amalgamation as Auto-Extensions
 
 ## Summary
